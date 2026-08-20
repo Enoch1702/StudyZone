@@ -1,0 +1,17 @@
+# Dependencies & Build
+node_modules
+dist
+dist-ssr
+
+# Environment variables
+.env
+.env.*
+!.env.example
+*.local
+
+# System & Editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
