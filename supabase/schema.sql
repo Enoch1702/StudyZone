@@ -389,3 +389,30 @@ CREATE POLICY "Users can delete own study plans"
   ON public.study_plans
   FOR DELETE
   USING (auth.uid() = user_id);
+
+-- Allow authenticated users to access tables.
+-- Row Level Security policies still control which rows they can access.
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.profiles
+TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.subjects
+TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.tasks
+TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.deadlines
+TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.study_sessions
+TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.study_plans
+TO authenticated;
