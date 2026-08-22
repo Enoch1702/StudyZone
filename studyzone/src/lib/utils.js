@@ -42,7 +42,17 @@ export function daysUntil(dateStr) {
 export function getDeadlineUrgency(dateStr) {
   const days = daysUntil(dateStr)
 
-  if (days <= 0) {
+  if (days < 0) {
+    const overdueDays = Math.abs(days)
+    return {
+      level: 'urgent',
+      label: 'Overdue',
+      detail: `${overdueDays} day${overdueDays !== 1 ? 's' : ''} ago`,
+      variant: 'danger',
+    }
+  }
+
+  if (days === 0) {
     return {
       level: 'urgent',
       label: 'Due today',
