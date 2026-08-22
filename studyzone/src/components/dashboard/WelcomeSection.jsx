@@ -1,8 +1,14 @@
-import { mockUserProfile, dashboardStats, todaysFocusTasks, upcomingDeadlines } from '../../data/mockData'
+import { useAuth } from '../../context/useAuth'
+import { dashboardStats, todaysFocusTasks, upcomingDeadlines } from '../../data/mockData'
 import { getGreeting } from '../../lib/utils'
 
 export function WelcomeSection() {
-  const { displayName } = mockUserProfile
+  const { profile, user } = useAuth()
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Student'
   const greeting = getGreeting()
   const tasksDueToday = todaysFocusTasks.filter((t) => !t.completed).length
   const deadlinesThisWeek = upcomingDeadlines.length

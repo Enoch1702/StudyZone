@@ -1,10 +1,15 @@
 import { Bell, Menu, Search } from 'lucide-react'
 import { Input } from '../ui/Input'
-import { mockUserProfile } from '../../data/mockData'
+import { useAuth } from '../../context/useAuth'
 import { getInitials } from '../../lib/utils'
 
 export function Header({ onMenuClick, title }) {
-  const { displayName } = mockUserProfile
+  const { profile, user } = useAuth()
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Student'
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
@@ -45,11 +50,11 @@ export function Header({ onMenuClick, title }) {
 
         <div className="flex items-center gap-2 border-l border-border pl-2 sm:gap-2.5 sm:pl-3">
           <div className="hidden text-right sm:block">
-            <p className="text-xs font-medium text-foreground">{displayName}</p>
+            <p className="text-xs font-medium text-foreground truncate max-w-[140px]">{displayName}</p>
             <p className="text-[11px] text-muted-foreground">Student</p>
           </div>
           <div
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-raised text-[11px] font-semibold text-accent"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-raised text-[11px] font-semibold text-accent uppercase"
             aria-hidden="true"
           >
             {getInitials(displayName)}

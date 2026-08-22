@@ -1,38 +1,245 @@
-import { BookOpen, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertCircle, BookOpen, Plus, RefreshCw } from 'lucide-react'
+import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import { SubjectCard } from '../components/subjects/SubjectCard'
+import { LoadingState } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
-import { subjects } from '../data/mockData'
+import { SubjectCard } from '../components/subjects/SubjectCard'
+import { SubjectModal } from '../components/subjects/SubjectModal'
+import { DeleteSubjectModal } from '../components/subjects/DeleteSubjectModal'
+import {
+  getSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+} from '../services/subjectsService'
 
 export default function SubjectsPage() {
+  const { user } = useAuth()
+
+  const [subjects, setSubjects] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  // Modal States
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    subject: null,
+  })
+  const [deleteModalState, setDeleteModalState] = useState({
+    isOpen: false,
+    subject: null,
+  })
+
+  // Action status states
+  const [actionLoading, setActionLoading] = useState(false)
+  const [bannerError, setBannerError] = useState('')
+
+  useEffect(() => {
+    let ignore = false
+
+    async function loadData() {
+      if (!user?.id) return
+
+      const { data, error } = await getSubjects(user.id)
+      if (!ignore) {
+        if (error) {
+          setFetchError(error.message || 'Unable to load subjects from database.')
+        } else {
+          setSubjects(data || [])
+          setFetchError('')
+        }
+        setLoading(false)
+      }
+    }
+
+    loadData()
+
+    return () => {
+      ignore = true
+    }
+  }, [user, reloadKey])
+
+  function handleRetry() {
+    setLoading(true)
+    setFetchError('')
+    setReloadKey((prev) => prev + 1)
+  }
+
+  // Open Create Modal
+  function handleOpenCreate() {
+    setBannerError('')
+    setModalState({ isOpen: true, subject: null })
+  }
+
+  // Open Edit Modal
+  function handleOpenEdit(subject) {
+    setBannerError('')
+    setModalState({ isOpen: true, subject })
+  }
+
+  // Open Delete Modal
+  function handleOpenDelete(subject) {
+    setBannerError('')
+    setDeleteModalState({ isOpen: true, subject })
+  }
+
+  // Handle Save (Create or Update)
+  async function handleSaveSubject({ name, description, color }) {
+    if (!user?.id) return
+    setActionLoading(true)
+    setBannerError('')
+
+    if (modalState.subject) {
+      // Edit mode
+      const { data, error } = await updateSubject({
+        id: modalState.subject.id,
+        userId: user.id,
+        name,
+        description,
+        color,
+      })
+
+      if (error) {
+        setBannerError(error.message || 'Failed to update subject.')
+      } else if (data) {
+        setSubjects((prev) =>
+          prev.map((item) => (item.id === data.id ? data : item)),
+        )
+        setModalState({ isOpen: false, subject: null })
+      }
+    } else {
+      // Create mode
+      const { data, error } = await createSubject({
+        userId: user.id,
+        name,
+        description,
+        color,
+      })
+
+      if (error) {
+        setBannerError(error.message || 'Failed to create subject.')
+      } else if (data) {
+        setSubjects((prev) => [...prev, data])
+        setModalState({ isOpen: false, subject: null })
+      }
+    }
+    setActionLoading(false)
+  }
+
+  // Handle Delete Confirmation
+  async function handleConfirmDelete() {
+    if (!user?.id || !deleteModalState.subject) return
+    setActionLoading(true)
+    setBannerError('')
+
+    const subjectToDelete = deleteModalState.subject
+    const { error } = await deleteSubject({
+      id: subjectToDelete.id,
+      userId: user.id,
+    })
+
+    if (error) {
+      setBannerError(error.message || 'Failed to delete subject.')
+    } else {
+      setSubjects((prev) => prev.filter((item) => item.id !== subjectToDelete.id))
+      setDeleteModalState({ isOpen: false, subject: null })
+    }
+    setActionLoading(false)
+  }
+
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
         description="Organize your courses and track progress across subjects."
         actions={
-          <Button>
+          <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
-            Add Subject
+            <span>Add Subject</span>
           </Button>
         }
       />
 
-      {subjects.length === 0 ? (
+      {/* Global Error Banner */}
+      {bannerError && (
+        <div
+          className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
+          role="alert"
+        >
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{bannerError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBannerError('')}
+            className="text-danger hover:underline ml-3 font-medium"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      {loading ? (
+        <LoadingState message="Loading your courses and subjects..." />
+      ) : fetchError ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface p-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground">Failed to load subjects</h3>
+          <p className="max-w-md text-sm text-muted">{fetchError}</p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleRetry}
+            className="gap-2 mt-2"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Try Again</span>
+          </Button>
+        </div>
+      ) : subjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="No subjects yet"
-          description="Add your first subject to organize tasks, deadlines, and track course progress in one place."
+          description="Add your first course or subject to organize tasks, deadlines, and study plans in one place."
           actionLabel="Add Subject"
-          onAction={() => {}}
+          onAction={handleOpenCreate}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {subjects.map((subject) => (
-            <SubjectCard key={subject.id} subject={subject} />
+            <SubjectCard
+              key={subject.id}
+              subject={subject}
+              onEdit={handleOpenEdit}
+              onDelete={handleOpenDelete}
+            />
           ))}
         </div>
       )}
+
+      {/* Create / Edit Subject Modal */}
+      <SubjectModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, subject: null })}
+        onSave={handleSaveSubject}
+        subject={modalState.subject}
+        loading={actionLoading}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteSubjectModal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState({ isOpen: false, subject: null })}
+        onConfirm={handleConfirmDelete}
+        subject={deleteModalState.subject}
+        loading={actionLoading}
+      />
     </PageContainer>
   )
 }

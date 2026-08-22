@@ -24,11 +24,12 @@ export function Badge({ className, variant = 'default', children }) {
 
 export function PriorityBadge({ priority }) {
   const config = {
+    urgent: { label: 'Urgent', variant: 'danger' },
     high: { label: 'High', variant: 'danger' },
     medium: { label: 'Medium', variant: 'warning' },
     low: { label: 'Low', variant: 'default' },
   }
-  const { label, variant } = config[priority] ?? config.low
+  const { label, variant } = config[priority] ?? config.medium
 
   return <Badge variant={variant}>{label}</Badge>
 }

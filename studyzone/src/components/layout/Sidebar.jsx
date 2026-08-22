@@ -6,10 +6,12 @@ import {
   CheckSquare,
   GraduationCap,
   LayoutDashboard,
+  LogOut,
   Settings,
   X,
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { useAuth } from '../../context/useAuth'
+import { cn, getInitials } from '../../lib/utils'
 
 const navItems = [
   { to: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard, end: true },
@@ -21,6 +23,19 @@ const navItems = [
 ]
 
 export function Sidebar({ open, onClose }) {
+  const { profile, user, signOut } = useAuth()
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split('@')[0] ||
+    'Student'
+  const displayEmail = profile?.email || user?.email || ''
+
+  async function handleSignOut() {
+    await signOut()
+    if (onClose) onClose()
+  }
+
   return (
     <>
       {open && (
@@ -78,6 +93,33 @@ export function Sidebar({ open, onClose }) {
             </NavLink>
           ))}
         </nav>
+
+        {/* User Account & Sign Out footer */}
+        <div className="border-t border-border p-2">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50">
+            <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-raised text-[10px] font-bold text-accent uppercase"
+                aria-hidden="true"
+              >
+                {getInitials(displayName)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-foreground">{displayName}</p>
+                <p className="truncate text-[10px] text-muted-foreground">{displayEmail}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              title="Sign out"
+              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   )
