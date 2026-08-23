@@ -31,8 +31,27 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT NOT NULL DEFAULT '',
   email TEXT NOT NULL,
   avatar_url TEXT,
-  learner_type TEXT,
-  primary_goal TEXT,
+  learner_type TEXT CHECK (
+    learner_type IS NULL OR learner_type IN (
+      'college',
+      'school',
+      'placement',
+      'competitive_exam',
+      'skill_dev',
+      'self_learning'
+    )
+  ),
+  primary_goal TEXT CHECK (
+    primary_goal IS NULL OR primary_goal IN (
+      'exams',
+      'placements',
+      'skills',
+      'competitive_exam',
+      'consistency',
+      'course_cert',
+      'learn_new'
+    )
+  ),
   learning_focus TEXT,
   onboarding_completed BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
