@@ -44,7 +44,9 @@ export async function getTasks(userId) {
  * Create a new task for the authenticated user.
  * @param {Object} params
  * @param {string} params.userId - Authenticated user UUID (from Supabase session)
- * @param {string|null} params.subjectId - Optional subject UUID
+ * @param {string|null} [params.subjectId] - Optional subject UUID
+ * @param {string|null} [params.planId] - Optional learning plan UUID
+ * @param {string|null} [params.milestoneId] - Optional learning milestone UUID
  * @param {string} params.title - Task title (required, non-empty)
  * @param {string} [params.description] - Optional description
  * @param {string} [params.priority] - 'low' | 'medium' | 'high' | 'urgent'
@@ -56,6 +58,8 @@ export async function getTasks(userId) {
 export async function createTask({
   userId,
   subjectId,
+  planId,
+  milestoneId,
   title,
   description,
   priority = 'medium',
@@ -86,6 +90,8 @@ export async function createTask({
         {
           user_id: userId,
           subject_id: subjectId || null,
+          plan_id: planId || null,
+          milestone_id: milestoneId || null,
           title: cleanTitle,
           description: description?.trim() || null,
           priority: priority || 'medium',
@@ -119,7 +125,9 @@ export async function createTask({
  * @param {Object} params
  * @param {string} params.id - Task UUID
  * @param {string} params.userId - Authenticated user UUID
- * @param {string|null} params.subjectId
+ * @param {string|null} [params.subjectId]
+ * @param {string|null} [params.planId]
+ * @param {string|null} [params.milestoneId]
  * @param {string} params.title
  * @param {string} [params.description]
  * @param {string} [params.priority]
@@ -132,6 +140,8 @@ export async function updateTask({
   id,
   userId,
   subjectId,
+  planId,
+  milestoneId,
   title,
   description,
   priority,
@@ -170,6 +180,9 @@ export async function updateTask({
           : null,
       updated_at: new Date().toISOString(),
     }
+
+    if (planId !== undefined) updates.plan_id = planId || null
+    if (milestoneId !== undefined) updates.milestone_id = milestoneId || null
 
     // Sync completed_at with status
     if (status === 'completed') {

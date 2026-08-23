@@ -5,6 +5,7 @@ import {
   Bot,
   CalendarDays,
   CheckSquare,
+  Compass,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -16,6 +17,7 @@ import { cn, getInitials } from '../../lib/utils'
 
 const navItems = [
   { to: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard, end: true },
+  { to: '/plans', label: 'Learning Plans', shortLabel: 'Plans', icon: Compass },
   { to: '/subjects', label: 'Subjects', shortLabel: 'Subjects', icon: BookOpen },
   { to: '/tasks', label: 'Tasks', shortLabel: 'Tasks', icon: CheckSquare },
   { to: '/deadlines', label: 'Deadlines', shortLabel: 'Due', icon: CalendarDays },

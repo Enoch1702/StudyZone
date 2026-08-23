@@ -4,6 +4,8 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { PublicRoute } from './components/auth/PublicRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import DashboardPage from './pages/DashboardPage'
+import LearningPlansPage from './pages/LearningPlansPage'
+import LearningPlanDetailPage from './pages/LearningPlanDetailPage'
 import SubjectsPage from './pages/SubjectsPage'
 import TasksPage from './pages/TasksPage'
 import DeadlinesPage from './pages/DeadlinesPage'
@@ -27,6 +29,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="plans" element={<LearningPlansPage />} />
+              <Route path="plans/:planId" element={<LearningPlanDetailPage />} />
               <Route path="subjects" element={<SubjectsPage />} />
               <Route path="tasks" element={<TasksPage />} />
               <Route path="deadlines" element={<DeadlinesPage />} />

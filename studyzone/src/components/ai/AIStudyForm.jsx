@@ -20,6 +20,7 @@ export function ChatMessage({
   subjects = [],
   existingTasks = [],
   existingDeadlines = [],
+  existingPlans = [],
   appliedState = null,
   onApplyActions,
   onDismissActions,
@@ -117,6 +118,7 @@ export function ChatMessage({
             subjects={subjects}
             existingTasks={existingTasks}
             existingDeadlines={existingDeadlines}
+            existingPlans={existingPlans}
             appliedState={appliedState}
             onApply={onApplyActions}
             onDismiss={onDismissActions}

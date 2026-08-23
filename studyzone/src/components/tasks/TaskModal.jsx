@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, CheckSquare, X } from 'lucide-react'
 import { Button } from '../ui/Button'
@@ -25,7 +25,15 @@ const STATUS_OPTIONS = [
  * when switching between create (key='new-task') and edit (key=task.id),
  * giving each form clean initial state.
  */
-function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
+function TaskFormContent({
+  task,
+  subjects = [],
+  plans = [],
+  milestones = [],
+  onSave,
+  onClose,
+  loading,
+}) {
   const isEditing = Boolean(task)
 
   const [title, setTitle] = useState(task?.title || '')
@@ -33,6 +41,8 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
   const [priority, setPriority] = useState(task?.priority || 'medium')
   const [status, setStatus] = useState(task?.status || 'pending')
   const [subjectId, setSubjectId] = useState(task?.subject_id || '')
+  const [planId, setPlanId] = useState(task?.plan_id || '')
+  const [milestoneId, setMilestoneId] = useState(task?.milestone_id || '')
   // due_date is stored as TIMESTAMPTZ — convert to YYYY-MM-DD for the date input
   const [dueDate, setDueDate] = useState(
     task?.due_date ? task.due_date.split('T')[0] : '',
@@ -41,6 +51,12 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
     task?.estimated_minutes != null ? String(task.estimated_minutes) : '',
   )
   const [error, setError] = useState('')
+
+  // Filter milestones based on selected plan
+  const availableMilestones = useMemo(() => {
+    if (!planId) return milestones
+    return milestones.filter((m) => m.plan_id === planId)
+  }, [planId, milestones])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -66,6 +82,8 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
       priority,
       status,
       subjectId: subjectId || null,
+      planId: planId || null,
+      milestoneId: milestoneId || null,
       // Convert local date string to ISO for Supabase TIMESTAMPTZ
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
       estimatedMinutes: estimatedMinutes !== '' ? Number(estimatedMinutes) : null,
@@ -178,6 +196,54 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
         </Select>
       </div>
 
+      {/* Learning Plan & Milestone (Optional) */}
+      {(plans.length > 0 || milestones.length > 0) && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label htmlFor="task-plan" className="block text-xs font-medium text-muted">
+              Learning Plan <span className="text-[11px] text-muted-foreground">(optional)</span>
+            </label>
+            <Select
+              id="task-plan"
+              value={planId}
+              onChange={(e) => {
+                setPlanId(e.target.value)
+                setMilestoneId('')
+              }}
+              disabled={loading}
+              className="w-full"
+            >
+              <option value="">No plan</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="task-milestone" className="block text-xs font-medium text-muted">
+              Milestone <span className="text-[11px] text-muted-foreground">(optional)</span>
+            </label>
+            <Select
+              id="task-milestone"
+              value={milestoneId}
+              onChange={(e) => setMilestoneId(e.target.value)}
+              disabled={loading || availableMilestones.length === 0}
+              className="w-full"
+            >
+              <option value="">No milestone</option>
+              {availableMilestones.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.title}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      )}
+
       {/* Due Date & Estimated Minutes row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -218,17 +284,20 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
           size="sm"
           onClick={onClose}
           disabled={loading}
+          className="text-xs"
         >
           Cancel
         </Button>
-        <Button type="submit" size="sm" disabled={loading} className="gap-2">
+        <Button type="submit" size="sm" disabled={loading} className="text-xs">
           {loading ? (
-            <>
+            <span className="flex items-center gap-1.5">
               <LoadingSpinner size="sm" />
-              <span>{isEditing ? 'Saving...' : 'Creating...'}</span>
-            </>
+              {isEditing ? 'Saving...' : 'Creating...'}
+            </span>
+          ) : isEditing ? (
+            'Save Changes'
           ) : (
-            <span>{isEditing ? 'Save Changes' : 'Create Task'}</span>
+            'Create Task'
           )}
         </Button>
       </div>
@@ -236,84 +305,113 @@ function TaskFormContent({ task, subjects, onSave, onClose, loading }) {
   )
 }
 
+/**
+ * TaskModal — Create or edit a task.
+ *
+ * @param {boolean} open - Whether the modal is visible
+ * @param {Function} onClose - Called when modal is dismissed
+ * @param {Object|null} task - Task object to edit, or null to create new
+ * @param {Array} subjects - List of subjects for the subject dropdown
+ * @param {Array} [plans] - List of learning plans
+ * @param {Array} [milestones] - List of learning milestones
+ * @param {Function} onSave - Async callback called with form payload on submit
+ * @param {boolean} [loading=false] - External loading state
+ */
 export function TaskModal({
+  open,
   isOpen,
   onClose,
-  onSave,
-  task = null,
+  task,
   subjects = [],
+  plans = [],
+  milestones = [],
+  onSave,
   loading = false,
 }) {
+  const isModalOpen = Boolean(open ?? isOpen)
   const isEditing = Boolean(task)
 
-  // Escape key to close
+  // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen && !loading) {
+      if (e.key === 'Escape' && isModalOpen) {
         onClose()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, loading, onClose])
+  }, [isModalOpen, onClose])
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div
+      {isModalOpen && (
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-modal-title"
-          variants={modalBackdrop}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
         >
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
-            onClick={() => { if (!loading) onClose() }}
+          <motion.div
+            variants={modalBackdrop}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            onClick={onClose}
             aria-hidden="true"
           />
 
-          {/* Modal panel */}
+          {/* Modal Panel */}
           <motion.div
-            className="relative w-full max-w-lg overflow-y-auto max-h-[90vh] rounded-xl border border-border bg-surface shadow-2xl"
             variants={modalPanel}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface shadow-xl overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-accent/10">
-                  <CheckSquare className="h-4 w-4 text-accent" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-muted text-accent">
+                  <CheckSquare className="h-4 w-4" />
                 </div>
-                <h2 id="task-modal-title" className="text-base font-semibold text-foreground">
-                  {isEditing ? 'Edit Task' : 'Add New Task'}
-                </h2>
+                <div>
+                  <h2 id="task-modal-title" className="text-sm font-semibold text-foreground">
+                    {isEditing ? 'Edit Task' : 'New Task'}
+                  </h2>
+                  <p className="text-[11px] text-muted">
+                    {isEditing
+                      ? 'Update task details and progress'
+                      : 'Add a new actionable item to your study list'}
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                aria-label="Close dialog"
-                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
+                aria-label="Close modal"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Form body — keyed so state resets when switching create↔edit */}
+            {/* Form body keyed to task id to ensure clean state reset */}
             <TaskFormContent
               key={task?.id || 'new-task'}
               task={task}
               subjects={subjects}
+              plans={plans}
+              milestones={milestones}
               onSave={onSave}
               onClose={onClose}
               loading={loading}
             />
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   )

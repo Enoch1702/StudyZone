@@ -5,6 +5,7 @@ import { WelcomeSection } from '../components/dashboard/WelcomeSection'
 import { StatsGrid } from '../components/dashboard/StatsGrid'
 import { TodaysFocus } from '../components/dashboard/TodaysFocus'
 import { UpcomingDeadlinesList } from '../components/dashboard/UpcomingDeadlinesList'
+import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans'
 import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
 import {
@@ -53,6 +54,8 @@ export default function DashboardPage() {
         deadlines: result.deadlines,
         subjects: result.subjects,
         tasks: result.tasks,
+        plans: result.plans,
+        milestones: result.milestones,
       })
     }
 
@@ -79,18 +82,31 @@ export default function DashboardPage() {
 
       <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-        <TodaysFocus
-          loading={loading}
-          tasks={dashData?.focusTasks ?? []}
-          subjects={dashData?.subjects ?? []}
-          onTaskToggled={loadData}
-        />
-        <UpcomingDeadlinesList
-          loading={loading}
-          deadlines={dashData?.deadlines ?? []}
-          subjects={dashData?.subjects ?? []}
-        />
+      {/* Focus, Deadlines & Active Plans Grid */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <ActiveLearningPlans
+            loading={loading}
+            plans={dashData?.plans ?? []}
+            milestones={dashData?.milestones ?? []}
+            tasks={dashData?.tasks ?? []}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <TodaysFocus
+            loading={loading}
+            tasks={dashData?.focusTasks ?? []}
+            subjects={dashData?.subjects ?? []}
+            onTaskToggled={loadData}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <UpcomingDeadlinesList
+            loading={loading}
+            deadlines={dashData?.deadlines ?? []}
+            subjects={dashData?.subjects ?? []}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">

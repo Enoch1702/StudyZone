@@ -6,8 +6,10 @@ import {
   CheckSquare,
   CheckCircle2,
   Clock,
+  Compass,
   Edit2,
   ListTodo,
+  Milestone,
   Plus,
   Sparkles,
   Square,
@@ -23,7 +25,8 @@ import { formatDate, cn } from '../../lib/utils'
 import { fadeUp, staggerContainer, staggerItem } from '../../lib/motion'
 
 /**
- * Interactive review component for AI-generated action proposals (tasks & deadlines).
+ * Interactive review component for AI-generated action proposals
+ * (Tasks, Deadlines, and Learning Plans).
  * Allows the user to select/deselect, edit, remove items, and explicitly confirm before saving to database.
  */
 export function AIActionProposal({
@@ -31,6 +34,7 @@ export function AIActionProposal({
   subjects = [],
   existingTasks = [],
   existingDeadlines = [],
+  existingPlans = [],
   appliedState = null,
   onApply,
   onDismiss,
@@ -60,7 +64,7 @@ export function AIActionProposal({
         <div className="flex items-center gap-2.5 text-xs text-accent font-medium">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>
-            Added {appliedState.count} item{appliedState.count !== 1 ? 's' : ''} to your StudyZone! View them anytime in your Tasks and Deadlines.
+            Added {appliedState.count} item{appliedState.count !== 1 ? 's' : ''} to your StudyZone! View them in your Plans, Tasks, or Deadlines.
           </span>
         </div>
       </motion.div>
@@ -90,6 +94,16 @@ export function AIActionProposal({
   function handleUpdateField(id, field, value) {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
+    )
+  }
+
+  function handleRemovePlanMilestone(itemId, milestoneIndex) {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== itemId || !Array.isArray(item.milestones)) return item
+        const updated = item.milestones.filter((_, idx) => idx !== milestoneIndex)
+        return { ...item, milestones: updated }
+      }),
     )
   }
 
@@ -153,12 +167,13 @@ export function AIActionProposal({
       </div>
 
       {/* Action Items List */}
-      <div className="p-3 sm:p-4 space-y-2.5 max-h-[380px] overflow-y-auto">
+      <div className="p-3 sm:p-4 space-y-2.5 max-h-[400px] overflow-y-auto">
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-2">
           <AnimatePresence>
             {items.map((item) => {
               const isTask = item.type === 'create_task'
-              const isDuplicate = isDuplicateAction(item, existingTasks, existingDeadlines)
+              const isPlan = item.type === 'create_learning_plan'
+              const isDuplicate = isDuplicateAction(item, existingTasks, existingDeadlines, existingPlans)
 
               return (
                 <motion.div
@@ -194,13 +209,21 @@ export function AIActionProposal({
                           <span
                             className={cn(
                               'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                              isTask
-                                ? 'bg-primary/10 text-primary border border-primary/20'
-                                : 'bg-warning/10 text-warning border border-warning/20',
+                              isPlan
+                                ? 'bg-accent/15 text-accent border border-accent/30'
+                                : isTask
+                                  ? 'bg-primary/10 text-primary border border-primary/20'
+                                  : 'bg-warning/10 text-warning border border-warning/20',
                             )}
                           >
-                            {isTask ? <ListTodo className="h-2.5 w-2.5" /> : <CalendarDays className="h-2.5 w-2.5" />}
-                            {isTask ? 'Task' : 'Deadline'}
+                            {isPlan ? (
+                              <Compass className="h-2.5 w-2.5" />
+                            ) : isTask ? (
+                              <ListTodo className="h-2.5 w-2.5" />
+                            ) : (
+                              <CalendarDays className="h-2.5 w-2.5" />
+                            )}
+                            {isPlan ? 'Learning Plan' : isTask ? 'Task' : 'Deadline'}
                           </span>
 
                           {isTask && item.priority && (
@@ -209,7 +232,7 @@ export function AIActionProposal({
                             </Badge>
                           )}
 
-                          {!isTask && item.deadline_type && (
+                          {!isTask && !isPlan && item.deadline_type && (
                             <Badge variant="default" className="text-[10px] py-0 px-1.5 capitalize">
                               {item.deadline_type}
                             </Badge>
@@ -241,57 +264,69 @@ export function AIActionProposal({
                               />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                              {isTask ? (
-                                <div>
-                                  <label className="block text-[10px] font-medium text-muted mb-0.5">Priority</label>
-                                  <select
-                                    value={item.priority || 'medium'}
-                                    onChange={(e) => handleUpdateField(item.id, 'priority', e.target.value)}
-                                    className="w-full h-8 rounded-lg border border-border bg-surface px-2 text-xs text-foreground focus:border-accent focus:outline-none"
-                                  >
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="urgent">Urgent</option>
-                                  </select>
-                                </div>
-                              ) : (
-                                <div>
-                                  <label className="block text-[10px] font-medium text-muted mb-0.5">Type</label>
-                                  <select
-                                    value={item.deadline_type || 'assignment'}
-                                    onChange={(e) => handleUpdateField(item.id, 'deadline_type', e.target.value)}
-                                    className="w-full h-8 rounded-lg border border-border bg-surface px-2 text-xs text-foreground focus:border-accent focus:outline-none"
-                                  >
-                                    <option value="exam">Exam</option>
-                                    <option value="assignment">Assignment</option>
-                                    <option value="project">Project</option>
-                                    <option value="quiz">Quiz</option>
-                                    <option value="presentation">Presentation</option>
-                                    <option value="other">Other</option>
-                                  </select>
-                                </div>
-                              )}
-
-                              <div>
-                                <label className="block text-[10px] font-medium text-muted mb-0.5">Due Date</label>
-                                <Input
-                                  type="date"
-                                  value={item.due_date ? item.due_date.slice(0, 10) : ''}
-                                  onChange={(e) =>
-                                    handleUpdateField(
-                                      item.id,
-                                      'due_date',
-                                      e.target.value ? new Date(e.target.value).toISOString() : null,
-                                    )
-                                  }
-                                  className="h-8 text-xs"
-                                />
-                              </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-muted mb-0.5">Description</label>
+                              <Input
+                                value={item.description || ''}
+                                onChange={(e) => handleUpdateField(item.id, 'description', e.target.value)}
+                                className="h-8 text-xs"
+                                placeholder="Description (optional)"
+                              />
                             </div>
 
-                            {subjects.length > 0 && (
+                            {!isPlan && (
+                              <div className="grid grid-cols-2 gap-2">
+                                {isTask ? (
+                                  <div>
+                                    <label className="block text-[10px] font-medium text-muted mb-0.5">Priority</label>
+                                    <select
+                                      value={item.priority || 'medium'}
+                                      onChange={(e) => handleUpdateField(item.id, 'priority', e.target.value)}
+                                      className="w-full h-8 rounded-lg border border-border bg-surface px-2 text-xs text-foreground focus:border-accent focus:outline-none"
+                                    >
+                                      <option value="low">Low</option>
+                                      <option value="medium">Medium</option>
+                                      <option value="high">High</option>
+                                      <option value="urgent">Urgent</option>
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <label className="block text-[10px] font-medium text-muted mb-0.5">Type</label>
+                                    <select
+                                      value={item.deadline_type || 'assignment'}
+                                      onChange={(e) => handleUpdateField(item.id, 'deadline_type', e.target.value)}
+                                      className="w-full h-8 rounded-lg border border-border bg-surface px-2 text-xs text-foreground focus:border-accent focus:outline-none"
+                                    >
+                                      <option value="exam">Exam</option>
+                                      <option value="assignment">Assignment</option>
+                                      <option value="project">Project</option>
+                                      <option value="quiz">Quiz</option>
+                                      <option value="presentation">Presentation</option>
+                                      <option value="other">Other</option>
+                                    </select>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <label className="block text-[10px] font-medium text-muted mb-0.5">Due Date</label>
+                                  <Input
+                                    type="date"
+                                    value={item.due_date ? item.due_date.slice(0, 10) : item.target_date || ''}
+                                    onChange={(e) =>
+                                      handleUpdateField(
+                                        item.id,
+                                        isPlan ? 'target_date' : 'due_date',
+                                        e.target.value ? new Date(e.target.value).toISOString() : null,
+                                      )
+                                    }
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {!isPlan && subjects.length > 0 && (
                               <div>
                                 <label className="block text-[10px] font-medium text-muted mb-0.5">Subject</label>
                                 <select
@@ -337,12 +372,37 @@ export function AIActionProposal({
                               </p>
                             )}
 
+                            {/* Plan Milestones List */}
+                            {isPlan && Array.isArray(item.milestones) && item.milestones.length > 0 && (
+                              <div className="mt-2 space-y-1 rounded-md bg-surface-raised/80 p-2 border border-border/60">
+                                <span className="block text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">
+                                  Milestones ({item.milestones.length})
+                                </span>
+                                {item.milestones.map((m, mIdx) => (
+                                  <div key={mIdx} className="flex items-center justify-between gap-1 text-[11px] text-foreground">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <Milestone className="h-3 w-3 text-accent shrink-0" />
+                                      <span className="truncate">{m.title}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePlanMilestone(item.id, mIdx)}
+                                      title="Remove milestone"
+                                      className="text-muted hover:text-danger p-0.5"
+                                    >
+                                      <X className="h-2.5 w-2.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             {/* Meta row */}
                             <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted-foreground">
-                              {item.due_date && (
+                              {(item.due_date || item.target_date) && (
                                 <span className="inline-flex items-center gap-1">
                                   <CalendarDays className="h-3 w-3" />
-                                  Due {formatDate(item.due_date)}
+                                  Target {formatDate(item.due_date || item.target_date)}
                                 </span>
                               )}
                               {isTask && item.estimated_minutes && (
@@ -399,7 +459,7 @@ export function AIActionProposal({
       {/* Confirmation Action Bar */}
       <div className="flex items-center justify-between border-t border-border/80 bg-surface px-4 py-2.5 sm:px-5">
         <span className="text-[11px] text-muted-foreground">
-          Safe execution · Creates tasks via your account
+          Safe execution · Creates items via your account
         </span>
 
         <div className="flex items-center gap-2">

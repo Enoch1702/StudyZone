@@ -72,12 +72,14 @@ CREATE TABLE IF NOT EXISTS public.subjects (
 );
 
 -- ------------------------------------------------------------------------------
--- TASKS: Actionable items linked to subjects and users
+-- TASKS: Actionable items linked to subjects, learning plans, milestones, and users
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
+  plan_id UUID REFERENCES public.learning_plans(id) ON DELETE SET NULL,
+  milestone_id UUID REFERENCES public.learning_milestones(id) ON DELETE SET NULL,
   title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
   description TEXT,
   priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
@@ -120,16 +122,32 @@ CREATE TABLE IF NOT EXISTS public.study_sessions (
 );
 
 -- ------------------------------------------------------------------------------
--- STUDY_PLANS: AI-generated and custom study schedules / roadmaps
+-- LEARNING_PLANS: Persistent learning journeys, roadmaps, and goal tracks (Phase 7)
 -- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.study_plans (
+CREATE TABLE IF NOT EXISTS public.learning_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
-  goal TEXT NOT NULL CHECK (char_length(trim(goal)) > 0),
   description TEXT,
-  plan_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('draft', 'active', 'completed', 'archived')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'archived')),
+  target_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ------------------------------------------------------------------------------
+-- LEARNING_MILESTONES: Checkpoints and stages inside a learning plan (Phase 7)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.learning_milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id UUID NOT NULL REFERENCES public.learning_plans(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
+  description TEXT,
+  position INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+  target_date DATE,
+  completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -385,32 +403,67 @@ CREATE POLICY "Users can delete own study sessions"
   FOR DELETE
   USING (auth.uid() = user_id);
 
+DROP TRIGGER IF EXISTS set_learning_plans_updated_at ON public.learning_plans;
+CREATE TRIGGER set_learning_plans_updated_at
+  BEFORE UPDATE ON public.learning_plans
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_learning_milestones_updated_at ON public.learning_milestones;
+CREATE TRIGGER set_learning_milestones_updated_at
+  BEFORE UPDATE ON public.learning_milestones
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
 -- ------------------------------------------------------------------------------
--- STUDY_PLANS POLICIES
+-- LEARNING_PLANS POLICIES (Phase 7)
 -- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own study plans" ON public.study_plans;
-CREATE POLICY "Users can view own study plans"
-  ON public.study_plans
-  FOR SELECT
+ALTER TABLE public.learning_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.learning_milestones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own learning plans" ON public.learning_plans;
+CREATE POLICY "Users can view their own learning plans"
+  ON public.learning_plans FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own study plans" ON public.study_plans;
-CREATE POLICY "Users can insert own study plans"
-  ON public.study_plans
-  FOR INSERT
+DROP POLICY IF EXISTS "Users can create their own learning plans" ON public.learning_plans;
+CREATE POLICY "Users can create their own learning plans"
+  ON public.learning_plans FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own study plans" ON public.study_plans;
-CREATE POLICY "Users can update own study plans"
-  ON public.study_plans
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own learning plans" ON public.learning_plans;
+CREATE POLICY "Users can update their own learning plans"
+  ON public.learning_plans FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can delete own study plans" ON public.study_plans;
-CREATE POLICY "Users can delete own study plans"
-  ON public.study_plans
-  FOR DELETE
+DROP POLICY IF EXISTS "Users can delete their own learning plans" ON public.learning_plans;
+CREATE POLICY "Users can delete their own learning plans"
+  ON public.learning_plans FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ------------------------------------------------------------------------------
+-- LEARNING_MILESTONES POLICIES (Phase 7)
+-- ------------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Users can view their own learning milestones" ON public.learning_milestones;
+CREATE POLICY "Users can view their own learning milestones"
+  ON public.learning_milestones FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own learning milestones" ON public.learning_milestones;
+CREATE POLICY "Users can create their own learning milestones"
+  ON public.learning_milestones FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own learning milestones" ON public.learning_milestones;
+CREATE POLICY "Users can update their own learning milestones"
+  ON public.learning_milestones FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own learning milestones" ON public.learning_milestones;
+CREATE POLICY "Users can delete their own learning milestones"
+  ON public.learning_milestones FOR DELETE
   USING (auth.uid() = user_id);
 
 -- Allow authenticated users to access tables.
@@ -437,5 +490,10 @@ ON public.study_sessions
 TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.study_plans
+ON public.learning_plans
 TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON public.learning_milestones
+TO authenticated;
+

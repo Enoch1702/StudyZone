@@ -14,6 +14,7 @@ import { sendMessage } from '../services/aiService'
 import { getSubjects } from '../services/subjectsService'
 import { getTasks } from '../services/tasksService'
 import { getDeadlines } from '../services/deadlinesService'
+import { getLearningPlans } from '../services/learningPlansService'
 import { executeApprovedActions } from '../services/aiActionService'
 import { useAuth } from '../context/useAuth'
 import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
@@ -27,7 +28,7 @@ import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
  *
  * Capabilities:
  * - Conversational AI study planning, prioritization, revision, and checklists.
- * - Interactive action proposals (Tasks & Deadlines) with user review & approval.
+ * - Interactive action proposals (Tasks, Deadlines, Learning Plans) with user review & approval.
  * - Client-side state only (ephemeral conversation history).
  *
  * Security:
@@ -48,6 +49,7 @@ export default function AIAssistantPage() {
   const [existingSubjects, setExistingSubjects] = useState([])
   const [existingTasks, setExistingTasks] = useState([])
   const [existingDeadlines, setExistingDeadlines] = useState([])
+  const [existingPlans, setExistingPlans] = useState([])
 
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
@@ -60,16 +62,18 @@ export default function AIAssistantPage() {
 
     async function loadWorkload() {
       try {
-        const [subRes, taskRes, deadRes] = await Promise.all([
+        const [subRes, taskRes, deadRes, planRes] = await Promise.all([
           getSubjects(user.id),
           getTasks(user.id),
           getDeadlines(user.id),
+          getLearningPlans(user.id),
         ])
 
         if (isMounted) {
           if (subRes.data) setExistingSubjects(subRes.data)
           if (taskRes.data) setExistingTasks(taskRes.data)
           if (deadRes.data) setExistingDeadlines(deadRes.data)
+          if (planRes.data) setExistingPlans(planRes.data)
         }
       } catch (err) {
         console.warn('Could not load workload records for AI assistant:', err)
@@ -254,6 +258,7 @@ export default function AIAssistantPage() {
                       subjects={existingSubjects}
                       existingTasks={existingTasks}
                       existingDeadlines={existingDeadlines}
+                      existingPlans={existingPlans}
                       appliedState={msg.appliedState}
                       onApplyActions={(actionsToApply) =>
                         handleApplyActions(msg.id, actionsToApply)

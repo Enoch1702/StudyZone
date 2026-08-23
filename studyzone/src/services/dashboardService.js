@@ -20,7 +20,8 @@ export async function fetchDashboardData(userId, weekStart, weekEnd) {
   }
 
   try {
-    const [tasksRes, deadlinesRes, sessionsRes, subjectsRes] = await Promise.all([
+    const [tasksRes, deadlinesRes, sessionsRes, subjectsRes, plansRes, milestonesRes] =
+      await Promise.all([
       // All user tasks (non-archived) — we compute derived stats client-side
       supabase
         .from('tasks')
@@ -51,6 +52,20 @@ export async function fetchDashboardData(userId, weekStart, weekEnd) {
         .select('id, name, color')
         .eq('user_id', userId)
         .order('name', { ascending: true }),
+
+      // Active learning plans
+      supabase
+        .from('learning_plans')
+        .select('id, title, description, status, target_date')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }),
+
+      // Milestones
+      supabase
+        .from('learning_milestones')
+        .select('id, plan_id, title, status, position')
+        .eq('user_id', userId)
+        .order('position', { ascending: true }),
     ])
 
     const error =
@@ -61,6 +76,8 @@ export async function fetchDashboardData(userId, weekStart, weekEnd) {
       deadlines: deadlinesRes.data || [],
       sessions: sessionsRes.data || [],
       subjects: subjectsRes.data || [],
+      plans: plansRes?.data || [],
+      milestones: milestonesRes?.data || [],
       error,
     }
   } catch (err) {
@@ -69,6 +86,8 @@ export async function fetchDashboardData(userId, weekStart, weekEnd) {
       deadlines: [],
       sessions: [],
       subjects: [],
+      plans: [],
+      milestones: [],
       error: err instanceof Error ? err : new Error('Failed to load dashboard data.'),
     }
   }

@@ -13,6 +13,8 @@ import { TaskModal } from '../components/tasks/TaskModal'
 import { DeleteTaskModal } from '../components/tasks/DeleteTaskModal'
 import { getTasks, createTask, updateTask, toggleTaskComplete, deleteTask } from '../services/tasksService'
 import { getSubjects } from '../services/subjectsService'
+import { getLearningPlans } from '../services/learningPlansService'
+import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/utils'
 import { bannerVariant } from '../lib/motion'
 
@@ -22,6 +24,8 @@ export default function TasksPage() {
   // ─── Data state ───────────────────────────────────────────────
   const [tasks, setTasks] = useState([])
   const [subjects, setSubjects] = useState([])
+  const [plans, setPlans] = useState([])
+  const [milestones, setMilestones] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -40,7 +44,7 @@ export default function TasksPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [bannerError, setBannerError] = useState('')
 
-  // ─── Fetch tasks + subjects together ──────────────────────────
+  // ─── Fetch tasks + subjects + plans + milestones together ────
   useEffect(() => {
     let ignore = false
 
@@ -50,9 +54,10 @@ export default function TasksPage() {
       setLoading(true)
       setFetchError('')
 
-      const [tasksResult, subjectsResult] = await Promise.all([
+      const [tasksResult, subjectsResult, plansResult] = await Promise.all([
         getTasks(user.id),
         getSubjects(user.id),
+        getLearningPlans(user.id),
       ])
 
       if (ignore) return
@@ -66,6 +71,20 @@ export default function TasksPage() {
       // Subjects failures are non-fatal — tasks still load without subject labels
       if (!subjectsResult.error) {
         setSubjects(subjectsResult.data || [])
+      }
+
+      if (plansResult.data) {
+        setPlans(plansResult.data)
+      }
+
+      // Load user milestones
+      const { data: mData } = await supabase
+        .from('learning_milestones')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (mData) {
+        setMilestones(mData)
       }
 
       setLoading(false)
@@ -461,6 +480,8 @@ export default function TasksPage() {
         onSave={handleSaveTask}
         task={modalState.task}
         subjects={subjects}
+        plans={plans}
+        milestones={milestones}
         loading={actionLoading}
       />
 

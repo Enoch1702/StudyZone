@@ -578,17 +578,26 @@ Deno.serve(async (req: Request) => {
 /**
  * Extracts, sanitizes, and validates structured action proposals from the AI reply.
  */
+interface MilestoneProposal {
+  title: string
+  description?: string
+  position: number
+  target_date?: string | null
+}
+
 interface ActionProposal {
   id: string
-  type: 'create_task' | 'create_deadline'
+  type: 'create_task' | 'create_deadline' | 'create_learning_plan'
   title: string
   description?: string
   priority?: 'low' | 'medium' | 'high' | 'urgent'
   deadline_type?: 'exam' | 'assignment' | 'project' | 'quiz' | 'presentation' | 'other'
   due_date?: string | null
+  target_date?: string | null
   estimated_minutes?: number | null
   subject_id?: string | null
   subject_name?: string | null
+  milestones?: MilestoneProposal[]
 }
 
 function parseAndValidateActionProposals(
@@ -617,13 +626,46 @@ function parseAndValidateActionProposals(
     parsed.forEach((item: any, idx: number) => {
       if (!item || typeof item !== 'object') return
 
-      const type = item.type === 'create_deadline' ? 'create_deadline' : item.type === 'create_task' ? 'create_task' : null
-      if (!type) return
+      const allowedTypes = ['create_deadline', 'create_task', 'create_learning_plan']
+      if (!allowedTypes.includes(item.type)) return
 
+      const type = item.type
       const title = typeof item.title === 'string' ? item.title.trim().slice(0, 200) : ''
       if (!title) return
 
       const description = typeof item.description === 'string' ? item.description.trim().slice(0, 500) : ''
+
+      if (type === 'create_learning_plan') {
+        const milestones: MilestoneProposal[] = []
+        if (Array.isArray(item.milestones)) {
+          item.milestones.slice(0, 8).forEach((m: any, mIdx: number) => {
+            if (m && typeof m === 'object' && typeof m.title === 'string' && m.title.trim()) {
+              milestones.push({
+                title: m.title.trim().slice(0, 150),
+                description: typeof m.description === 'string' ? m.description.trim().slice(0, 300) : undefined,
+                position: Number.isInteger(m.position) ? m.position : mIdx + 1,
+                target_date: m.target_date && !isNaN(new Date(m.target_date).getTime()) ? new Date(m.target_date).toISOString().slice(0, 10) : null,
+              })
+            }
+          })
+        }
+
+        let targetDate: string | null = null
+        if (item.target_date) {
+          const d = new Date(item.target_date)
+          if (!isNaN(d.getTime())) targetDate = d.toISOString().slice(0, 10)
+        }
+
+        validActions.push({
+          id: `act_${Date.now()}_${idx}`,
+          type: 'create_learning_plan',
+          title,
+          description: description || undefined,
+          target_date: targetDate,
+          milestones,
+        })
+        return
+      }
 
       // Subject mapping
       let subjectId: string | null = null
