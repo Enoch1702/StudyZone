@@ -32,7 +32,7 @@ import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
  * - User identity is verified server-side in the Edge Function.
  */
 export default function AIAssistantPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
 
   // Conversation state — client-side only, no persistence
   const [messages, setMessages] = useState([])
@@ -127,10 +127,10 @@ export default function AIAssistantPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-foreground">
-              AI Study Assistant
+              AI Study Assistant & Planner
             </h1>
             <p className="mt-0.5 text-sm text-muted">
-              Powered by your real StudyZone data — subjects, tasks, deadlines, and study activity.
+              Intelligent study planning, revision schedules, and task prioritization powered by your real StudyZone data.
             </p>
           </div>
         </div>
@@ -142,7 +142,11 @@ export default function AIAssistantPage() {
           <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Quick prompts
           </p>
-          <QuickPrompts onSelect={handleQuickPrompt} disabled={isLoading} />
+          <QuickPrompts
+            learnerType={profile?.learner_type}
+            onSelect={handleQuickPrompt}
+            disabled={isLoading}
+          />
         </div>
 
         {/* ------------------------------------------------------------------ */}
@@ -239,18 +243,18 @@ export default function AIAssistantPage() {
 
 const CAPABILITY_HINTS = [
   {
+    icon: '🎯',
+    title: 'Daily & Weekly Planning',
+    description: 'Get realistic, actionable study sessions structured around your upcoming deadlines.',
+  },
+  {
+    icon: '📊',
+    title: '4-Tier Prioritization',
+    description: 'Group tasks into Do First, Do Next, Schedule, and Defer with clear rationale.',
+  },
+  {
     icon: '📋',
-    title: 'Task prioritization',
-    description: 'Get ranked recommendations based on deadlines and priority levels.',
-  },
-  {
-    icon: '📅',
-    title: 'Deadline awareness',
-    description: 'The assistant knows your upcoming exams, assignments, and milestones.',
-  },
-  {
-    icon: '📈',
-    title: 'Study activity insights',
-    description: 'Understand which subjects you\'ve been studying and which need attention.',
+    title: 'Checklists & Revision',
+    description: 'Generate targeted study checklists and revision roadmaps for your key focus areas.',
   },
 ]

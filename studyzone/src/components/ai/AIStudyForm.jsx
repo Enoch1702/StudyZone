@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Bot, User, AlertCircle } from 'lucide-react'
+import { Bot, User, AlertCircle, Check, Copy, Square, CheckSquare } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { fadeUp, staggerItem } from '../../lib/motion'
 
@@ -8,11 +9,23 @@ import { fadeUp, staggerItem } from '../../lib/motion'
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a single conversation message bubble.
- * Visually distinct for user vs assistant roles.
+ * Renders a single conversation message bubble with structured formatting
+ * and 1-click copy support for study plans and checklists.
  */
 export function ChatMessage({ role, content, isError = false }) {
   const isUser = role === 'user'
+  const [copied, setCopied] = useState(false)
+
+  async function handleCopy() {
+    if (!content) return
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Ignore copy error
+    }
+  }
 
   return (
     <motion.div
@@ -20,7 +33,7 @@ export function ChatMessage({ role, content, isError = false }) {
       initial="hidden"
       animate="visible"
       className={cn(
-        'flex gap-3',
+        'group flex gap-3',
         isUser ? 'flex-row-reverse' : 'flex-row',
       )}
     >
@@ -37,38 +50,63 @@ export function ChatMessage({ role, content, isError = false }) {
       >
         {isUser ? (
           <User className="h-4 w-4" />
+        ) : isError ? (
+          <AlertCircle className="h-4 w-4" />
         ) : (
-          isError
-            ? <AlertCircle className="h-4 w-4" />
-            : <Bot className="h-4 w-4" />
+          <Bot className="h-4 w-4" />
         )}
       </div>
 
-      {/* Bubble */}
-      <div
-        className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
-          isUser
-            ? 'rounded-tr-sm bg-accent text-white'
-            : isError
-              ? 'rounded-tl-sm bg-danger/10 text-danger border border-danger/20'
-              : 'rounded-tl-sm bg-surface-raised border border-border text-foreground',
+      {/* Bubble container */}
+      <div className="flex max-w-[85%] flex-col gap-1 sm:max-w-[80%]">
+        <div
+          className={cn(
+            'relative rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-2xs',
+            isUser
+              ? 'rounded-tr-sm bg-accent text-white'
+              : isError
+                ? 'rounded-tl-sm bg-danger/10 text-danger border border-danger/20'
+                : 'rounded-tl-sm bg-surface-raised border border-border text-foreground',
+          )}
+        >
+          <FormattedMessage content={content} />
+        </div>
+
+        {/* Copy action (assistant only) */}
+        {!isUser && !isError && content && (
+          <div className="flex items-center justify-end px-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-muted hover:text-foreground transition-colors p-0.5 rounded"
+              title="Copy response to clipboard"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3 text-accent" />
+                  <span className="text-accent">Copied plan</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          </div>
         )}
-      >
-        <FormattedMessage content={content} />
       </div>
     </motion.div>
   )
 }
 
 /**
- * Renders message content with basic markdown-style formatting.
- * Handles bold (**text**), bullet lists, and numbered lists.
+ * Renders message content with markdown formatting, headings,
+ * bold inline elements, bullet lists, numbered lists, and checklists.
  */
 function FormattedMessage({ content }) {
   if (!content) return null
 
-  // Split into paragraphs/blocks
   const lines = content.split('\n')
   const elements = []
   let i = 0
@@ -76,9 +114,40 @@ function FormattedMessage({ content }) {
   while (i < lines.length) {
     const line = lines[i]
 
-    // Skip blank lines (used as separators)
+    // Skip blank lines
     if (line.trim() === '') {
       i++
+      continue
+    }
+
+    // Checkbox checklist items ([ ], [x], - [ ], - [x], □, ☑)
+    if (line.match(/^[-*•]?\s*(\[[ xX]\]|□|☑)\s/)) {
+      const checklistItems = []
+      while (i < lines.length && lines[i].match(/^[-*•]?\s*(\[[ xX]\]|□|☑)\s/)) {
+        const raw = lines[i]
+        const isChecked = Boolean(raw.match(/\[[xX]\]|☑/))
+        const text = raw.replace(/^[-*•]?\s*(\[[ xX]\]|□|☑)\s*/, '').trim()
+        checklistItems.push({ text, isChecked })
+        i++
+      }
+      elements.push(
+        <div key={`chk-${i}`} className="my-2 space-y-1.5 rounded-lg bg-surface/60 p-2.5 border border-border/50">
+          {checklistItems.map((item, idx) => (
+            <div key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+              <div className="mt-0.5 shrink-0 text-accent">
+                {item.isChecked ? (
+                  <CheckSquare className="h-3.5 w-3.5" />
+                ) : (
+                  <Square className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </div>
+              <span className={cn(item.isChecked ? 'line-through text-muted' : 'text-foreground')}>
+                {renderInlineMarkdown(item.text)}
+              </span>
+            </div>
+          ))}
+        </div>,
+      )
       continue
     }
 
@@ -90,10 +159,10 @@ function FormattedMessage({ content }) {
         i++
       }
       elements.push(
-        <ul key={`ul-${i}`} className="mt-1.5 space-y-1 list-none">
+        <ul key={`ul-${i}`} className="mt-1.5 space-y-1 list-none pl-1">
           {listItems.map((item, idx) => (
-            <li key={idx} className="flex gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-50" />
+            <li key={idx} className="flex gap-2 text-xs sm:text-sm">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/70" />
               <span>{renderInlineMarkdown(item)}</span>
             </li>
           ))}
@@ -110,10 +179,10 @@ function FormattedMessage({ content }) {
         i++
       }
       elements.push(
-        <ol key={`ol-${i}`} className="mt-1.5 space-y-1 list-none">
+        <ol key={`ol-${i}`} className="mt-1.5 space-y-1 list-none pl-1">
           {listItems.map((item, idx) => (
-            <li key={idx} className="flex gap-2">
-              <span className="shrink-0 text-xs font-medium opacity-50 mt-0.5">{idx + 1}.</span>
+            <li key={idx} className="flex gap-2 text-xs sm:text-sm">
+              <span className="shrink-0 text-xs font-semibold text-accent mt-0.5">{idx + 1}.</span>
               <span>{renderInlineMarkdown(item)}</span>
             </li>
           ))}
@@ -122,23 +191,34 @@ function FormattedMessage({ content }) {
       continue
     }
 
-    // Heading (###)
-    if (line.startsWith('### ')) {
+    // Main Heading (# )
+    if (line.startsWith('# ')) {
       elements.push(
-        <p key={`h-${i}`} className="mt-2 font-semibold text-foreground">
-          {line.replace('### ', '')}
-        </p>,
+        <h3 key={`h1-${i}`} className="mt-3 text-base font-bold tracking-tight text-foreground first:mt-0">
+          {renderInlineMarkdown(line.replace('# ', ''))}
+        </h3>,
       )
       i++
       continue
     }
 
-    // Heading (##)
+    // Section Heading (## )
     if (line.startsWith('## ')) {
       elements.push(
-        <p key={`h2-${i}`} className="mt-2 font-semibold text-foreground">
-          {line.replace('## ', '')}
-        </p>,
+        <h4 key={`h2-${i}`} className="mt-2.5 text-sm font-semibold tracking-tight text-foreground first:mt-0">
+          {renderInlineMarkdown(line.replace('## ', ''))}
+        </h4>,
+      )
+      i++
+      continue
+    }
+
+    // Sub Heading (### )
+    if (line.startsWith('### ')) {
+      elements.push(
+        <h5 key={`h3-${i}`} className="mt-2 text-xs sm:text-sm font-semibold text-foreground first:mt-0">
+          {renderInlineMarkdown(line.replace('### ', ''))}
+        </h5>,
       )
       i++
       continue
@@ -146,7 +226,7 @@ function FormattedMessage({ content }) {
 
     // Regular paragraph
     elements.push(
-      <p key={`p-${i}`} className={elements.length > 0 ? 'mt-2' : ''}>
+      <p key={`p-${i}`} className={cn('text-xs sm:text-sm leading-relaxed', elements.length > 0 ? 'mt-2' : '')}>
         {renderInlineMarkdown(line)}
       </p>,
     )
@@ -157,20 +237,35 @@ function FormattedMessage({ content }) {
 }
 
 /**
- * Renders inline markdown: **bold** and *italic*
+ * Renders inline markdown: `code`, **bold**, and *italic*.
  */
 function renderInlineMarkdown(text) {
   if (!text) return null
 
-  // Split on **bold** and *italic* patterns
-  const parts = text.split(/([*][*][^*]+[*][*]|[*][^*]+[*])/g)
+  // Split on code, bold, and italic patterns
+  const parts = text.split(/(`[^`]+`|[*][*][^*]+[*][*]|[*][^*]+[*])/g)
 
   return parts.map((part, idx) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={idx} className="rounded bg-surface px-1.5 py-0.5 text-xs font-mono text-accent border border-border/60">
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={idx}>{part.slice(2, -2)}</strong>
+      return (
+        <strong key={idx} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      )
     }
     if (part.startsWith('*') && part.endsWith('*')) {
-      return <em key={idx}>{part.slice(1, -1)}</em>
+      return (
+        <em key={idx} className="italic text-muted-foreground">
+          {part.slice(1, -1)}
+        </em>
+      )
     }
     return part
   })
@@ -182,7 +277,6 @@ function renderInlineMarkdown(text) {
 
 /**
  * Animated "thinking" indicator shown while the AI is generating a response.
- * Uses subtle pulsing dots — not distracting, clearly communicates processing.
  */
 export function ThinkingIndicator() {
   return (
@@ -193,17 +287,15 @@ export function ThinkingIndicator() {
       transition={{ duration: 0.2 }}
       className="flex items-center gap-3"
     >
-      {/* Bot avatar */}
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-raised border border-border text-muted">
         <Bot className="h-4 w-4" />
       </div>
 
-      {/* Dots */}
       <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-surface-raised border border-border px-4 py-3.5">
         {[0, 1, 2].map((i) => (
           <motion.span
             key={i}
-            className="h-1.5 w-1.5 rounded-full bg-muted"
+            className="h-1.5 w-1.5 rounded-full bg-accent"
             animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
             transition={{
               duration: 1.2,
@@ -219,25 +311,62 @@ export function ThinkingIndicator() {
 }
 
 // ---------------------------------------------------------------------------
-// QuickPrompts
+// Adaptive QuickPrompts
 // ---------------------------------------------------------------------------
 
-const QUICK_PROMPTS = [
-  { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
-  { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-  { icon: '📅', label: 'What deadlines are coming up?', id: 'qp-deadlines' },
-  { icon: '📊', label: 'Summarize my current workload', id: 'qp-workload' },
-]
+/**
+ * Returns contextual quick prompts based on learner category.
+ */
+function getAdaptivePrompts(learnerType) {
+  switch (learnerType) {
+    case 'placement':
+      return [
+        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        { icon: '💼', label: 'Plan my placement preparation', id: 'qp-placement' },
+        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
+        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
+        { icon: '📋', label: 'Create a DSA & coding checklist', id: 'qp-checklist' },
+      ]
+    case 'competitive_exam':
+      return [
+        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        { icon: '🏆', label: 'Plan my exam syllabus schedule', id: 'qp-exam-plan' },
+        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
+        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
+        { icon: '📋', label: 'Generate a high-yield checklist', id: 'qp-checklist' },
+      ]
+    case 'skill_dev':
+      return [
+        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        { icon: '💻', label: 'Build my skill learning roadmap', id: 'qp-skill-plan' },
+        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
+        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
+        { icon: '📋', label: 'Create a project checklist', id: 'qp-checklist' },
+      ]
+    case 'college':
+    case 'school':
+    default:
+      return [
+        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        { icon: '📅', label: 'Create a study plan for this week', id: 'qp-plan' },
+        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
+        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
+        { icon: '📋', label: 'Create a study checklist', id: 'qp-checklist' },
+      ]
+  }
+}
 
 /**
- * Row of quick-action prompt chips.
- * Clicking a chip sends the message immediately.
+ * Row of quick-action prompt chips adapted to the learner category.
  *
  * @param {Object} props
- * @param {(message: string) => void} props.onSelect - Called with the prompt text
+ * @param {string|null} [props.learnerType] - Learner category
+ * @param {(message: string) => void} props.onSelect - Called with prompt text
  * @param {boolean} props.disabled - Disable during loading
  */
-export function QuickPrompts({ onSelect, disabled }) {
+export function QuickPrompts({ learnerType, onSelect, disabled }) {
+  const prompts = getAdaptivePrompts(learnerType)
+
   return (
     <motion.div
       variants={staggerItem}
@@ -245,7 +374,7 @@ export function QuickPrompts({ onSelect, disabled }) {
       animate="visible"
       className="flex flex-wrap gap-2"
     >
-      {QUICK_PROMPTS.map(({ icon, label, id }) => (
+      {prompts.map(({ icon, label, id }) => (
         <button
           key={id}
           id={id}
@@ -273,19 +402,6 @@ export function QuickPrompts({ onSelect, disabled }) {
 // ChatComposer
 // ---------------------------------------------------------------------------
 
-/**
- * Message input area with send button.
- * - Enter sends the message
- * - Shift+Enter inserts a new line
- * - Auto-grows with content
- *
- * @param {Object} props
- * @param {string} props.value
- * @param {(v: string) => void} props.onChange
- * @param {() => void} props.onSend
- * @param {boolean} props.isLoading
- * @param {import('react').RefObject} [props.textareaRef]
- */
 export function ChatComposer({ value, onChange, onSend, isLoading, textareaRef }) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -306,7 +422,7 @@ export function ChatComposer({ value, onChange, onSend, isLoading, textareaRef }
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask anything about your studies…"
+        placeholder="Ask anything about your study plans, tasks, or revision…"
         disabled={isLoading}
         rows={1}
         aria-label="Message input"
@@ -358,9 +474,6 @@ function SendIcon({ className }) {
 // EmptyConversation
 // ---------------------------------------------------------------------------
 
-/**
- * Empty state displayed before the first message is sent.
- */
 export function EmptyConversation() {
   return (
     <motion.div
@@ -372,18 +485,13 @@ export function EmptyConversation() {
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/20 bg-accent/8 mb-4">
         <Bot className="h-7 w-7 text-accent" />
       </div>
-      <p className="text-sm font-medium text-foreground">Ask me anything</p>
-      <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted">
-        I can see your learning profile, subjects, tasks, deadlines, and study history — use the quick prompts
-        above or ask any question.
+      <p className="text-sm font-medium text-foreground">AI Study Planner & Coach</p>
+      <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
+        I can analyze your learning profile, active tasks, upcoming deadlines, and study history to build daily study plans, revision queues, and checklists.
       </p>
     </motion.div>
   )
 }
 
-// ---------------------------------------------------------------------------
-// Legacy exports (kept to avoid breaking any residual import)
-// AIStudyForm is replaced but export is preserved for safety
-// ---------------------------------------------------------------------------
 export { EmptyConversation as AIStudyFormHeader }
 export { ChatComposer as AIStudyForm }
