@@ -555,10 +555,13 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Parse and validate structured action proposals
+    const { cleanReply, actions } = parseAndValidateActionProposals(reply, subjects)
+
     // -------------------------------------------------------------------------
     // Step 8: Return successful response
     // -------------------------------------------------------------------------
-    return new Response(JSON.stringify({ reply: reply.trim() }), {
+    return new Response(JSON.stringify({ reply: cleanReply.trim(), actions: actions || [] }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -571,3 +574,124 @@ Deno.serve(async (req: Request) => {
     )
   }
 })
+
+/**
+ * Extracts, sanitizes, and validates structured action proposals from the AI reply.
+ */
+interface ActionProposal {
+  id: string
+  type: 'create_task' | 'create_deadline'
+  title: string
+  description?: string
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  deadline_type?: 'exam' | 'assignment' | 'project' | 'quiz' | 'presentation' | 'other'
+  due_date?: string | null
+  estimated_minutes?: number | null
+  subject_id?: string | null
+  subject_name?: string | null
+}
+
+function parseAndValidateActionProposals(
+  rawText: string,
+  userSubjects: Subject[],
+): { cleanReply: string; actions: ActionProposal[] } {
+  const actionBlockRegex = /```(?:action_proposals|json:actions)?\s*([\s\S]*?)```/i
+  const match = rawText.match(actionBlockRegex)
+
+  if (!match) {
+    return { cleanReply: rawText.trim(), actions: [] }
+  }
+
+  const rawJson = match[1].trim()
+  const cleanReply = rawText.replace(actionBlockRegex, '').trim()
+
+  try {
+    const parsed = JSON.parse(rawJson)
+    if (!Array.isArray(parsed)) {
+      return { cleanReply, actions: [] }
+    }
+
+    const validActions: ActionProposal[] = []
+    const now = new Date()
+
+    parsed.forEach((item: any, idx: number) => {
+      if (!item || typeof item !== 'object') return
+
+      const type = item.type === 'create_deadline' ? 'create_deadline' : item.type === 'create_task' ? 'create_task' : null
+      if (!type) return
+
+      const title = typeof item.title === 'string' ? item.title.trim().slice(0, 200) : ''
+      if (!title) return
+
+      const description = typeof item.description === 'string' ? item.description.trim().slice(0, 500) : ''
+
+      // Subject mapping
+      let subjectId: string | null = null
+      let subjectName: string | null = null
+
+      if (typeof item.subject_name === 'string' && item.subject_name.trim()) {
+        const queryName = item.subject_name.trim().toLowerCase()
+        const matchedSub = userSubjects.find(
+          (s) => s.name.toLowerCase() === queryName || queryName.includes(s.name.toLowerCase()) || s.name.toLowerCase().includes(queryName),
+        )
+        if (matchedSub) {
+          subjectId = matchedSub.id
+          subjectName = matchedSub.name
+        } else {
+          subjectName = item.subject_name.trim()
+        }
+      }
+
+      // Date validation
+      let dueDate: string | null = null
+      if (item.due_date) {
+        const parsedDate = new Date(item.due_date)
+        if (!isNaN(parsedDate.getTime())) {
+          dueDate = parsedDate.toISOString()
+        }
+      }
+
+      if (type === 'create_task') {
+        const validPriorities = ['low', 'medium', 'high', 'urgent']
+        const priority = validPriorities.includes(item.priority?.toLowerCase()) ? item.priority.toLowerCase() : 'medium'
+        const estimatedMinutes = Number.isInteger(item.estimated_minutes) && item.estimated_minutes > 0 ? Math.min(item.estimated_minutes, 720) : null
+
+        validActions.push({
+          id: `act_${Date.now()}_${idx}`,
+          type: 'create_task',
+          title,
+          description: description || undefined,
+          priority,
+          due_date: dueDate,
+          estimated_minutes: estimatedMinutes,
+          subject_id: subjectId,
+          subject_name: subjectName,
+        })
+      } else if (type === 'create_deadline') {
+        const validTypes = ['exam', 'assignment', 'project', 'quiz', 'presentation', 'other']
+        const deadlineType = validTypes.includes(item.deadline_type?.toLowerCase()) ? item.deadline_type.toLowerCase() : 'assignment'
+
+        if (!dueDate) {
+          const defaultDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+          dueDate = defaultDate.toISOString()
+        }
+
+        validActions.push({
+          id: `act_${Date.now()}_${idx}`,
+          type: 'create_deadline',
+          title,
+          description: description || undefined,
+          deadline_type: deadlineType,
+          due_date: dueDate,
+          subject_id: subjectId,
+          subject_name: subjectName,
+        })
+      }
+    })
+
+    return { cleanReply, actions: validActions }
+  } catch (err) {
+    console.warn('[study-assistant] Error parsing action proposals:', err)
+    return { cleanReply, actions: [] }
+  }
+}

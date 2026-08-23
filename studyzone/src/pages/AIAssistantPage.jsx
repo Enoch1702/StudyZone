@@ -11,6 +11,10 @@ import {
   EmptyConversation,
 } from '../components/ai/AIStudyForm'
 import { sendMessage } from '../services/aiService'
+import { getSubjects } from '../services/subjectsService'
+import { getTasks } from '../services/tasksService'
+import { getDeadlines } from '../services/deadlinesService'
+import { executeApprovedActions } from '../services/aiActionService'
 import { useAuth } from '../context/useAuth'
 import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
 
@@ -21,15 +25,16 @@ import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
 /**
  * The main AI Assistant page.
  *
- * State management:
- * - Conversation history is kept client-side only (clears on page refresh).
- * - Only the last 10 turns are forwarded to the Edge Function per request.
- * - Loading state prevents duplicate submissions.
+ * Capabilities:
+ * - Conversational AI study planning, prioritization, revision, and checklists.
+ * - Interactive action proposals (Tasks & Deadlines) with user review & approval.
+ * - Client-side state only (ephemeral conversation history).
  *
  * Security:
  * - No API keys in this file.
  * - User session JWT is automatically attached by the Supabase client.
  * - User identity is verified server-side in the Edge Function.
+ * - Direct database writes only occur via authenticated user session after explicit approval.
  */
 export default function AIAssistantPage() {
   const { user, profile } = useAuth()
@@ -39,8 +44,44 @@ export default function AIAssistantPage() {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Local store of user's existing records for duplicate detection & subject linking
+  const [existingSubjects, setExistingSubjects] = useState([])
+  const [existingTasks, setExistingTasks] = useState([])
+  const [existingDeadlines, setExistingDeadlines] = useState([])
+
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Fetch initial workload records for validation and duplicate checking
+  useEffect(() => {
+    if (!user?.id) return
+
+    let isMounted = true
+
+    async function loadWorkload() {
+      try {
+        const [subRes, taskRes, deadRes] = await Promise.all([
+          getSubjects(user.id),
+          getTasks(user.id),
+          getDeadlines(user.id),
+        ])
+
+        if (isMounted) {
+          if (subRes.data) setExistingSubjects(subRes.data)
+          if (taskRes.data) setExistingTasks(taskRes.data)
+          if (deadRes.data) setExistingDeadlines(deadRes.data)
+        }
+      } catch (err) {
+        console.warn('Could not load workload records for AI assistant:', err)
+      }
+    }
+
+    loadWorkload()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -59,7 +100,7 @@ export default function AIAssistantPage() {
 
       if (!text) return
       if (isLoading) return
-      if (!user) return // Protected route handles auth; this is a safety guard
+      if (!user) return
 
       // Append user message to conversation
       const userMessage = { role: 'user', content: text, id: `msg-${Date.now()}` }
@@ -71,17 +112,18 @@ export default function AIAssistantPage() {
       const history = messages.map((m) => ({ role: m.role, content: m.content }))
 
       try {
-        const { reply } = await sendMessage({ message: text, history })
+        const { reply, actions } = await sendMessage({ message: text, history })
 
         const assistantMessage = {
           role: 'assistant',
           content: reply,
+          actions: Array.isArray(actions) ? actions : [],
+          appliedState: null,
           id: `msg-${Date.now()}-reply`,
         }
         setMessages((prev) => [...prev, assistantMessage])
       } catch (err) {
         // On failure: preserve user's message so they can retry
-        // Show error as a failed assistant message
         const errorMessage = {
           role: 'assistant',
           content: err instanceof Error ? err.message : 'Something went wrong. Please try again.',
@@ -97,6 +139,49 @@ export default function AIAssistantPage() {
     },
     [inputValue, isLoading, messages, user],
   )
+
+  // ---------------------------------------------------------------------------
+  // Action proposal approval & dismissal handlers
+  // ---------------------------------------------------------------------------
+
+  const handleApplyActions = useCallback(
+    async (messageId, selectedActions) => {
+      if (!user?.id) throw new Error('You must be logged in to apply actions.')
+
+      const res = await executeApprovedActions({
+        userId: user.id,
+        actions: selectedActions,
+      })
+
+      if (res.successCount > 0) {
+        // Mark message proposal as applied
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, appliedState: { status: 'applied', count: res.successCount } }
+              : msg,
+          ),
+        )
+
+        // Refresh existing tasks & deadlines
+        const [taskRes, deadRes] = await Promise.all([
+          getTasks(user.id),
+          getDeadlines(user.id),
+        ])
+        if (taskRes.data) setExistingTasks(taskRes.data)
+        if (deadRes.data) setExistingDeadlines(deadRes.data)
+      }
+
+      return res
+    },
+    [user],
+  )
+
+  const handleDismissActions = useCallback((messageId) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === messageId ? { ...msg, actions: [] } : msg)),
+    )
+  }, [])
 
   // Quick prompt handler — send immediately
   const handleQuickPrompt = useCallback(
@@ -154,7 +239,7 @@ export default function AIAssistantPage() {
         {/* ------------------------------------------------------------------ */}
         <div className="rounded-xl border border-border bg-surface overflow-hidden flex flex-col">
           {/* Conversation area */}
-          <div className="flex-1 min-h-[360px] max-h-[520px] overflow-y-auto p-4 sm:p-5">
+          <div className="flex-1 min-h-[360px] max-h-[540px] overflow-y-auto p-4 sm:p-5">
             <AnimatePresence initial={false}>
               {!hasMessages ? (
                 <EmptyConversation key="empty" />
@@ -165,6 +250,15 @@ export default function AIAssistantPage() {
                       key={msg.id}
                       role={msg.role}
                       content={msg.content}
+                      actions={msg.actions}
+                      subjects={existingSubjects}
+                      existingTasks={existingTasks}
+                      existingDeadlines={existingDeadlines}
+                      appliedState={msg.appliedState}
+                      onApplyActions={(actionsToApply) =>
+                        handleApplyActions(msg.id, actionsToApply)
+                      }
+                      onDismissActions={() => handleDismissActions(msg.id)}
                       isError={msg.isError ?? false}
                     />
                   ))}
@@ -194,7 +288,7 @@ export default function AIAssistantPage() {
               textareaRef={textareaRef}
             />
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Enter to send · Shift + Enter for new line · Advisory only — AI cannot modify your data
+              Enter to send · Shift + Enter for new line · Action proposals require your explicit approval before saving
             </p>
           </div>
         </div>
@@ -253,8 +347,8 @@ const CAPABILITY_HINTS = [
     description: 'Group tasks into Do First, Do Next, Schedule, and Defer with clear rationale.',
   },
   {
-    icon: '📋',
-    title: 'Checklists & Revision',
-    description: 'Generate targeted study checklists and revision roadmaps for your key focus areas.',
+    icon: '⚡',
+    title: 'Action Proposals',
+    description: 'Review and approve AI-generated tasks and deadlines before saving to your workspace.',
   },
 ]

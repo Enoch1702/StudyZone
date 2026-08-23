@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Bot, User, AlertCircle, Check, Copy, Square, CheckSquare } from 'lucide-react'
+import { AIActionProposal } from './AIActionProposal'
 import { cn } from '../../lib/utils'
 import { fadeUp, staggerItem } from '../../lib/motion'
 
@@ -9,10 +10,21 @@ import { fadeUp, staggerItem } from '../../lib/motion'
 // ---------------------------------------------------------------------------
 
 /**
- * Renders a single conversation message bubble with structured formatting
- * and 1-click copy support for study plans and checklists.
+ * Renders a single conversation message bubble with structured formatting,
+ * 1-click copy support, and optional interactive action proposals.
  */
-export function ChatMessage({ role, content, isError = false }) {
+export function ChatMessage({
+  role,
+  content,
+  actions = [],
+  subjects = [],
+  existingTasks = [],
+  existingDeadlines = [],
+  appliedState = null,
+  onApplyActions,
+  onDismissActions,
+  isError = false,
+}) {
   const isUser = role === 'user'
   const [copied, setCopied] = useState(false)
 
@@ -26,6 +38,8 @@ export function ChatMessage({ role, content, isError = false }) {
       // Ignore copy error
     }
   }
+
+  const hasActions = !isUser && !isError && Array.isArray(actions) && actions.length > 0
 
   return (
     <motion.div
@@ -58,7 +72,7 @@ export function ChatMessage({ role, content, isError = false }) {
       </div>
 
       {/* Bubble container */}
-      <div className="flex max-w-[85%] flex-col gap-1 sm:max-w-[80%]">
+      <div className="flex max-w-[88%] flex-col gap-1 sm:max-w-[82%]">
         <div
           className={cn(
             'relative rounded-2xl px-4 py-3.5 text-sm leading-relaxed shadow-2xs',
@@ -94,6 +108,19 @@ export function ChatMessage({ role, content, isError = false }) {
               )}
             </button>
           </div>
+        )}
+
+        {/* Proposed StudyZone Actions (interactive user-approved review) */}
+        {hasActions && (
+          <AIActionProposal
+            actions={actions}
+            subjects={subjects}
+            existingTasks={existingTasks}
+            existingDeadlines={existingDeadlines}
+            appliedState={appliedState}
+            onApply={onApplyActions}
+            onDismiss={onDismissActions}
+          />
         )}
       </div>
     </motion.div>

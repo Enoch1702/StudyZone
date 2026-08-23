@@ -83,5 +83,8 @@ export async function sendMessage({ message, history = [] }) {
     throw new Error('The AI returned an empty response. Please try again.')
   }
 
-  return { reply: data.reply.trim() }
+  return {
+    reply: data.reply.trim(),
+    actions: Array.isArray(data?.actions) ? data.actions : [],
+  }
 }
