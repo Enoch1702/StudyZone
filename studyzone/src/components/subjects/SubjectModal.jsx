@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, BookOpen, Check, X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
+import { modalBackdrop, modalPanel } from '../../lib/motion'
 
 const PRESET_COLORS = [
   { label: 'Blue', value: '#4f7cff' },
@@ -153,59 +155,66 @@ export function SubjectModal({ isOpen, onClose, onSave, subject = null, loading 
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, loading, onClose])
 
-  if (!isOpen) return null
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="subject-modal-title"
-    >
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
-        onClick={() => {
-          if (!loading) onClose()
-        }}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="subject-modal-title"
+          variants={modalBackdrop}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            onClick={() => { if (!loading) onClose() }}
+            aria-hidden="true"
+          />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-lg rounded-xl border border-border bg-surface shadow-2xl transition-all">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border"
-              style={{ backgroundColor: `${headerColor}20` }}
-            >
-              <BookOpen className="h-4 w-4" style={{ color: headerColor }} />
-            </div>
-            <h2 id="subject-modal-title" className="text-base font-semibold text-foreground">
-              {isEditing ? 'Edit Subject' : 'Add New Subject'}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            aria-label="Close dialog"
-            className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+          {/* Modal Panel */}
+          <motion.div
+            className="relative w-full max-w-lg rounded-xl border border-border bg-surface shadow-2xl"
+            variants={modalPanel}
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border"
+                  style={{ backgroundColor: `${headerColor}20` }}
+                >
+                  <BookOpen className="h-4 w-4" style={{ color: headerColor }} />
+                </div>
+                <h2 id="subject-modal-title" className="text-base font-semibold text-foreground">
+                  {isEditing ? 'Edit Subject' : 'Add New Subject'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                aria-label="Close dialog"
+                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        {/* Form Body keyed to subject id or new */}
-        <SubjectFormContent
-          key={subject?.id || 'new-subject'}
-          subject={subject}
-          onSave={onSave}
-          onClose={onClose}
-          loading={loading}
-        />
-      </div>
-    </div>
+            {/* Form Body keyed to subject id or new */}
+            <SubjectFormContent
+              key={subject?.id || 'new-subject'}
+              subject={subject}
+              onSave={onSave}
+              onClose={onClose}
+              loading={loading}
+            />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

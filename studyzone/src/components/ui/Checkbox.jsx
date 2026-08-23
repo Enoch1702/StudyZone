@@ -1,5 +1,7 @@
+import { AnimatePresence, motion } from 'motion/react'
 import { Check } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { checkMark } from '../../lib/motion'
 
 function CheckboxControl({ id, checked, onChange }) {
   return (
@@ -13,12 +15,25 @@ function CheckboxControl({ id, checked, onChange }) {
       />
       <span
         className={cn(
-          'flex h-[18px] w-[18px] items-center justify-center rounded border transition-colors',
+          'flex h-[18px] w-[18px] items-center justify-center rounded border transition-colors duration-150',
           'border-border bg-surface-raised peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40',
           checked && 'border-accent bg-accent',
         )}
       >
-        {checked && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+        <AnimatePresence initial={false}>
+          {checked && (
+            <motion.span
+              key="check"
+              variants={checkMark}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="flex items-center justify-center"
+            >
+              <Check className="h-3 w-3 text-white" strokeWidth={3} />
+            </motion.span>
+          )}
+        </AnimatePresence>
       </span>
     </span>
   )

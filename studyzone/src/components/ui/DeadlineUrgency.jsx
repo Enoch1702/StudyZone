@@ -4,7 +4,7 @@ import { cn, getDeadlineUrgency } from '../../lib/utils'
 const config = {
   urgent: {
     icon: AlertCircle,
-    dotClass: 'bg-danger',
+    dotClass: 'bg-danger animate-pulse',
     textClass: 'text-danger',
   },
   approaching: {

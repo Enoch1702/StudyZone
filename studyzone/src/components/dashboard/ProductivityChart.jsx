@@ -1,3 +1,4 @@
+import { motion } from 'motion/react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 
@@ -104,36 +105,42 @@ export function ProductivityChart({ loading, weeklyActivity }) {
 
           {activity.map((day, i) => {
             const x = CHART_PADDING.left + i * (barWidth + gap)
-            const barHeight = (day.hours / maxHours) * innerHeight
-            const y = CHART_PADDING.top + innerHeight - barHeight
+            const targetBarHeight = Math.max((day.hours / maxHours) * innerHeight, 2)
             const isToday = i === todayIndex
 
             return (
               <g key={day.day}>
-                <rect
+                <motion.rect
                   x={x}
-                  y={loading ? CHART_PADDING.top + innerHeight - 2 : y}
+                  y={CHART_PADDING.top + innerHeight - targetBarHeight}
                   width={barWidth}
-                  height={loading ? 2 : Math.max(barHeight, 2)}
+                  height={loading ? 2 : targetBarHeight}
                   rx={4}
                   fill="var(--color-accent)"
                   fillOpacity={loading ? 0.1 : isToday ? 1 : 0.55}
+                  initial={{ scaleY: 0, originY: 1 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: i * 0.05 }}
+                  style={{ transformOrigin: `${x}px ${CHART_PADDING.top + innerHeight}px` }}
                 />
                 {!loading && day.hours > 0 && (
-                  <text
+                  <motion.text
                     x={x + barWidth / 2}
-                    y={y - 6}
+                    y={CHART_PADDING.top + innerHeight - targetBarHeight - 6}
                     textAnchor="middle"
                     className="fill-muted text-[10px] font-medium"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: i * 0.05 + 0.2 }}
                   >
                     {day.hours}h
-                  </text>
+                  </motion.text>
                 )}
                 <text
                   x={x + barWidth / 2}
                   y={CHART_HEIGHT - 6}
                   textAnchor="middle"
-                  className={`text-[10px] ${isToday ? 'fill-accent font-medium' : 'fill-muted-foreground'}`}
+                  className={`text-[10px] font-medium ${isToday ? 'fill-accent' : 'fill-muted-foreground'}`}
                 >
                   {day.day}
                 </text>

@@ -1,5 +1,7 @@
+import { motion } from 'motion/react'
 import { useAuth } from '../../context/useAuth'
 import { getGreeting } from '../../lib/utils'
+import { fadeUp } from '../../lib/motion'
 
 /**
  * @param {{ loading: boolean, stats: object|null, focusTasks: Array, deadlines: Array }} props
@@ -28,10 +30,15 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
   const overallProgress = stats?.overallProgress ?? 0
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border bg-surface px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <motion.section
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-surface px-5 py-5 transition-all duration-200 hover:border-border/80 hover:shadow-xs sm:flex-row sm:items-center sm:justify-between sm:px-6"
+    >
       <div>
-        <p className="text-xs font-medium text-muted">{greeting}</p>
-        <h2 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        <p className="text-xs font-medium text-muted tracking-wide">{greeting}</p>
+        <h2 className="mt-0.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           {displayName}
         </h2>
         <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
@@ -39,30 +46,30 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
             <span className="inline-block h-4 w-48 animate-pulse rounded bg-surface-raised" />
           ) : (
             <>
-              {tasksDueToday} task{tasksDueToday !== 1 ? 's' : ''} remaining today
+              <span className="font-semibold text-foreground">{tasksDueToday}</span> task{tasksDueToday !== 1 ? 's' : ''} remaining today
               {' · '}
-              {deadlinesThisWeek} deadline{deadlinesThisWeek !== 1 ? 's' : ''} on your radar this week.
+              <span className="font-semibold text-foreground">{deadlinesThisWeek}</span> deadline{deadlinesThisWeek !== 1 ? 's' : ''} on your radar this week.
             </>
           )}
         </p>
       </div>
 
       <div className="flex shrink-0 gap-6 border-t border-border-subtle pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
-        <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Today</p>
-          <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+        <div className="rounded-lg bg-surface-raised/40 px-3 py-2 border border-border/40 min-w-[70px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Today</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
             {loading ? '—' : tasksDueToday}
           </p>
-          <p className="text-xs text-muted">open tasks</p>
+          <p className="text-[11px] text-muted">open tasks</p>
         </div>
-        <div>
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Progress</p>
-          <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">
+        <div className="rounded-lg bg-surface-raised/40 px-3 py-2 border border-border/40 min-w-[70px]">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Progress</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
             {loading ? '—' : `${overallProgress}%`}
           </p>
-          <p className="text-xs text-muted">semester</p>
+          <p className="text-[11px] text-muted">semester</p>
         </div>
       </div>
-    </section>
+    </motion.section>
   )
 }

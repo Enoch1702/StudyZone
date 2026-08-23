@@ -1,12 +1,16 @@
+import { motion } from 'motion/react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
+import { cardEntrance } from '../../lib/motion'
 
 export function SubjectCard({ subject, onEdit, onDelete }) {
   return (
-    <article
+    <motion.article
+      variants={cardEntrance}
+      layout
       className={cn(
-        'group relative flex flex-col justify-between w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-all',
-        'hover:border-border/90 hover:bg-surface-raised/20 hover:shadow-sm',
+        'group relative flex flex-col justify-between w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-all duration-200',
+        'hover:border-border/80 hover:bg-surface-raised/30 hover:-translate-y-0.5 hover:shadow-md',
       )}
     >
       {/* Subject Color Accent Strip */}
@@ -32,7 +36,7 @@ export function SubjectCard({ subject, onEdit, onDelete }) {
                   onClick={() => onEdit(subject)}
                   aria-label={`Edit ${subject.name}`}
                   title="Edit subject"
-                  className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
+                  className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -43,7 +47,7 @@ export function SubjectCard({ subject, onEdit, onDelete }) {
                   onClick={() => onDelete(subject)}
                   aria-label={`Delete ${subject.name}`}
                   title="Delete subject"
-                  className="rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                  className="rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -59,7 +63,7 @@ export function SubjectCard({ subject, onEdit, onDelete }) {
           </p>
         </div>
 
-        {/* Footer info: Honest neutral state without fake metrics */}
+        {/* Footer info */}
         <div className="mt-5 border-t border-border-subtle pt-3 flex items-center justify-between text-xs text-muted">
           <span className="inline-flex items-center gap-1.5">
             <span
@@ -72,6 +76,6 @@ export function SubjectCard({ subject, onEdit, onDelete }) {
           <span className="text-[11px] text-muted-foreground">No task data yet</span>
         </div>
       </div>
-    </article>
+    </motion.article>
   )
 }

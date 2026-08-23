@@ -5,6 +5,7 @@ export function Card({ className, children, ...props }) {
     <div
       className={cn(
         'rounded-xl border border-border bg-surface p-5',
+        'transition-all duration-200',
         className,
       )}
       {...props}

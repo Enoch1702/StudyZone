@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, BookOpen, Plus, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
@@ -14,6 +15,7 @@ import {
   updateSubject,
   deleteSubject,
 } from '../services/subjectsService'
+import { bannerVariant, staggerContainer } from '../lib/motion'
 
 export default function SubjectsPage() {
   const { user } = useAuth()
@@ -163,24 +165,34 @@ export default function SubjectsPage() {
       />
 
       {/* Global Error Banner */}
-      {bannerError && (
-        <div
-          className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
-          role="alert"
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{bannerError}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setBannerError('')}
-            className="text-danger hover:underline ml-3 font-medium"
+      <AnimatePresence>
+        {bannerError && (
+          <motion.div
+            variants={bannerVariant}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            <div
+              className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
+              role="alert"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{bannerError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBannerError('')}
+                className="text-danger hover:underline ml-3 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       {loading ? (
@@ -211,7 +223,12 @@ export default function SubjectsPage() {
           onAction={handleOpenCreate}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+        >
           {subjects.map((subject) => (
             <SubjectCard
               key={subject.id}
@@ -220,7 +237,7 @@ export default function SubjectsPage() {
               onDelete={handleOpenDelete}
             />
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* Create / Edit Subject Modal */}

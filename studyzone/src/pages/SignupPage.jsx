@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, ArrowRight, CheckCircle2, GraduationCap, Lock, Mail, User } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
+import { bannerVariant, fadeUp } from '../lib/motion'
 
 export default function SignupPage() {
   const { signUp, isConfigured } = useAuth()
@@ -80,7 +82,12 @@ export default function SignupPage() {
   if (confirmationNeeded) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-8 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-6">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="w-full max-w-md space-y-6"
+        >
           <div className="rounded-xl border border-border bg-surface p-6 text-center sm:p-8">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent-muted border border-accent/20">
               <CheckCircle2 className="h-6 w-6 text-accent" />
@@ -98,14 +105,19 @@ export default function SignupPage() {
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center bg-background px-4 py-8 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-6">
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        className="w-full max-w-md space-y-6"
+      >
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-muted border border-accent/20">
@@ -130,18 +142,28 @@ export default function SignupPage() {
         )}
 
         {/* Auth Card */}
-        <div className="rounded-xl border border-border bg-surface p-6 shadow-sm sm:p-8">
+        <div className="rounded-xl border border-border bg-surface p-6 shadow-sm sm:p-8 transition-all duration-200 hover:border-border/80">
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Error Message */}
-            {errorMessage && (
-              <div
-                className="flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
-                role="alert"
-              >
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div className="flex-1 leading-relaxed">{errorMessage}</div>
-              </div>
-            )}
+            <AnimatePresence>
+              {errorMessage && (
+                <motion.div
+                  variants={bannerVariant}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="overflow-hidden"
+                >
+                  <div
+                    className="flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
+                    role="alert"
+                  >
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div className="flex-1 leading-relaxed">{errorMessage}</div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Full Name Field */}
             <div className="space-y-1.5">
@@ -271,7 +293,7 @@ export default function SignupPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }

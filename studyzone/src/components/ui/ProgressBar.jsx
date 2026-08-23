@@ -10,7 +10,7 @@ export function ProgressBar({ value, className, color }) {
       aria-valuemax={100}
     >
       <div
-        className="h-full rounded-full transition-all duration-300"
+        className="h-full rounded-full transition-all duration-700 ease-out"
         style={{
           width: `${Math.min(100, Math.max(0, value))}%`,
           backgroundColor: color ?? 'var(--color-accent)',

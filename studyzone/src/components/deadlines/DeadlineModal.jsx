@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, CalendarDays, X } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input, Select, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
+import { modalBackdrop, modalPanel } from '../../lib/motion'
 
 const DEADLINE_TYPE_OPTIONS = [
   { value: 'assignment', label: 'Assignment' },
@@ -202,57 +204,64 @@ export function DeadlineModal({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, loading, onClose])
 
-  if (!isOpen) return null
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="deadline-modal-title"
-    >
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
-        onClick={() => {
-          if (!loading) onClose()
-        }}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="deadline-modal-title"
+          variants={modalBackdrop}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            onClick={() => { if (!loading) onClose() }}
+            aria-hidden="true"
+          />
 
-      {/* Modal container */}
-      <div className="relative w-full max-w-lg overflow-y-auto max-h-[90vh] rounded-xl border border-border bg-surface shadow-2xl transition-all">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-accent/10">
-              <CalendarDays className="h-4 w-4 text-accent" />
-            </div>
-            <h2 id="deadline-modal-title" className="text-base font-semibold text-foreground">
-              {isEditing ? 'Edit Deadline' : 'Add New Deadline'}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            aria-label="Close dialog"
-            className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+          {/* Modal panel */}
+          <motion.div
+            className="relative w-full max-w-lg overflow-y-auto max-h-[90vh] rounded-xl border border-border bg-surface shadow-2xl"
+            variants={modalPanel}
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-accent/10">
+                  <CalendarDays className="h-4 w-4 text-accent" />
+                </div>
+                <h2 id="deadline-modal-title" className="text-base font-semibold text-foreground">
+                  {isEditing ? 'Edit Deadline' : 'Add New Deadline'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                aria-label="Close dialog"
+                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        {/* Form body — keyed so state resets when switching create ↔ edit */}
-        <DeadlineFormContent
-          key={deadline?.id || 'new-deadline'}
-          deadline={deadline}
-          subjects={subjects}
-          onSave={onSave}
-          onClose={onClose}
-          loading={loading}
-        />
-      </div>
-    </div>
+            {/* Form body — keyed so state resets when switching create ↔ edit */}
+            <DeadlineFormContent
+              key={deadline?.id || 'new-deadline'}
+              deadline={deadline}
+              subjects={subjects}
+              onSave={onSave}
+              onClose={onClose}
+              loading={loading}
+            />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

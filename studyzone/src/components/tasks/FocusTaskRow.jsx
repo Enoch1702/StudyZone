@@ -1,7 +1,9 @@
+import { motion } from 'motion/react'
 import { Calendar } from 'lucide-react'
 import { cn, formatDate } from '../../lib/utils'
 import { Checkbox } from '../ui/Checkbox'
 import { PriorityBadge } from '../ui/Badge'
+import { staggerItem } from '../../lib/motion'
 
 /**
  * @param {{ task: object, subjectName: string, onToggle: Function }} props
@@ -11,13 +13,13 @@ export function FocusTaskRow({ task, subjectName = '', onToggle }) {
   const isCompleted = task.status === 'completed'
 
   return (
-    <li>
+    <motion.li variants={staggerItem} layout>
       <div
         className={cn(
-          'group flex items-start gap-3 rounded-lg border px-3 py-3 transition-colors sm:items-center sm:px-4',
+          'group flex items-start gap-3 rounded-lg border px-3 py-3 transition-all duration-200 sm:items-center sm:px-4',
           isCompleted
-            ? 'border-border-subtle bg-surface-raised/30 opacity-80 hover:opacity-100'
-            : 'border-border-subtle bg-surface-raised/40 hover:border-border hover:bg-surface-raised/70',
+            ? 'border-border-subtle bg-surface-raised/20 opacity-70 hover:opacity-90'
+            : 'border-border-subtle bg-surface-raised/40 hover:border-border hover:bg-surface-raised/70 hover:shadow-xs',
         )}
       >
         <Checkbox
@@ -30,11 +32,11 @@ export function FocusTaskRow({ task, subjectName = '', onToggle }) {
 
         <label
           htmlFor={`focus-${task.id}`}
-          className="min-w-0 flex-1 cursor-pointer"
+          className="min-w-0 flex-1 cursor-pointer select-none"
         >
           <p
             className={cn(
-              'text-sm font-medium leading-snug',
+              'text-sm font-medium leading-snug transition-all duration-200',
               isCompleted
                 ? 'text-muted line-through decoration-muted-foreground/50'
                 : 'text-foreground',
@@ -57,6 +59,6 @@ export function FocusTaskRow({ task, subjectName = '', onToggle }) {
           </div>
         </label>
       </div>
-    </li>
+    </motion.li>
   )
 }

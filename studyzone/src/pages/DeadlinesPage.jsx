@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   AlertCircle,
   CalendarDays,
@@ -29,6 +30,7 @@ import {
 } from '../services/deadlinesService'
 import { getSubjects } from '../services/subjectsService'
 import { formatDate, getDeadlineUrgency } from '../lib/utils'
+import { bannerVariant, staggerContainer, staggerItem } from '../lib/motion'
 
 /** Map deadline_type to a Lucide icon */
 function TypeIcon({ type }) {
@@ -229,27 +231,37 @@ export default function DeadlinesPage() {
       />
 
       {/* Global Error Banner */}
-      {bannerError && (
-        <div
-          className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
-          role="alert"
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{bannerError}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setBannerError('')}
-            className="text-danger hover:underline ml-3 font-medium"
+      <AnimatePresence>
+        {bannerError && (
+          <motion.div
+            variants={bannerVariant}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            <div
+              className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
+              role="alert"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{bannerError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBannerError('')}
+                className="text-danger hover:underline ml-3 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter Bar */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-border/80">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Search */}
           <div className="relative sm:col-span-2 lg:col-span-1">
@@ -335,18 +347,25 @@ export default function DeadlinesPage() {
           description="Try adjusting your search or filter criteria."
         />
       ) : (
-        <div className="space-y-2">
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="space-y-2"
+        >
           {filteredDeadlines.map((deadline) => {
             const sName = subjectName(deadline.subject_id)
 
             return (
-              <article
+              <motion.article
                 key={deadline.id}
-                className="flex flex-col gap-3 rounded-lg border border-border bg-surface px-4 py-4 transition-colors hover:border-border/90 hover:bg-surface-raised/20 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                variants={staggerItem}
+                layout
+                className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 transition-all duration-200 hover:border-border/80 hover:bg-surface-raised/30 hover:shadow-xs sm:flex-row sm:items-center sm:justify-between sm:px-5"
               >
                 {/* Left: icon + title + subject + type badge */}
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-raised">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-raised border border-border/50">
                     <TypeIcon type={deadline.deadline_type} />
                   </div>
                   <div>
@@ -354,7 +373,7 @@ export default function DeadlinesPage() {
                     <p className="mt-0.5 text-xs text-muted">
                       {sName || <span className="italic text-muted-foreground/60">No subject</span>}
                     </p>
-                    <Badge variant="default" className="mt-2 capitalize">
+                    <Badge variant="default" className="mt-2 capitalize text-[10px]">
                       {deadline.deadline_type}
                     </Badge>
                   </div>
@@ -377,7 +396,7 @@ export default function DeadlinesPage() {
                       type="button"
                       aria-label={`Edit ${deadline.title}`}
                       onClick={() => handleOpenEdit(deadline)}
-                      className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
+                      className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -385,16 +404,16 @@ export default function DeadlinesPage() {
                       type="button"
                       aria-label={`Delete ${deadline.title}`}
                       onClick={() => handleOpenDelete(deadline)}
-                      className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                      className="rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
-              </article>
+              </motion.article>
             )
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Create / Edit Deadline Modal */}
@@ -418,4 +437,3 @@ export default function DeadlinesPage() {
     </PageContainer>
   )
 }
-

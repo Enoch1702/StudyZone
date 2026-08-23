@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, BookOpen, Check } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
@@ -7,6 +8,7 @@ import { Input, Select, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
 import { useAuth } from '../../context/useAuth'
 import { createStudySession } from '../../services/studySessionsService'
+import { bannerVariant } from '../../lib/motion'
 
 /**
  * Minimal study session logging card.
@@ -86,7 +88,7 @@ export function LogSessionCard({ subjects, tasks, onSessionLogged }) {
   }
 
   return (
-    <Card className="flex h-full flex-col p-0">
+    <Card className="flex h-full flex-col p-0 border-border hover:border-border/80 transition-all duration-200">
       <div className="border-b border-border-subtle px-4 py-4 sm:px-5">
         <SectionHeader
           title="Log Study Session"
@@ -96,24 +98,43 @@ export function LogSessionCard({ subjects, tasks, onSessionLogged }) {
 
       <div className="flex-1 p-4 sm:p-5">
         <form onSubmit={handleSubmit} className="flex h-full flex-col gap-3">
-          {/* Error */}
-          {error && (
-            <div
-              className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
-              role="alert"
-            >
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+          {/* Error & Success animated banners */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                key="error-banner"
+                variants={bannerVariant}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="overflow-hidden"
+              >
+                <div
+                  className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
+                  role="alert"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              </motion.div>
+            )}
 
-          {/* Success */}
-          {success && (
-            <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
-              <Check className="h-4 w-4 shrink-0" />
-              <span>Session logged! Chart will update shortly.</span>
-            </div>
-          )}
+            {success && (
+              <motion.div
+                key="success-banner"
+                variants={bannerVariant}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success">
+                  <Check className="h-4 w-4 shrink-0" />
+                  <span>Session logged! Chart will update shortly.</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Duration (required) */}
           <div className="space-y-1.5">

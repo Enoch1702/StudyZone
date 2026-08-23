@@ -1,9 +1,11 @@
+import { motion } from 'motion/react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 import { EmptyState } from '../ui/EmptyState'
 import { FocusTaskRow } from '../tasks/FocusTaskRow'
 import { toggleTaskComplete } from '../../services/tasksService'
 import { useAuth } from '../../context/useAuth'
+import { staggerContainer } from '../../lib/motion'
 
 /**
  * @param {{ loading: boolean, tasks: Array, subjects: Array, onTaskToggled: Function }} props
@@ -56,7 +58,12 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
             description="You're all caught up. Add a task or enjoy the break."
           />
         ) : (
-          <ul className="space-y-2">
+          <motion.ul
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="space-y-2"
+          >
             {tasks.map((task) => (
               <FocusTaskRow
                 key={task.id}
@@ -65,7 +72,7 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
                 onToggle={handleToggle}
               />
             ))}
-          </ul>
+          </motion.ul>
         )}
       </div>
     </Card>

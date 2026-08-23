@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import {
   BookOpen,
   Bot,
@@ -38,14 +39,20 @@ export function Sidebar({ open, onClose }) {
 
   return (
     <>
-      {open && (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.button
+            type="button"
+            aria-label="Close navigation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-40 bg-black/70 lg:hidden"
+            onClick={onClose}
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         className={cn(
@@ -55,7 +62,7 @@ export function Sidebar({ open, onClose }) {
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted border border-accent/20">
               <GraduationCap className="h-3.5 w-3.5 text-accent" />
             </div>
             <span className="text-sm font-semibold tracking-tight text-foreground">
@@ -72,7 +79,7 @@ export function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -81,22 +88,33 @@ export function Sidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors',
+                  'relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors duration-150',
                   isActive
-                    ? 'bg-accent-muted text-accent'
-                    : 'text-muted hover:bg-surface-raised hover:text-foreground',
+                    ? 'text-accent font-semibold'
+                    : 'text-muted hover:bg-surface-raised/60 hover:text-foreground',
                 )
               }
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.span
+                      layoutId="sidebar-active-pill"
+                      className="absolute inset-0 rounded-md bg-accent-muted border border-accent/20"
+                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                    />
+                  )}
+                  <Icon className="relative z-10 h-4 w-4 shrink-0 transition-transform duration-150" />
+                  <span className="relative z-10">{label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
         {/* User Account & Sign Out footer */}
         <div className="border-t border-border p-2">
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50 transition-colors hover:border-border">
             <div className="flex items-center gap-2 min-w-0">
               <div
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-raised text-[10px] font-bold text-accent uppercase"
@@ -114,7 +132,7 @@ export function Sidebar({ open, onClose }) {
               onClick={handleSignOut}
               aria-label="Sign out"
               title="Sign out"
-              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
             >
               <LogOut className="h-4 w-4" />
             </button>

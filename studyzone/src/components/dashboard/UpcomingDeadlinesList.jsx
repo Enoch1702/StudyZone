@@ -1,9 +1,11 @@
+import { motion } from 'motion/react'
 import { CalendarDays } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 import { DeadlineUrgency } from '../ui/DeadlineUrgency'
 import { EmptyState } from '../ui/EmptyState'
 import { formatDate } from '../../lib/utils'
+import { staggerContainer, staggerItem } from '../../lib/motion'
 
 /**
  * @param {{ loading: boolean, deadlines: Array, subjects: Array }} props
@@ -39,11 +41,17 @@ export function UpcomingDeadlinesList({ loading, deadlines, subjects }) {
             description="Deadlines you add will appear here so you never miss a due date."
           />
         ) : (
-          <ul className="space-y-2">
+          <motion.ul
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            className="space-y-2"
+          >
             {upcoming.map((deadline) => (
-              <li
+              <motion.li
                 key={deadline.id}
-                className="rounded-lg border border-border-subtle bg-surface-raised/40 px-3 py-3 transition-colors hover:border-border hover:bg-surface-raised/60 sm:px-4"
+                variants={staggerItem}
+                className="rounded-lg border border-border-subtle bg-surface-raised/40 px-3 py-3 transition-all duration-200 hover:border-border hover:bg-surface-raised/70 hover:shadow-xs sm:px-4"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0">
@@ -65,9 +73,9 @@ export function UpcomingDeadlinesList({ loading, deadlines, subjects }) {
                     <DeadlineUrgency date={deadline.due_date} />
                   </div>
                 </div>
-              </li>
+              </motion.li>
             ))}
-          </ul>
+          </motion.ul>
         )}
       </div>
     </Card>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, ClipboardList, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
@@ -13,6 +14,7 @@ import { DeleteTaskModal } from '../components/tasks/DeleteTaskModal'
 import { getTasks, createTask, updateTask, toggleTaskComplete, deleteTask } from '../services/tasksService'
 import { getSubjects } from '../services/subjectsService'
 import { formatDate } from '../lib/utils'
+import { bannerVariant } from '../lib/motion'
 
 export default function TasksPage() {
   const { user } = useAuth()
@@ -249,27 +251,37 @@ export default function TasksPage() {
       />
 
       {/* Global Error Banner */}
-      {bannerError && (
-        <div
-          className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
-          role="alert"
-        >
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{bannerError}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setBannerError('')}
-            className="text-danger hover:underline ml-3 font-medium"
+      <AnimatePresence>
+        {bannerError && (
+          <motion.div
+            variants={bannerVariant}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden"
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            <div
+              className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger/10 p-4 text-xs text-danger"
+              role="alert"
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{bannerError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBannerError('')}
+                className="text-danger hover:underline ml-3 font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter Bar */}
-      <div className="rounded-xl border border-border bg-surface p-4">
+      <div className="rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-border/80">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Search */}
           <div className="relative sm:col-span-2 lg:col-span-1">
@@ -354,27 +366,27 @@ export default function TasksPage() {
           description="Try adjusting your search or filter criteria."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border">
+        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs transition-all duration-200">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
-                <tr className="border-b border-border bg-surface-raised/50">
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                <tr className="border-b border-border bg-surface-raised/60">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     Task
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     Subject
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     Priority
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     Status
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     Due
                   </th>
-                  <th className="px-4 py-3 font-medium text-muted" scope="col">
+                  <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -385,7 +397,7 @@ export default function TasksPage() {
                   return (
                     <tr
                       key={task.id}
-                      className="border-b border-border-subtle bg-surface transition-colors hover:bg-surface-raised/30 last:border-0"
+                      className="border-b border-border-subtle bg-surface transition-colors duration-150 hover:bg-surface-raised/40 last:border-0"
                     >
                       <td className="px-4 py-3">
                         <Checkbox
@@ -419,7 +431,7 @@ export default function TasksPage() {
                             type="button"
                             aria-label={`Edit ${task.title}`}
                             onClick={() => handleOpenEdit(task)}
-                            className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
+                            className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
@@ -427,7 +439,7 @@ export default function TasksPage() {
                             type="button"
                             aria-label={`Delete ${task.title}`}
                             onClick={() => handleOpenDelete(task)}
-                            className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                            className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>

@@ -1,4 +1,6 @@
+import { motion } from 'motion/react'
 import { StatCard } from '../ui/StatCard'
+import { staggerContainer, staggerItem } from '../../lib/motion'
 
 /**
  * @param {{ loading: boolean, stats: object|null, error: string|null }} props
@@ -32,19 +34,32 @@ export function StatsGrid({ loading, stats, error }) {
     stats.totalTasks === 0 ? 0 : Math.round((stats.completedTasks / stats.totalTasks) * 100)
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-      <StatCard label="Total tasks" value={stats.totalTasks} detail="all subjects" />
-      <StatCard
-        label="Completed"
-        value={stats.completedTasks}
-        detail={`${completionRate}% done`}
-      />
-      <StatCard label="Upcoming" value={stats.upcomingCount} detail="next 7 days" />
-      <StatCard
-        label="Overall progress"
-        value={`${stats.overallProgress}%`}
-        progress={stats.overallProgress}
-      />
-    </div>
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4"
+    >
+      <motion.div variants={staggerItem}>
+        <StatCard label="Total tasks" value={stats.totalTasks} detail="all subjects" />
+      </motion.div>
+      <motion.div variants={staggerItem}>
+        <StatCard
+          label="Completed"
+          value={stats.completedTasks}
+          detail={`${completionRate}% done`}
+        />
+      </motion.div>
+      <motion.div variants={staggerItem}>
+        <StatCard label="Upcoming" value={stats.upcomingCount} detail="next 7 days" />
+      </motion.div>
+      <motion.div variants={staggerItem}>
+        <StatCard
+          label="Overall progress"
+          value={`${stats.overallProgress}%`}
+          progress={stats.overallProgress}
+        />
+      </motion.div>
+    </motion.div>
   )
 }
