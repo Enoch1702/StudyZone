@@ -54,8 +54,8 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
           </div>
         ) : tasks.length === 0 ? (
           <EmptyState
-            title="No tasks for today"
-            description="You're all caught up. Add a task or enjoy the break."
+            title="No tasks scheduled for today"
+            description="You're all caught up. Add a new task or log a study session to keep your momentum going."
           />
         ) : (
           <motion.ul

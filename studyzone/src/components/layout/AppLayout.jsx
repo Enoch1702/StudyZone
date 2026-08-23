@@ -3,6 +3,8 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { LearnerOnboardingModal } from '../onboarding/LearnerOnboardingModal'
+import { useAuth } from '../../context/useAuth'
 import { pageEntrance } from '../../lib/motion'
 
 const pageTitles = {
@@ -15,9 +17,13 @@ const pageTitles = {
 }
 
 export function AppLayout() {
+  const { user, profile } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const title = pageTitles[location.pathname] ?? 'StudyZone'
+
+  // Show onboarding modal only if user is logged in, profile is loaded, and onboarding_completed is strictly false
+  const showOnboarding = Boolean(user && profile && profile.onboarding_completed === false)
 
   return (
     <div className="flex min-h-svh bg-background">
@@ -38,6 +44,9 @@ export function AppLayout() {
           <Outlet />
         </motion.main>
       </div>
+
+      {/* First-time Learner Onboarding Modal */}
+      <LearnerOnboardingModal isOpen={showOnboarding} />
     </div>
   )
 }

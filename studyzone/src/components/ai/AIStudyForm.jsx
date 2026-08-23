@@ -374,8 +374,8 @@ export function EmptyConversation() {
       </div>
       <p className="text-sm font-medium text-foreground">Ask me anything</p>
       <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted">
-        I can see your subjects, tasks, deadlines, and recent study activity — use the quick prompts
-        above or type your own question.
+        I can see your learning profile, subjects, tasks, deadlines, and study history — use the quick prompts
+        above or ask any question.
       </p>
     </motion.div>
   )

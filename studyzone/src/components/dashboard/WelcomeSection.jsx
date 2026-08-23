@@ -2,6 +2,7 @@ import { motion } from 'motion/react'
 import { useAuth } from '../../context/useAuth'
 import { getGreeting } from '../../lib/utils'
 import { fadeUp } from '../../lib/motion'
+import { getPersonalizedGreeting } from '../../lib/learnerProfile'
 
 /**
  * @param {{ loading: boolean, stats: object|null, focusTasks: Array, deadlines: Array }} props
@@ -14,6 +15,11 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
     user?.email?.split('@')[0] ||
     'Student'
   const greeting = getGreeting()
+  const personalizedMessage = getPersonalizedGreeting(
+    profile?.learner_type,
+    profile?.primary_goal,
+    profile?.learning_focus,
+  )
 
   // Count incomplete focus tasks
   const tasksDueToday = focusTasks.filter((t) => t.status !== 'completed').length
@@ -37,13 +43,18 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
       className="flex flex-col gap-4 rounded-xl border border-border bg-surface px-5 py-5 transition-all duration-200 hover:border-border/80 hover:shadow-xs sm:flex-row sm:items-center sm:justify-between sm:px-6"
     >
       <div>
-        <p className="text-xs font-medium text-muted tracking-wide">{greeting}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-medium text-muted tracking-wide">{greeting}</p>
+        </div>
         <h2 className="mt-0.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           {displayName}
         </h2>
-        <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
+        <p className="mt-1.5 text-xs text-accent font-medium tracking-wide">
+          {personalizedMessage}
+        </p>
+        <p className="mt-1 max-w-lg text-xs leading-relaxed text-muted">
           {loading ? (
-            <span className="inline-block h-4 w-48 animate-pulse rounded bg-surface-raised" />
+            <span className="inline-block h-3.5 w-48 animate-pulse rounded bg-surface-raised" />
           ) : (
             <>
               <span className="font-semibold text-foreground">{tasksDueToday}</span> task{tasksDueToday !== 1 ? 's' : ''} remaining today
@@ -67,7 +78,7 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
           <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
             {loading ? '—' : `${overallProgress}%`}
           </p>
-          <p className="text-[11px] text-muted">semester</p>
+          <p className="text-[11px] text-muted">overall</p>
         </div>
       </div>
     </motion.section>

@@ -241,7 +241,7 @@ export default function TasksPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
-        description="Manage and filter all your academic tasks in one place."
+        description="Organize, track, and complete what you're working on."
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -356,7 +356,7 @@ export default function TasksPage() {
         <EmptyState
           icon={ClipboardList}
           title="No tasks yet"
-          description="Add your first task to start tracking your academic work."
+          description="Add your first task to start planning your learning and tracking your daily progress."
           actionLabel="Add Task"
           onAction={handleOpenCreate}
         />

@@ -38,7 +38,7 @@ export function UpcomingDeadlinesList({ loading, deadlines, subjects }) {
         ) : upcoming.length === 0 ? (
           <EmptyState
             title="No upcoming deadlines"
-            description="Deadlines you add will appear here so you never miss a due date."
+            description="Deadlines and target dates you add will appear here so you never miss an important milestone."
           />
         ) : (
           <motion.ul

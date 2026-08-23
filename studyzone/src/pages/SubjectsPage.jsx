@@ -155,7 +155,7 @@ export default function SubjectsPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
-        description="Organize your courses and track progress across subjects."
+        description="Organize your subjects, skills, courses, and exam topics in one place."
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -196,7 +196,7 @@ export default function SubjectsPage() {
 
       {/* Main Content Area */}
       {loading ? (
-        <LoadingState message="Loading your courses and subjects..." />
+        <LoadingState message="Loading what you're learning..." />
       ) : fetchError ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface p-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
@@ -217,8 +217,8 @@ export default function SubjectsPage() {
       ) : subjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="No subjects yet"
-          description="Add your first course or subject to organize tasks, deadlines, and study plans in one place."
+          title="Start by adding what you're learning"
+          description="Add a subject, programming skill, exam topic, course, or certification to organize your tasks and study plans."
           actionLabel="Add Subject"
           onAction={handleOpenCreate}
         />

@@ -221,7 +221,7 @@ export default function DeadlinesPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
-        description="Track exams and assignment due dates across all your subjects."
+        description="Track exams, assignments, project milestones, and certification target dates."
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
@@ -337,7 +337,7 @@ export default function DeadlinesPage() {
         <EmptyState
           icon={CalendarDays}
           title="No deadlines scheduled"
-          description="Add deadlines to keep track of exams, assignments, and important dates."
+          description="Add deadlines to keep track of exams, project milestones, test dates, or submission targets."
           actionLabel="Add Deadline"
           onAction={handleOpenCreate}
         />

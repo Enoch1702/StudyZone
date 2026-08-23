@@ -71,6 +71,12 @@ interface StudySession {
   notes: string | null
 }
 
+interface LearnerProfile {
+  learner_type: string | null
+  primary_goal: string | null
+  learning_focus: string | null
+}
+
 // ---------------------------------------------------------------------------
 // CORS headers — required for Supabase Edge Functions called from browser
 // ---------------------------------------------------------------------------
@@ -106,6 +112,7 @@ function formatRelativeDate(dateStr: string, now: Date): string {
  * Resolves subject relationships by name. Does not dump raw UUIDs.
  */
 function buildContext(
+  profile: LearnerProfile | null,
   subjects: Subject[],
   tasks: Task[],
   deadlines: Deadline[],
@@ -118,6 +125,14 @@ function buildContext(
 
   const lines: string[] = []
   lines.push(`Current date: ${now.toDateString()}`)
+
+  // --- Learner Profile (if available) ---
+  if (profile && (profile.learner_type || profile.primary_goal || profile.learning_focus)) {
+    lines.push('\n=== LEARNER PROFILE ===')
+    if (profile.learner_type) lines.push(`Learning Category: ${profile.learner_type}`)
+    if (profile.primary_goal) lines.push(`Primary Goal: ${profile.primary_goal}`)
+    if (profile.learning_focus) lines.push(`Current Focus: ${profile.learning_focus}`)
+  }
 
   // --- Subjects ---
   lines.push('\n=== SUBJECTS ===')
@@ -331,7 +346,13 @@ Deno.serve(async (req: Request) => {
     const now = new Date()
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
 
-    const [subjectsResult, tasksResult, deadlinesResult, sessionsResult] = await Promise.all([
+    const [profileResult, subjectsResult, tasksResult, deadlinesResult, sessionsResult] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('learner_type, primary_goal, learning_focus')
+        .eq('id', userId)
+        .maybeSingle(),
+
       supabaseAdmin
         .from('subjects')
         .select('id, name, description')
@@ -363,6 +384,7 @@ Deno.serve(async (req: Request) => {
         .limit(30),
     ])
 
+    const profile: LearnerProfile | null = profileResult.data || null
     const subjects: Subject[] = subjectsResult.data || []
     const tasks: Task[] = tasksResult.data || []
     const deadlines: Deadline[] = deadlinesResult.data || []
@@ -371,7 +393,7 @@ Deno.serve(async (req: Request) => {
     // -------------------------------------------------------------------------
     // Step 5: Build clean AI context
     // -------------------------------------------------------------------------
-    const contextBlock = buildContext(subjects, tasks, deadlines, sessions, now)
+    const contextBlock = buildContext(profile, subjects, tasks, deadlines, sessions, now)
 
     // -------------------------------------------------------------------------
     // Step 6: Assemble Gemini request
