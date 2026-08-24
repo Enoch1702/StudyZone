@@ -236,16 +236,9 @@ export default function LearningAnalyticsPage() {
             </motion.div>
           </motion.div>
 
-          {/* Phase 8B: AI Learning Coach & Insights Card */}
+          {/* Phase 8B: AI Learning Coach Launchpad */}
           <section aria-label="AI Learning Coach">
-            <AIInsightsCard
-              analyticsSummary={analyticsSummary}
-              subjects={analyticsRaw.subjects}
-              existingTasks={analyticsRaw.tasks}
-              existingDeadlines={analyticsRaw.deadlines}
-              existingPlans={analyticsRaw.plans}
-              onActionsApplied={() => setReloadKey((k) => k + 1)}
-            />
+            <AIInsightsCard analyticsSummary={analyticsSummary} />
           </section>
 
           {/* Section 1: 7-Day Consistency Calendar */}

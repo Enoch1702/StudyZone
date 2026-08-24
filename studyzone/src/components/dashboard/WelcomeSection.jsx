@@ -1,13 +1,15 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
+import { Sparkles } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import { getGreeting } from '../../lib/utils'
 import { fadeUp } from '../../lib/motion'
-import { getPersonalizedGreeting } from '../../lib/learnerProfile'
+import { getPersonalizedGreeting, getLearnerTypeShortLabel } from '../../lib/learnerProfile'
 
 /**
  * @param {{ loading: boolean, stats: object|null, focusTasks: Array, deadlines: Array }} props
  */
-export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
+export function WelcomeSection({ loading, focusTasks, deadlines }) {
   const { profile, user } = useAuth()
   const displayName =
     profile?.full_name ||
@@ -20,6 +22,7 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
     profile?.primary_goal,
     profile?.learning_focus,
   )
+  const learnerBadge = getLearnerTypeShortLabel(profile?.learner_type)
 
   // Count incomplete focus tasks
   const tasksDueToday = focusTasks.filter((t) => t.status !== 'completed').length
@@ -33,8 +36,6 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
     return due >= now && due <= sevenDaysLater
   }).length
 
-  const overallProgress = stats?.overallProgress ?? 0
-
   return (
     <motion.section
       variants={fadeUp}
@@ -45,6 +46,9 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
       <div>
         <div className="flex items-center gap-2">
           <p className="text-xs font-medium text-muted tracking-wide">{greeting}</p>
+          <span className="rounded-full bg-surface-raised border border-border/80 px-2 py-0.5 text-[10px] font-semibold text-muted">
+            {learnerBadge}
+          </span>
         </div>
         <h2 className="mt-0.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           {displayName}
@@ -65,21 +69,14 @@ export function WelcomeSection({ loading, stats, focusTasks, deadlines }) {
         </p>
       </div>
 
-      <div className="flex shrink-0 gap-6 border-t border-border-subtle pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
-        <div className="rounded-lg bg-surface-raised/40 px-3 py-2 border border-border/40 min-w-[70px]">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Today</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
-            {loading ? '—' : tasksDueToday}
-          </p>
-          <p className="text-[11px] text-muted">open tasks</p>
-        </div>
-        <div className="rounded-lg bg-surface-raised/40 px-3 py-2 border border-border/40 min-w-[70px]">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Progress</p>
-          <p className="mt-0.5 text-lg font-bold tabular-nums text-foreground">
-            {loading ? '—' : `${overallProgress}%`}
-          </p>
-          <p className="text-[11px] text-muted">overall</p>
-        </div>
+      <div className="flex shrink-0 items-center gap-3 border-t border-border-subtle pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+        <Link
+          to="/ai-assistant"
+          className="inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3.5 py-2.5 text-xs font-semibold text-accent hover:border-accent hover:bg-accent/20 transition-all shadow-2xs"
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>Ask AI Coach</span>
+        </Link>
       </div>
     </motion.section>
   )

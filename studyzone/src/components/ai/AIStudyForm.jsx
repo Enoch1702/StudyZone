@@ -347,29 +347,35 @@ export function ThinkingIndicator() {
  * Returns contextual quick prompts based on learner category.
  */
 function getAdaptivePrompts(learnerType) {
+  const commonCoaching = [
+    { icon: '📊', label: 'Review my week & consistency', id: 'qp-review' },
+    { icon: '💡', label: 'What should I improve?', id: 'qp-improve' },
+    { icon: '⚖️', label: 'Analyze my upcoming workload', id: 'qp-workload' },
+  ]
+
   switch (learnerType) {
     case 'placement':
       return [
         { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        ...commonCoaching,
         { icon: '💼', label: 'Plan my placement preparation', id: 'qp-placement' },
         { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
         { icon: '📋', label: 'Create a DSA & coding checklist', id: 'qp-checklist' },
       ]
     case 'competitive_exam':
       return [
         { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        ...commonCoaching,
         { icon: '🏆', label: 'Plan my exam syllabus schedule', id: 'qp-exam-plan' },
         { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
         { icon: '📋', label: 'Generate a high-yield checklist', id: 'qp-checklist' },
       ]
     case 'skill_dev':
       return [
         { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        ...commonCoaching,
         { icon: '💻', label: 'Build my skill learning roadmap', id: 'qp-skill-plan' },
         { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
         { icon: '📋', label: 'Create a project checklist', id: 'qp-checklist' },
       ]
     case 'college':
@@ -377,9 +383,9 @@ function getAdaptivePrompts(learnerType) {
     default:
       return [
         { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
+        ...commonCoaching,
         { icon: '📅', label: 'Create a study plan for this week', id: 'qp-plan' },
         { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '🔄', label: 'What should I revise first?', id: 'qp-revise' },
         { icon: '📋', label: 'Create a study checklist', id: 'qp-checklist' },
       ]
   }
