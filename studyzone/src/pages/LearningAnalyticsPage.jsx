@@ -10,6 +10,7 @@ import { PageContainer } from '../components/layout/PageContainer'
 import { Button } from '../components/ui/Button'
 import { StatCard } from '../components/ui/StatCard'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
+import { AIInsightsCard } from '../components/analytics/AIInsightsCard'
 import { ConsistencyCalendar } from '../components/analytics/ConsistencyCalendar'
 import { LearningBalance } from '../components/analytics/LearningBalance'
 import { TaskCompletionInsights } from '../components/analytics/TaskCompletionInsights'
@@ -23,8 +24,11 @@ import {
   calculateNeglectedAreas,
   calculateTaskCompletion,
   calculateUpcomingWorkload,
+  classifyWorkload,
+  buildAnalyticsSummary,
   formatMinutes,
 } from '../services/learningAnalyticsService'
+import { getLearningPlans } from '../services/learningPlansService'
 import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
 
 export default function LearningAnalyticsPage() {
@@ -39,9 +43,10 @@ export default function LearningAnalyticsPage() {
     tasks: [],
     deadlines: [],
     subjects: [],
+    plans: [],
   })
 
-  // Load analytics data in parallel
+  // Load analytics data and learning plans in parallel
   useEffect(() => {
     let ignore = false
 
@@ -51,7 +56,11 @@ export default function LearningAnalyticsPage() {
       setError('')
 
       try {
-        const result = await fetchLearningAnalyticsData(user.id)
+        const [result, plansRes] = await Promise.all([
+          fetchLearningAnalyticsData(user.id),
+          getLearningPlans(user.id),
+        ])
+
         if (ignore) return
 
         if (result.error) {
@@ -62,6 +71,7 @@ export default function LearningAnalyticsPage() {
             tasks: result.tasks || [],
             deadlines: result.deadlines || [],
             subjects: result.subjects || [],
+            plans: plansRes?.data || [],
           })
         }
       } catch (err) {
@@ -104,6 +114,31 @@ export default function LearningAnalyticsPage() {
   const upcomingWorkload = useMemo(() => {
     return calculateUpcomingWorkload(analyticsRaw.tasks, analyticsRaw.deadlines)
   }, [analyticsRaw.tasks, analyticsRaw.deadlines])
+
+  const workloadClassification = useMemo(() => {
+    return classifyWorkload(upcomingWorkload)
+  }, [upcomingWorkload])
+
+  // Normalized analytics summary payload for AI Coach
+  const analyticsSummary = useMemo(() => {
+    return buildAnalyticsSummary({
+      consistency,
+      timeStats,
+      learningBalance,
+      neglectedAreas,
+      taskCompletion,
+      upcomingWorkload,
+      workloadClassification,
+    })
+  }, [
+    consistency,
+    timeStats,
+    learningBalance,
+    neglectedAreas,
+    taskCompletion,
+    upcomingWorkload,
+    workloadClassification,
+  ])
 
   return (
     <PageContainer width="wide" className="space-y-6">
@@ -200,6 +235,18 @@ export default function LearningAnalyticsPage() {
               />
             </motion.div>
           </motion.div>
+
+          {/* Phase 8B: AI Learning Coach & Insights Card */}
+          <section aria-label="AI Learning Coach">
+            <AIInsightsCard
+              analyticsSummary={analyticsSummary}
+              subjects={analyticsRaw.subjects}
+              existingTasks={analyticsRaw.tasks}
+              existingDeadlines={analyticsRaw.deadlines}
+              existingPlans={analyticsRaw.plans}
+              onActionsApplied={() => setReloadKey((k) => k + 1)}
+            />
+          </section>
 
           {/* Section 1: 7-Day Consistency Calendar */}
           <motion.section variants={fadeUp} initial="hidden" animate="visible">

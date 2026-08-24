@@ -10,9 +10,9 @@
  *   2. Validate request (Authorization header, body shape)
  *   3. Derive authenticated user securely from JWT (never trust client-provided user_id)
  *   4. Fetch user-scoped StudyZone data (subjects, tasks, deadlines, recent sessions)
- *   5. Assemble clean, normalized AI context
+ *   5. Assemble clean, normalized AI context with deterministic learning analytics
  *   6. Call Gemini API with system prompt + context + limited history + message
- *   7. Return { reply } or { error }
+ *   7. Return { reply, actions } or { error }
  *
  * The Gemini API key is read ONLY from Edge Function secrets.
  * It is never present in frontend code or VITE_* variables.
@@ -30,9 +30,49 @@ interface ConversationTurn {
   content: string
 }
 
+interface AnalyticsSummary {
+  consistency?: {
+    current_streak: number
+    longest_streak: number
+    active_days_7d: number
+    active_days_30d: number
+  }
+  study_time?: {
+    total_minutes_7d: number
+    average_minutes_per_active_day_7d: number
+    most_productive_day_7d: string | null
+    total_minutes_30d?: number
+    average_minutes_per_active_day_30d?: number
+  }
+  learning_balance?: Array<{
+    subject_name: string
+    percentage: number
+    total_minutes: number
+  }>
+  neglected_areas?: Array<{
+    subject_name: string
+    days_since_last_study: string
+  }>
+  task_progress?: {
+    tasks_created: number
+    tasks_completed: number
+    completion_rate: number
+  }
+  upcoming_workload?: {
+    upcoming_tasks: number
+    upcoming_deadlines: number
+    overdue_items: number
+    high_priority_tasks: number
+    busiest_day: string | null
+    workload_level: string
+    workload_reasons?: string[]
+  }
+}
+
 interface RequestBody {
   message: string
   history?: ConversationTurn[]
+  analytics_summary?: AnalyticsSummary
 }
 
 interface Subject {
@@ -117,6 +157,7 @@ function buildContext(
   tasks: Task[],
   deadlines: Deadline[],
   sessions: StudySession[],
+  analytics: AnalyticsSummary | null,
   now: Date,
 ): string {
   // Build subject lookup map
@@ -132,6 +173,67 @@ function buildContext(
     if (profile.learner_type) lines.push(`Learning Category: ${profile.learner_type}`)
     if (profile.primary_goal) lines.push(`Primary Goal: ${profile.primary_goal}`)
     if (profile.learning_focus) lines.push(`Current Focus: ${profile.learning_focus}`)
+  }
+
+  // --- Deterministic Learning Analytics (Phase 8B) ---
+  if (analytics) {
+    lines.push('\n=== LEARNING ANALYTICS & CONSISTENCY DATA ===')
+
+    if (analytics.consistency) {
+      lines.push('CONSISTENCY:')
+      lines.push(`- Current streak: ${analytics.consistency.current_streak} days`)
+      lines.push(`- Longest streak: ${analytics.consistency.longest_streak} days`)
+      lines.push(`- Active study days (last 7 days): ${analytics.consistency.active_days_7d} of 7`)
+      lines.push(`- Active study days (last 30 days): ${analytics.consistency.active_days_30d} of 30`)
+    }
+
+    if (analytics.study_time) {
+      lines.push('\nSTUDY TIME:')
+      lines.push(`- Total study time (last 7 days): ${analytics.study_time.total_minutes_7d} minutes`)
+      lines.push(`- Average per active day (last 7 days): ${analytics.study_time.average_minutes_per_active_day_7d} minutes`)
+      if (analytics.study_time.most_productive_day_7d) {
+        lines.push(`- Most productive day: ${analytics.study_time.most_productive_day_7d}`)
+      }
+      if (analytics.study_time.total_minutes_30d) {
+        lines.push(`- Total study time (last 30 days): ${analytics.study_time.total_minutes_30d} minutes`)
+      }
+    }
+
+    if (Array.isArray(analytics.learning_balance) && analytics.learning_balance.length > 0) {
+      lines.push('\nLEARNING BALANCE (last 30 days):')
+      analytics.learning_balance.forEach((item) => {
+        lines.push(`- ${item.subject_name}: ${item.percentage}% (${item.total_minutes} min)`)
+      })
+    }
+
+    if (Array.isArray(analytics.neglected_areas) && analytics.neglected_areas.length > 0) {
+      lines.push('\nNEGLECTED AREAS (no study in >14 days or never studied):')
+      analytics.neglected_areas.forEach((item) => {
+        lines.push(`- ${item.subject_name}: ${item.days_since_last_study}`)
+      })
+    }
+
+    if (analytics.task_progress) {
+      lines.push('\nTASK PROGRESS (last 30 days):')
+      lines.push(`- Tasks created: ${analytics.task_progress.tasks_created}`)
+      lines.push(`- Tasks completed: ${analytics.task_progress.tasks_completed}`)
+      lines.push(`- Completion rate: ${analytics.task_progress.completion_rate}%`)
+    }
+
+    if (analytics.upcoming_workload) {
+      lines.push('\nUPCOMING WORKLOAD (next 7 days):')
+      lines.push(`- Workload Level: ${analytics.upcoming_workload.workload_level || 'Balanced'}`)
+      lines.push(`- Upcoming tasks: ${analytics.upcoming_workload.upcoming_tasks}`)
+      lines.push(`- Upcoming deadlines: ${analytics.upcoming_workload.upcoming_deadlines}`)
+      lines.push(`- Overdue items: ${analytics.upcoming_workload.overdue_items}`)
+      lines.push(`- High-priority tasks: ${analytics.upcoming_workload.high_priority_tasks}`)
+      if (analytics.upcoming_workload.busiest_day) {
+        lines.push(`- Busiest upcoming day: ${analytics.upcoming_workload.busiest_day}`)
+      }
+      if (Array.isArray(analytics.upcoming_workload.workload_reasons) && analytics.upcoming_workload.workload_reasons.length > 0) {
+        lines.push(`- Reasons: ${analytics.upcoming_workload.workload_reasons.join('; ')}`)
+      }
+    }
   }
 
   // --- Subjects ---
@@ -202,41 +304,43 @@ function buildContext(
   }
 
   // --- Recent Study Activity ---
-  lines.push('\n=== RECENT STUDY ACTIVITY (last 14 days) ===')
-  if (sessions.length === 0) {
-    lines.push('No recent study sessions logged.')
-  } else {
-    // Aggregate by subject
-    const subjectMinutes = new Map<string, number>()
-    let unlinkedMinutes = 0
+  if (!analytics) {
+    lines.push('\n=== RECENT STUDY ACTIVITY (last 14 days) ===')
+    if (sessions.length === 0) {
+      lines.push('No recent study sessions logged.')
+    } else {
+      // Aggregate by subject
+      const subjectMinutes = new Map<string, number>()
+      let unlinkedMinutes = 0
 
-    sessions.forEach((s) => {
-      if (s.subject_id && subjectMap.has(s.subject_id)) {
-        const name = subjectMap.get(s.subject_id)!
-        subjectMinutes.set(name, (subjectMinutes.get(name) || 0) + s.duration_minutes)
-      } else {
-        unlinkedMinutes += s.duration_minutes
-      }
-    })
-
-    const totalMinutes = sessions.reduce((sum, s) => sum + s.duration_minutes, 0)
-    lines.push(`Total study time logged: ${totalMinutes} minutes across ${sessions.length} sessions`)
-
-    if (subjectMinutes.size > 0) {
-      lines.push('Time by subject:')
-      subjectMinutes.forEach((mins, name) => {
-        lines.push(`  ${name}: ${mins} min`)
+      sessions.forEach((s) => {
+        if (s.subject_id && subjectMap.has(s.subject_id)) {
+          const name = subjectMap.get(s.subject_id)!
+          subjectMinutes.set(name, (subjectMinutes.get(name) || 0) + s.duration_minutes)
+        } else {
+          unlinkedMinutes += s.duration_minutes
+        }
       })
-    }
-    if (unlinkedMinutes > 0) {
-      lines.push(`  Unlinked sessions: ${unlinkedMinutes} min`)
-    }
 
-    // Note subjects with NO study time in last 14 days
-    const studiedSubjects = new Set(subjectMinutes.keys())
-    const neglected = subjects.filter((s) => !studiedSubjects.has(s.name))
-    if (neglected.length > 0) {
-      lines.push(`Subjects with no recent study time: ${neglected.map((s) => s.name).join(', ')}`)
+      const totalMinutes = sessions.reduce((sum, s) => sum + s.duration_minutes, 0)
+      lines.push(`Total study time logged: ${totalMinutes} minutes across ${sessions.length} sessions`)
+
+      if (subjectMinutes.size > 0) {
+        lines.push('Time by subject:')
+        subjectMinutes.forEach((mins, name) => {
+          lines.push(`  ${name}: ${mins} min`)
+        })
+      }
+      if (unlinkedMinutes > 0) {
+        lines.push(`  Unlinked sessions: ${unlinkedMinutes} min`)
+      }
+
+      // Note subjects with NO study time in last 14 days
+      const studiedSubjects = new Set(subjectMinutes.keys())
+      const neglected = subjects.filter((s) => !studiedSubjects.has(s.name))
+      if (neglected.length > 0) {
+        lines.push(`Subjects with no recent study time: ${neglected.map((s) => s.name).join(', ')}`)
+      }
     }
   }
 
@@ -309,6 +413,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const rawHistory: ConversationTurn[] = Array.isArray(body.history) ? body.history : []
+    const analyticsSummary: AnalyticsSummary | null = body.analytics_summary || null
 
     // -------------------------------------------------------------------------
     // Step 3: Authenticate — derive user securely from Authorization header JWT
@@ -393,7 +498,7 @@ Deno.serve(async (req: Request) => {
     // -------------------------------------------------------------------------
     // Step 5: Build clean AI context
     // -------------------------------------------------------------------------
-    const contextBlock = buildContext(profile, subjects, tasks, deadlines, sessions, now)
+    const contextBlock = buildContext(profile, subjects, tasks, deadlines, sessions, analyticsSummary, now)
 
     // -------------------------------------------------------------------------
     // Step 6: Assemble Gemini request

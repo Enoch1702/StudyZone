@@ -725,3 +725,137 @@ export function calculateUpcomingWorkload(tasks = [], deadlines = []) {
     dailyWorkload,
   }
 }
+
+// ---------------------------------------------------------------------------
+// 8. Deterministic Workload Classification (Phase 8B)
+// ---------------------------------------------------------------------------
+
+/**
+ * Deterministically classifies workload intensity into:
+ * 'Light' | 'Balanced' | 'Busy' | 'Overloaded'
+ *
+ * Rules:
+ * - Overloaded: (overdueCount > 0 AND totalUpcoming >= 4) OR totalUpcoming >= 10 OR highPriorityCount >= 4
+ * - Busy: totalUpcoming >= 6 OR highPriorityCount >= 2 OR upcomingDeadlinesCount >= 2 OR overdueCount > 0
+ * - Balanced: totalUpcoming >= 2 OR upcomingDeadlinesCount >= 1
+ * - Light: totalUpcoming <= 1 AND overdueCount === 0
+ *
+ * @param {Object} workload - Result from calculateUpcomingWorkload
+ * @returns {{ level: 'Light'|'Balanced'|'Busy'|'Overloaded', reasons: string[] }}
+ */
+export function classifyWorkload(workload = {}) {
+  const {
+    upcomingTasksCount = 0,
+    upcomingDeadlinesCount = 0,
+    overdueCount = 0,
+    highPriorityCount = 0,
+    busiestDayLabel = null,
+    busiestItemCount = 0,
+  } = workload
+
+  const totalUpcoming = upcomingTasksCount + upcomingDeadlinesCount
+  const reasons = []
+
+  if (totalUpcoming > 0) {
+    reasons.push(`${totalUpcoming} scheduled item${totalUpcoming !== 1 ? 's' : ''} in next 7 days`)
+  }
+  if (highPriorityCount > 0) {
+    reasons.push(`${highPriorityCount} high-priority task${highPriorityCount !== 1 ? 's' : ''}`)
+  }
+  if (upcomingDeadlinesCount > 0) {
+    reasons.push(`${upcomingDeadlinesCount} upcoming deadline${upcomingDeadlinesCount !== 1 ? 's' : ''}`)
+  }
+  if (overdueCount > 0) {
+    reasons.push(`${overdueCount} overdue item${overdueCount !== 1 ? 's' : ''}`)
+  }
+  if (busiestDayLabel && busiestItemCount > 0) {
+    reasons.push(`${busiestDayLabel} contains the highest concentration of work (${busiestItemCount} items)`)
+  }
+
+  let level
+  if ((overdueCount > 0 && totalUpcoming >= 4) || totalUpcoming >= 10 || highPriorityCount >= 4) {
+    level = 'Overloaded'
+  } else if (totalUpcoming >= 6 || highPriorityCount >= 2 || upcomingDeadlinesCount >= 2 || overdueCount > 0) {
+    level = 'Busy'
+  } else if (totalUpcoming >= 2 || upcomingDeadlinesCount >= 1) {
+    level = 'Balanced'
+  } else {
+    level = 'Light'
+  }
+
+  return {
+    level,
+    reasons,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Normalized Analytics Context Builder for AI Coach (Phase 8B)
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a clean, compact, normalized analytics summary object
+ * to provide verified metrics directly to the AI Assistant.
+ *
+ * @param {Object} params
+ * @param {Object} params.consistency
+ * @param {Object} params.timeStats
+ * @param {Object} params.learningBalance
+ * @param {Array} params.neglectedAreas
+ * @param {Object} params.taskCompletion
+ * @param {Object} params.upcomingWorkload
+ * @param {Object} [params.workloadClassification]
+ * @returns {Object} normalized summary payload
+ */
+export function buildAnalyticsSummary({
+  consistency,
+  timeStats,
+  learningBalance,
+  neglectedAreas,
+  taskCompletion,
+  upcomingWorkload,
+  workloadClassification,
+}) {
+  const workloadClass = workloadClassification || classifyWorkload(upcomingWorkload)
+
+  return {
+    consistency: {
+      current_streak: consistency?.currentStreak ?? 0,
+      longest_streak: consistency?.longestStreak ?? 0,
+      active_days_7d: consistency?.activeDays7d ?? 0,
+      active_days_30d: consistency?.activeDays30d ?? 0,
+    },
+    study_time: {
+      total_minutes_7d: timeStats?.totalMinutes7d ?? 0,
+      average_minutes_per_active_day_7d: timeStats?.averageMinutesPerActiveDay7d ?? 0,
+      most_productive_day_7d: timeStats?.mostProductiveDay7d?.dayLabel ?? null,
+      total_minutes_30d: timeStats?.totalMinutes30d ?? 0,
+      average_minutes_per_active_day_30d: timeStats?.averageMinutesPerActiveDay30d ?? 0,
+    },
+    learning_balance: (learningBalance?.items || []).map((item) => ({
+      subject_name: item.subjectName,
+      percentage: item.percentageOfStudyTime,
+      total_minutes: item.totalMinutes,
+    })),
+    neglected_areas: (neglectedAreas || []).map((item) => ({
+      subject_name: item.subjectName,
+      days_since_last_study:
+        item.daysSinceLastStudy === null ? 'Never studied' : `${item.daysSinceLastStudy} days ago`,
+    })),
+    task_progress: {
+      tasks_created: taskCompletion?.tasksCreated ?? 0,
+      tasks_completed: taskCompletion?.tasksCompleted ?? 0,
+      completion_rate: taskCompletion?.completionRate ?? 0,
+    },
+    upcoming_workload: {
+      upcoming_tasks: upcomingWorkload?.upcomingTasksCount ?? 0,
+      upcoming_deadlines: upcomingWorkload?.upcomingDeadlinesCount ?? 0,
+      overdue_items: upcomingWorkload?.overdueCount ?? 0,
+      high_priority_tasks: upcomingWorkload?.highPriorityCount ?? 0,
+      busiest_day: upcomingWorkload?.busiestDayLabel ?? null,
+      workload_level: workloadClass.level,
+      workload_reasons: workloadClass.reasons,
+    },
+  }
+}
+

@@ -31,7 +31,7 @@ import { supabase } from '../lib/supabase'
  * @returns {Promise<{ reply: string }>}
  * @throws {Error} Normalized, user-facing error message on any failure
  */
-export async function sendMessage({ message, history = [] }) {
+export async function sendMessage({ message, history = [], analyticsSummary = null }) {
   const trimmedMessage = message?.trim()
   if (!trimmedMessage) {
     throw new Error('Please enter a message before sending.')
@@ -48,6 +48,7 @@ export async function sendMessage({ message, history = [] }) {
       body: {
         message: trimmedMessage,
         history: limitedHistory,
+        analytics_summary: analyticsSummary,
       },
     })
     data = result.data
