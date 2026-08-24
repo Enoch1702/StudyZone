@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../context/useAuth'
 import { PageContainer } from '../components/layout/PageContainer'
 import { WelcomeSection } from '../components/dashboard/WelcomeSection'
@@ -6,6 +6,7 @@ import { StatsGrid } from '../components/dashboard/StatsGrid'
 import { TodaysFocus } from '../components/dashboard/TodaysFocus'
 import { UpcomingDeadlinesList } from '../components/dashboard/UpcomingDeadlinesList'
 import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans'
+import { LearningInsightsPreview } from '../components/dashboard/LearningInsightsPreview'
 import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
 import {
@@ -16,6 +17,11 @@ import {
   getWeekMondayLocal,
   getWeekSundayLocal,
 } from '../services/dashboardService'
+import {
+  calculateStudyConsistency,
+  calculateNeglectedAreas,
+  calculateTaskCompletion,
+} from '../services/learningAnalyticsService'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -34,18 +40,14 @@ export default function DashboardPage() {
     const weekMon = getWeekMondayLocal()
     const weekSun = getWeekSundayLocal(weekMon)
 
-    const result = await fetchDashboardData(
-      user.id,
-      weekMon.toISOString(),
-      weekSun.toISOString(),
-    )
+    const result = await fetchDashboardData(user.id)
 
     if (result.error) {
       setFetchError(result.error?.message || 'Failed to load dashboard data.')
     } else {
       const stats = computeTaskStats(result.tasks)
       const focusTasks = computeFocusTasks(result.tasks)
-      const weeklyActivity = computeWeeklyActivity(result.sessions)
+      const weeklyActivity = computeWeeklyActivity(result.sessions, weekMon, weekSun)
 
       setDashData({
         stats,
@@ -54,6 +56,7 @@ export default function DashboardPage() {
         deadlines: result.deadlines,
         subjects: result.subjects,
         tasks: result.tasks,
+        sessions: result.sessions,
         plans: result.plans,
         milestones: result.milestones,
       })
@@ -71,6 +74,19 @@ export default function DashboardPage() {
     setSessionRefreshKey((k) => k + 1)
   }
 
+  // Pure insights calculations for preview card
+  const consistency = useMemo(() => {
+    return calculateStudyConsistency(dashData?.sessions || [])
+  }, [dashData?.sessions])
+
+  const neglectedAreas = useMemo(() => {
+    return calculateNeglectedAreas(dashData?.sessions || [], dashData?.subjects || [])
+  }, [dashData?.sessions, dashData?.subjects])
+
+  const taskCompletion = useMemo(() => {
+    return calculateTaskCompletion(dashData?.tasks || [])
+  }, [dashData?.tasks])
+
   return (
     <PageContainer width="wide" className="space-y-5">
       <WelcomeSection
@@ -82,9 +98,9 @@ export default function DashboardPage() {
 
       <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
 
-      {/* Focus, Deadlines & Active Plans Grid */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-1">
+      {/* Focus, Deadlines, Plans & Learning Insights Grid */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div>
           <ActiveLearningPlans
             loading={loading}
             plans={dashData?.plans ?? []}
@@ -92,7 +108,7 @@ export default function DashboardPage() {
             tasks={dashData?.tasks ?? []}
           />
         </div>
-        <div className="lg:col-span-1">
+        <div>
           <TodaysFocus
             loading={loading}
             tasks={dashData?.focusTasks ?? []}
@@ -100,11 +116,20 @@ export default function DashboardPage() {
             onTaskToggled={loadData}
           />
         </div>
-        <div className="lg:col-span-1">
+        <div>
           <UpcomingDeadlinesList
             loading={loading}
             deadlines={dashData?.deadlines ?? []}
             subjects={dashData?.subjects ?? []}
+          />
+        </div>
+        <div>
+          <LearningInsightsPreview
+            loading={loading}
+            currentStreak={consistency.currentStreak}
+            activeDays7d={consistency.activeDays7d}
+            neglectedAreas={neglectedAreas}
+            completionRate={taskCompletion.completionRate}
           />
         </div>
       </div>

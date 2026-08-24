@@ -10,13 +10,11 @@ import { supabase } from '../lib/supabase'
  * All queries are fired in parallel via Promise.all.
  *
  * @param {string} userId - Authenticated user UUID
- * @param {string} weekStart - ISO string for start of current local week (Mon 00:00:00)
- * @param {string} weekEnd - ISO string for end of current local week (Sun 23:59:59)
- * @returns {Promise<{ tasks, deadlines, sessions, subjects, error }>}
+ * @returns {Promise<{ tasks, deadlines, sessions, subjects, plans, milestones, error }>}
  */
-export async function fetchDashboardData(userId, weekStart, weekEnd) {
+export async function fetchDashboardData(userId) {
   if (!userId) {
-    return { tasks: [], deadlines: [], sessions: [], subjects: [], error: 'No user' }
+    return { tasks: [], deadlines: [], sessions: [], subjects: [], plans: [], milestones: [], error: 'No user' }
   }
 
   try {
@@ -38,13 +36,12 @@ export async function fetchDashboardData(userId, weekStart, weekEnd) {
         .order('due_date', { ascending: true })
         .limit(8),
 
-      // Study sessions for the current ISO week
+      // Study sessions for the user (used for weekly activity and insights streak preview)
       supabase
         .from('study_sessions')
-        .select('id, started_at, duration_minutes')
+        .select('id, started_at, duration_minutes, subject_id')
         .eq('user_id', userId)
-        .gte('started_at', weekStart)
-        .lte('started_at', weekEnd),
+        .order('started_at', { ascending: false }),
 
       // Subjects — for name resolution in task/deadline displays
       supabase
@@ -160,14 +157,20 @@ export function computeFocusTasks(tasks) {
  * @param {Date} weekMondayLocal - local Monday 00:00:00 of the current week
  * @returns {Array<{ day: string, hours: number }>}
  */
-export function computeWeeklyActivity(sessions) {
+export function computeWeeklyActivity(sessions, weekMon, weekSun) {
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
   // Build map: day index (0=Mon … 6=Sun) → total hours
   const minutesByDay = [0, 0, 0, 0, 0, 0, 0]
 
+  const weekStart = weekMon || getWeekMondayLocal()
+  const weekEnd = weekSun || getWeekSundayLocal(weekStart)
+
   for (const session of sessions) {
+    if (!session?.started_at) continue
     const localDate = new Date(session.started_at)
+    if (localDate < weekStart || localDate > weekEnd) continue
+
     // getDay() → 0=Sun, 1=Mon … 6=Sat; convert to Mon-based index
     const jsDay = localDate.getDay() // 0=Sun
     const monBasedIndex = jsDay === 0 ? 6 : jsDay - 1 // 0=Mon … 6=Sun
