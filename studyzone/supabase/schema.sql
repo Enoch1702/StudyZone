@@ -1,5 +1,5 @@
 -- ==============================================================================
--- StudyZone Database Schema (Phase 2A)
+-- StudyZone Database Schema (Phase 10 Canonical)
 -- Production-ready PostgreSQL schema with Row Level Security (RLS)
 -- ==============================================================================
 
@@ -24,7 +24,7 @@ $$ LANGUAGE plpgsql;
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
--- PROFILES: Extends auth.users with public profile metadata
+-- PROFILES: Extends auth.users with public profile metadata & preferences
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   ),
   learning_focus TEXT,
   onboarding_completed BOOLEAN NOT NULL DEFAULT false,
+  notify_deadline_reminders BOOLEAN NOT NULL DEFAULT true,
+  notify_daily_task_summary BOOLEAN NOT NULL DEFAULT true,
+  notify_weekly_report BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -67,6 +70,37 @@ CREATE TABLE IF NOT EXISTS public.subjects (
   name TEXT NOT NULL CHECK (char_length(trim(name)) > 0),
   description TEXT,
   color TEXT NOT NULL DEFAULT '#4f7cff',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ------------------------------------------------------------------------------
+-- LEARNING_PLANS: Persistent learning journeys, roadmaps, and goal tracks (Phase 7)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.learning_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'archived')),
+  target_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ------------------------------------------------------------------------------
+-- LEARNING_MILESTONES: Checkpoints and stages inside a learning plan (Phase 7)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.learning_milestones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plan_id UUID NOT NULL REFERENCES public.learning_plans(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
+  description TEXT,
+  position INTEGER NOT NULL DEFAULT 1,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+  target_date DATE,
+  completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -122,34 +156,51 @@ CREATE TABLE IF NOT EXISTS public.study_sessions (
 );
 
 -- ------------------------------------------------------------------------------
--- LEARNING_PLANS: Persistent learning journeys, roadmaps, and goal tracks (Phase 7)
+-- NOTIFICATIONS: In-app alerts, deadlines, and streak reminders (Phase 10)
 -- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.learning_plans (
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (
+    type IN (
+      'task_overdue',
+      'deadline_due',
+      'deadline_approaching',
+      'streak_risk',
+      'streak_milestone',
+      'system'
+    )
+  ),
+  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
+  message TEXT,
+  link TEXT,
+  is_read BOOLEAN NOT NULL DEFAULT false,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- ------------------------------------------------------------------------------
+-- AI_CONVERSATIONS: Persistent AI conversation threads (Phase 10)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ai_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
-  description TEXT,
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'archived')),
-  target_date DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- ------------------------------------------------------------------------------
--- LEARNING_MILESTONES: Checkpoints and stages inside a learning plan (Phase 7)
+-- AI_MESSAGES: Messages inside an AI conversation thread (Phase 10)
 -- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.learning_milestones (
+CREATE TABLE IF NOT EXISTS public.ai_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  plan_id UUID NOT NULL REFERENCES public.learning_plans(id) ON DELETE CASCADE,
+  conversation_id UUID NOT NULL REFERENCES public.ai_conversations(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
-  description TEXT,
-  position INTEGER NOT NULL DEFAULT 1,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
-  target_date DATE,
-  completed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+  content TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- ==============================================================================
@@ -180,9 +231,21 @@ CREATE TRIGGER set_deadlines_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
-DROP TRIGGER IF EXISTS set_study_plans_updated_at ON public.study_plans;
-CREATE TRIGGER set_study_plans_updated_at
-  BEFORE UPDATE ON public.study_plans
+DROP TRIGGER IF EXISTS set_learning_plans_updated_at ON public.learning_plans;
+CREATE TRIGGER set_learning_plans_updated_at
+  BEFORE UPDATE ON public.learning_plans
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_learning_milestones_updated_at ON public.learning_milestones;
+CREATE TRIGGER set_learning_milestones_updated_at
+  BEFORE UPDATE ON public.learning_milestones
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_ai_conversations_updated_at ON public.ai_conversations;
+CREATE TRIGGER set_ai_conversations_updated_at
+  BEFORE UPDATE ON public.ai_conversations
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
@@ -190,7 +253,6 @@ CREATE TRIGGER set_study_plans_updated_at
 -- 4. AUTH -> PROFILES SYNC TRIGGER
 -- ==============================================================================
 
--- Function to handle new user registration from Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -212,7 +274,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger executed whenever a user is created in auth.users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -220,207 +281,150 @@ CREATE TRIGGER on_auth_user_created
   EXECUTE FUNCTION public.handle_new_user();
 
 -- ==============================================================================
--- 5. PERFORMANCE INDEXES
+-- 5. INDEXES FOR PERFORMANCE
 -- ==============================================================================
 
--- Profiles indexes
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
-
--- Subjects indexes
 CREATE INDEX IF NOT EXISTS idx_subjects_user_id ON public.subjects(user_id);
-CREATE INDEX IF NOT EXISTS idx_subjects_user_name ON public.subjects(user_id, name);
-
--- Tasks indexes
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON public.tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_subject_id ON public.tasks(subject_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_status ON public.tasks(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_tasks_user_due_date ON public.tasks(user_id, due_date);
-
--- Deadlines indexes
+CREATE INDEX IF NOT EXISTS idx_tasks_plan_id ON public.tasks(plan_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_milestone_id ON public.tasks(milestone_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON public.tasks(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON public.tasks(user_id, due_date);
 CREATE INDEX IF NOT EXISTS idx_deadlines_user_id ON public.deadlines(user_id);
-CREATE INDEX IF NOT EXISTS idx_deadlines_subject_id ON public.deadlines(subject_id);
-CREATE INDEX IF NOT EXISTS idx_deadlines_user_due_date ON public.deadlines(user_id, due_date);
-
--- Study Sessions indexes
+CREATE INDEX IF NOT EXISTS idx_deadlines_due_date ON public.deadlines(user_id, due_date);
 CREATE INDEX IF NOT EXISTS idx_study_sessions_user_id ON public.study_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_subject_id ON public.study_sessions(subject_id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_task_id ON public.study_sessions(task_id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_user_started_at ON public.study_sessions(user_id, started_at DESC);
-
--- Study Plans indexes
-CREATE INDEX IF NOT EXISTS idx_study_plans_user_id ON public.study_plans(user_id);
-CREATE INDEX IF NOT EXISTS idx_study_plans_user_status ON public.study_plans(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_study_sessions_started_at ON public.study_sessions(user_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_learning_plans_user_id ON public.learning_plans(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_learning_milestones_plan_id ON public.learning_milestones(plan_id, position ASC);
+CREATE INDEX IF NOT EXISTS idx_learning_milestones_user_id ON public.learning_milestones(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON public.notifications (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications (user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_updated ON public.ai_conversations (user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_conv_created ON public.ai_messages (conversation_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_ai_messages_user ON public.ai_messages (user_id);
 
 -- ==============================================================================
 -- 6. ROW LEVEL SECURITY (RLS) POLICIES
 -- ==============================================================================
 
--- Enable RLS on all user-owned tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deadlines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.study_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.study_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.learning_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.learning_milestones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ai_messages ENABLE ROW LEVEL SECURITY;
 
--- ------------------------------------------------------------------------------
--- PROFILES POLICIES
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-CREATE POLICY "Users can view own profile"
-  ON public.profiles
-  FOR SELECT
+-- Profiles Policies
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+CREATE POLICY "Users can view their own profile"
+  ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
-DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
-CREATE POLICY "Users can insert own profile"
-  ON public.profiles
-  FOR INSERT
-  WITH CHECK (auth.uid() = id);
-
-DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
-CREATE POLICY "Users can update own profile"
-  ON public.profiles
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+CREATE POLICY "Users can update their own profile"
+  ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
-DROP POLICY IF EXISTS "Users can delete own profile" ON public.profiles;
-CREATE POLICY "Users can delete own profile"
-  ON public.profiles
-  FOR DELETE
-  USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+CREATE POLICY "Users can insert their own profile"
+  ON public.profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
 
--- ------------------------------------------------------------------------------
--- SUBJECTS POLICIES
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own subjects" ON public.subjects;
-CREATE POLICY "Users can view own subjects"
-  ON public.subjects
-  FOR SELECT
+-- Subjects Policies
+DROP POLICY IF EXISTS "Users can view their own subjects" ON public.subjects;
+CREATE POLICY "Users can view their own subjects"
+  ON public.subjects FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own subjects" ON public.subjects;
-CREATE POLICY "Users can insert own subjects"
-  ON public.subjects
-  FOR INSERT
+DROP POLICY IF EXISTS "Users can create their own subjects" ON public.subjects;
+CREATE POLICY "Users can create their own subjects"
+  ON public.subjects FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own subjects" ON public.subjects;
-CREATE POLICY "Users can update own subjects"
-  ON public.subjects
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own subjects" ON public.subjects;
+CREATE POLICY "Users can update their own subjects"
+  ON public.subjects FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can delete own subjects" ON public.subjects;
-CREATE POLICY "Users can delete own subjects"
-  ON public.subjects
-  FOR DELETE
+DROP POLICY IF EXISTS "Users can delete their own subjects" ON public.subjects;
+CREATE POLICY "Users can delete their own subjects"
+  ON public.subjects FOR DELETE
   USING (auth.uid() = user_id);
 
--- ------------------------------------------------------------------------------
--- TASKS POLICIES
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own tasks" ON public.tasks;
-CREATE POLICY "Users can view own tasks"
-  ON public.tasks
-  FOR SELECT
+-- Tasks Policies
+DROP POLICY IF EXISTS "Users can view their own tasks" ON public.tasks;
+CREATE POLICY "Users can view their own tasks"
+  ON public.tasks FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own tasks" ON public.tasks;
-CREATE POLICY "Users can insert own tasks"
-  ON public.tasks
-  FOR INSERT
+DROP POLICY IF EXISTS "Users can create their own tasks" ON public.tasks;
+CREATE POLICY "Users can create their own tasks"
+  ON public.tasks FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own tasks" ON public.tasks;
-CREATE POLICY "Users can update own tasks"
-  ON public.tasks
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own tasks" ON public.tasks;
+CREATE POLICY "Users can update their own tasks"
+  ON public.tasks FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can delete own tasks" ON public.tasks;
-CREATE POLICY "Users can delete own tasks"
-  ON public.tasks
-  FOR DELETE
+DROP POLICY IF EXISTS "Users can delete their own tasks" ON public.tasks;
+CREATE POLICY "Users can delete their own tasks"
+  ON public.tasks FOR DELETE
   USING (auth.uid() = user_id);
 
--- ------------------------------------------------------------------------------
--- DEADLINES POLICIES
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own deadlines" ON public.deadlines;
-CREATE POLICY "Users can view own deadlines"
-  ON public.deadlines
-  FOR SELECT
+-- Deadlines Policies
+DROP POLICY IF EXISTS "Users can view their own deadlines" ON public.deadlines;
+CREATE POLICY "Users can view their own deadlines"
+  ON public.deadlines FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own deadlines" ON public.deadlines;
-CREATE POLICY "Users can insert own deadlines"
-  ON public.deadlines
-  FOR INSERT
+DROP POLICY IF EXISTS "Users can create their own deadlines" ON public.deadlines;
+CREATE POLICY "Users can create their own deadlines"
+  ON public.deadlines FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own deadlines" ON public.deadlines;
-CREATE POLICY "Users can update own deadlines"
-  ON public.deadlines
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own deadlines" ON public.deadlines;
+CREATE POLICY "Users can update their own deadlines"
+  ON public.deadlines FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can delete own deadlines" ON public.deadlines;
-CREATE POLICY "Users can delete own deadlines"
-  ON public.deadlines
-  FOR DELETE
+DROP POLICY IF EXISTS "Users can delete their own deadlines" ON public.deadlines;
+CREATE POLICY "Users can delete their own deadlines"
+  ON public.deadlines FOR DELETE
   USING (auth.uid() = user_id);
 
--- ------------------------------------------------------------------------------
--- STUDY_SESSIONS POLICIES
--- ------------------------------------------------------------------------------
-DROP POLICY IF EXISTS "Users can view own study sessions" ON public.study_sessions;
-CREATE POLICY "Users can view own study sessions"
-  ON public.study_sessions
-  FOR SELECT
+-- Study Sessions Policies
+DROP POLICY IF EXISTS "Users can view their own study sessions" ON public.study_sessions;
+CREATE POLICY "Users can view their own study sessions"
+  ON public.study_sessions FOR SELECT
   USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own study sessions" ON public.study_sessions;
-CREATE POLICY "Users can insert own study sessions"
-  ON public.study_sessions
-  FOR INSERT
+DROP POLICY IF EXISTS "Users can create their own study sessions" ON public.study_sessions;
+CREATE POLICY "Users can create their own study sessions"
+  ON public.study_sessions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can update own study sessions" ON public.study_sessions;
-CREATE POLICY "Users can update own study sessions"
-  ON public.study_sessions
-  FOR UPDATE
+DROP POLICY IF EXISTS "Users can update their own study sessions" ON public.study_sessions;
+CREATE POLICY "Users can update their own study sessions"
+  ON public.study_sessions FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can delete own study sessions" ON public.study_sessions;
-CREATE POLICY "Users can delete own study sessions"
-  ON public.study_sessions
-  FOR DELETE
+DROP POLICY IF EXISTS "Users can delete their own study sessions" ON public.study_sessions;
+CREATE POLICY "Users can delete their own study sessions"
+  ON public.study_sessions FOR DELETE
   USING (auth.uid() = user_id);
 
-DROP TRIGGER IF EXISTS set_learning_plans_updated_at ON public.learning_plans;
-CREATE TRIGGER set_learning_plans_updated_at
-  BEFORE UPDATE ON public.learning_plans
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
-DROP TRIGGER IF EXISTS set_learning_milestones_updated_at ON public.learning_milestones;
-CREATE TRIGGER set_learning_milestones_updated_at
-  BEFORE UPDATE ON public.learning_milestones
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
--- ------------------------------------------------------------------------------
--- LEARNING_PLANS POLICIES (Phase 7)
--- ------------------------------------------------------------------------------
-ALTER TABLE public.learning_plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.learning_milestones ENABLE ROW LEVEL SECURITY;
-
+-- Learning Plans Policies
 DROP POLICY IF EXISTS "Users can view their own learning plans" ON public.learning_plans;
 CREATE POLICY "Users can view their own learning plans"
   ON public.learning_plans FOR SELECT
@@ -442,9 +446,7 @@ CREATE POLICY "Users can delete their own learning plans"
   ON public.learning_plans FOR DELETE
   USING (auth.uid() = user_id);
 
--- ------------------------------------------------------------------------------
--- LEARNING_MILESTONES POLICIES (Phase 7)
--- ------------------------------------------------------------------------------
+-- Learning Milestones Policies
 DROP POLICY IF EXISTS "Users can view their own learning milestones" ON public.learning_milestones;
 CREATE POLICY "Users can view their own learning milestones"
   ON public.learning_milestones FOR SELECT
@@ -466,34 +468,80 @@ CREATE POLICY "Users can delete their own learning milestones"
   ON public.learning_milestones FOR DELETE
   USING (auth.uid() = user_id);
 
--- Allow authenticated users to access tables.
--- Row Level Security policies still control which rows they can access.
+-- Notifications Policies
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
+CREATE POLICY "Users can view their own notifications"
+  ON public.notifications FOR SELECT
+  USING (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.profiles
-TO authenticated;
+DROP POLICY IF EXISTS "Users can insert their own notifications" ON public.notifications;
+CREATE POLICY "Users can insert their own notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.subjects
-TO authenticated;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
+CREATE POLICY "Users can update their own notifications"
+  ON public.notifications FOR UPDATE
+  USING (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.tasks
-TO authenticated;
+DROP POLICY IF EXISTS "Users can delete their own notifications" ON public.notifications;
+CREATE POLICY "Users can delete their own notifications"
+  ON public.notifications FOR DELETE
+  USING (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.deadlines
-TO authenticated;
+-- AI Conversations Policies
+DROP POLICY IF EXISTS "Users can view their own conversations" ON public.ai_conversations;
+CREATE POLICY "Users can view their own conversations"
+  ON public.ai_conversations FOR SELECT
+  USING (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.study_sessions
-TO authenticated;
+DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.ai_conversations;
+CREATE POLICY "Users can insert their own conversations"
+  ON public.ai_conversations FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.learning_plans
-TO authenticated;
+DROP POLICY IF EXISTS "Users can update their own conversations" ON public.ai_conversations;
+CREATE POLICY "Users can update their own conversations"
+  ON public.ai_conversations FOR UPDATE
+  USING (auth.uid() = user_id);
 
-GRANT SELECT, INSERT, UPDATE, DELETE
-ON public.learning_milestones
-TO authenticated;
+DROP POLICY IF EXISTS "Users can delete their own conversations" ON public.ai_conversations;
+CREATE POLICY "Users can delete their own conversations"
+  ON public.ai_conversations FOR DELETE
+  USING (auth.uid() = user_id);
 
+-- AI Messages Policies
+DROP POLICY IF EXISTS "Users can view their own messages" ON public.ai_messages;
+CREATE POLICY "Users can view their own messages"
+  ON public.ai_messages FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own messages" ON public.ai_messages;
+CREATE POLICY "Users can insert their own messages"
+  ON public.ai_messages FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own messages" ON public.ai_messages;
+CREATE POLICY "Users can update their own messages"
+  ON public.ai_messages FOR UPDATE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own messages" ON public.ai_messages;
+CREATE POLICY "Users can delete their own messages"
+  ON public.ai_messages FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ==============================================================================
+-- 7. GRANT TABLE PERMISSIONS TO AUTHENTICATED USERS
+-- ==============================================================================
+
+GRANT ALL ON public.profiles TO authenticated, service_role;
+GRANT ALL ON public.subjects TO authenticated, service_role;
+GRANT ALL ON public.tasks TO authenticated, service_role;
+GRANT ALL ON public.deadlines TO authenticated, service_role;
+GRANT ALL ON public.study_sessions TO authenticated, service_role;
+GRANT ALL ON public.learning_plans TO authenticated, service_role;
+GRANT ALL ON public.learning_milestones TO authenticated, service_role;
+GRANT ALL ON public.notifications TO authenticated, service_role;
+GRANT ALL ON public.ai_conversations TO authenticated, service_role;
+GRANT ALL ON public.ai_messages TO authenticated, service_role;

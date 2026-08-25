@@ -1,20 +1,10 @@
-import { Bell, Menu, Search } from 'lucide-react'
-import { useAuth } from '../../context/useAuth'
+import { Menu, Search } from 'lucide-react'
 import { useSearch } from '../../context/useSearch'
-import { getInitials } from '../../lib/utils'
-import { getLearnerTypeShortLabel } from '../../lib/learnerProfile'
+import { NotificationPopover } from '../notifications/NotificationPopover'
+import { HeaderUserMenu } from './HeaderUserMenu'
 
 export function Header({ onMenuClick, title }) {
-  const { profile, user } = useAuth()
   const { openSearch } = useSearch()
-
-  const displayName =
-    profile?.full_name ||
-    user?.user_metadata?.full_name ||
-    user?.email?.split('@')[0] ||
-    'Student'
-  const learnerBadge = getLearnerTypeShortLabel(profile?.learner_type)
-
   const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   return (
@@ -23,7 +13,7 @@ export function Header({ onMenuClick, title }) {
         <button
           type="button"
           aria-label="Open navigation"
-          className="rounded-md p-2 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden"
+          className="rounded-md p-2 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden cursor-pointer"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
@@ -57,33 +47,16 @@ export function Header({ onMenuClick, title }) {
           type="button"
           onClick={openSearch}
           aria-label="Search workspace"
-          className="md:hidden rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground"
+          className="md:hidden rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground cursor-pointer"
         >
           <Search className="h-4 w-4" />
         </button>
 
-        {/* Notification Bell (Preserved for Phase 10) */}
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground"
-        >
-          <Bell className="h-4 w-4" />
-        </button>
+        {/* In-App Notifications Popover */}
+        <NotificationPopover />
 
-        {/* User Info & Avatar */}
-        <div className="flex items-center gap-2 border-l border-border pl-2 sm:gap-2.5 sm:pl-3">
-          <div className="hidden text-right sm:block">
-            <p className="text-xs font-medium text-foreground truncate max-w-[140px]">{displayName}</p>
-            <p className="text-[11px] text-muted-foreground font-medium">{learnerBadge}</p>
-          </div>
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-raised text-[11px] font-semibold text-accent uppercase"
-            aria-hidden="true"
-          >
-            {getInitials(displayName)}
-          </div>
-        </div>
+        {/* Interactive User Profile Dropdown Menu */}
+        <HeaderUserMenu />
       </div>
     </header>
   )

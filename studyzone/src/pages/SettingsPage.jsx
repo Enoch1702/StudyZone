@@ -7,7 +7,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
 import { LEARNER_TYPES, PRIMARY_GOALS } from '../lib/learnerProfile'
-import { updateLearnerProfile } from '../services/learnerProfileService'
+import { updateLearnerProfile, updateNotificationPreferences } from '../services/learnerProfileService'
 
 export default function SettingsPage() {
   const { profile, user, updateProfile, signOut } = useAuth()
@@ -57,6 +57,7 @@ export default function SettingsPage() {
     <PageContainer width="narrow" className="space-y-5">
       <PageHeader description="Manage your profile and application preferences." />
 
+      {/* Profile Name & Email Card */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -123,35 +124,10 @@ export default function SettingsPage() {
       {/* Learner Profile & Goals */}
       <LearnerProfileSettingsCard />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-muted" />
-            <CardTitle>Notifications</CardTitle>
-          </div>
-          <CardDescription>Configure deadline and task reminders</CardDescription>
-        </CardHeader>
-        <div className="space-y-2">
-          {[
-            'Email reminders for upcoming deadlines',
-            'Daily task summary',
-            'Weekly productivity report',
-          ].map((label) => (
-            <label
-              key={label}
-              className="flex cursor-pointer items-center justify-between rounded-lg border border-border-subtle bg-surface-raised/50 px-4 py-3"
-            >
-              <span className="text-sm text-foreground">{label}</span>
-              <input
-                type="checkbox"
-                defaultChecked
-                className="h-4 w-4 rounded border-border accent-accent"
-              />
-            </label>
-          ))}
-        </div>
-      </Card>
+      {/* In-App Notification Alert Preferences */}
+      <NotificationPreferencesCard />
 
+      {/* Theme & Display */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -165,6 +141,7 @@ export default function SettingsPage() {
         </p>
       </Card>
 
+      {/* Account Session & Sign Out */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -187,6 +164,149 @@ export default function SettingsPage() {
         </div>
       </Card>
     </PageContainer>
+  )
+}
+
+/**
+ * Settings card for in-app notification alert preferences.
+ */
+function NotificationPreferencesCard() {
+  const { profile, user, refreshProfile } = useAuth()
+
+  const [deadlineReminders, setDeadlineReminders] = useState(
+    profile?.notify_deadline_reminders ?? true,
+  )
+  const [dailyTaskSummary, setDailyTaskSummary] = useState(
+    profile?.notify_daily_task_summary ?? true,
+  )
+  const [weeklyReport, setWeeklyReport] = useState(
+    profile?.notify_weekly_report ?? true,
+  )
+
+  const [prevProfileUpdated, setPrevProfileUpdated] = useState(profile?.updated_at)
+  if (profile && profile.updated_at !== prevProfileUpdated) {
+    setPrevProfileUpdated(profile.updated_at)
+    setDeadlineReminders(profile.notify_deadline_reminders ?? true)
+    setDailyTaskSummary(profile.notify_daily_task_summary ?? true)
+    setWeeklyReport(profile.notify_weekly_report ?? true)
+  }
+
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave(e) {
+    e.preventDefault()
+    if (!user?.id) return
+    setError('')
+    setSuccess(false)
+
+    try {
+      setSaving(true)
+      const res = await updateNotificationPreferences({
+        userId: user.id,
+        notifyDeadlineReminders: deadlineReminders,
+        notifyDailyTaskSummary: dailyTaskSummary,
+        notifyWeeklyReport: weeklyReport,
+      })
+
+      if (res.error) {
+        setError(res.error.message || 'Failed to update preferences.')
+      } else {
+        await refreshProfile()
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 3000)
+      }
+    } catch {
+      setError('An unexpected error occurred.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-muted" />
+          <CardTitle>In-App Notifications & Alerts</CardTitle>
+        </div>
+        <CardDescription>
+          Configure which reminders and alerts appear in your in-app notification bell.
+        </CardDescription>
+      </CardHeader>
+
+      <form onSubmit={handleSave} className="space-y-4">
+        {success && (
+          <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs text-accent">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>Notification preferences updated.</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
+            <div>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">Upcoming & Due Deadlines</p>
+              <p className="text-[11px] text-muted mt-0.5">Alerts when exams or assignments are due within 48 hours.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={deadlineReminders}
+              onChange={(e) => setDeadlineReminders(e.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 rounded border-border accent-accent cursor-pointer"
+            />
+          </label>
+
+          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
+            <div>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">Overdue Task Alerts</p>
+              <p className="text-[11px] text-muted mt-0.5">Reminders when high-priority tasks pass their due date.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={dailyTaskSummary}
+              onChange={(e) => setDailyTaskSummary(e.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 rounded border-border accent-accent cursor-pointer"
+            />
+          </label>
+
+          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
+            <div>
+              <p className="text-xs sm:text-sm font-semibold text-foreground">Study Streak & Momentum Alerts</p>
+              <p className="text-[11px] text-muted mt-0.5">Evening reminders to log study sessions and maintain your active streak.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={weeklyReport}
+              onChange={(e) => setWeeklyReport(e.target.checked)}
+              disabled={saving}
+              className="h-4 w-4 rounded border-border accent-accent cursor-pointer"
+            />
+          </label>
+        </div>
+
+        <Button type="submit" size="sm" disabled={saving}>
+          {saving ? (
+            <>
+              <LoadingSpinner size="sm" />
+              <span>Saving...</span>
+            </>
+          ) : (
+            'Save alert preferences'
+          )}
+        </Button>
+      </form>
+    </Card>
   )
 }
 

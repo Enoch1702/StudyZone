@@ -61,6 +61,49 @@ export async function updateLearnerProfile({
 }
 
 /**
+ * Updates notification alert preferences on public.profiles.
+ */
+export async function updateNotificationPreferences({
+  userId,
+  notifyDeadlineReminders,
+  notifyDailyTaskSummary,
+  notifyWeeklyReport,
+}) {
+  if (!userId) {
+    return { data: null, error: { message: 'User ID is required.' } }
+  }
+
+  try {
+    const updates = {
+      updated_at: new Date().toISOString(),
+      notify_deadline_reminders: Boolean(notifyDeadlineReminders),
+      notify_daily_task_summary: Boolean(notifyDailyTaskSummary),
+      notify_weekly_report: Boolean(notifyWeeklyReport),
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .maybeSingle()
+
+    if (error) {
+      console.error('[StudyZone] Error saving notification preferences:', error.message)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error('[StudyZone] Error saving notification preferences:', err)
+    return {
+      data: null,
+      error: { message: err instanceof Error ? err.message : 'Failed to save preferences.' },
+    }
+  }
+}
+
+/**
  * Marks onboarding as skipped/completed without saving learner preferences.
  *
  * @param {{ userId: string }} params
