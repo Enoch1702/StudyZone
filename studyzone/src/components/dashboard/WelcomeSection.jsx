@@ -72,6 +72,7 @@ export function WelcomeSection({ loading, focusTasks, deadlines }) {
       <div className="flex shrink-0 items-center gap-3 border-t border-border-subtle pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
         <Link
           to="/ai-assistant"
+          state={{ prompt: 'Help me decide what I should focus on next.' }}
           className="inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/10 px-3.5 py-2.5 text-xs font-semibold text-accent hover:border-accent hover:bg-accent/20 transition-all shadow-2xs"
         >
           <Sparkles className="h-4 w-4" />

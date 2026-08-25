@@ -38,6 +38,7 @@ export function Header({ onMenuClick, title }) {
             placeholder="Search..."
             className="h-8 w-44 pl-8 text-[13px] lg:w-52"
             aria-label="Search"
+            readOnly
           />
         </div>
 
@@ -47,7 +48,6 @@ export function Header({ onMenuClick, title }) {
           className="relative rounded-md p-2 text-muted hover:bg-surface-raised hover:text-foreground"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-accent" />
         </button>
 
         <div className="flex items-center gap-2 border-l border-border pl-2 sm:gap-2.5 sm:pl-3">

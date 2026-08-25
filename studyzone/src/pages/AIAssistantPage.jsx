@@ -177,11 +177,17 @@ export default function AIAssistantPage() {
     [inputValue, isLoading, messages, user, analyticsSummary],
   )
 
-  // Handle incoming prompt passed from Analytics navigation
+  // Handle incoming prompt passed from Analytics or Dashboard navigation
   useEffect(() => {
     const incomingPrompt = location.state?.prompt
     if (incomingPrompt && !initialPromptHandled.current && user) {
       initialPromptHandled.current = true
+      // Safely consume navigation state to prevent re-execution on reload
+      try {
+        window.history.replaceState({}, document.title)
+      } catch {
+        // ignore
+      }
       handleSend(incomingPrompt)
     }
   }, [location.state, user, handleSend])
