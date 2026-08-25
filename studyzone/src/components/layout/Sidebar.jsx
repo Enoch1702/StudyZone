@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  Timer,
   TrendingUp,
   X,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ import { cn, getInitials } from '../../lib/utils'
 
 const navItems = [
   { to: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard, end: true },
+  { to: '/focus', label: 'Focus Mode', shortLabel: 'Focus', icon: Timer },
   { to: '/analytics', label: 'Learning Insights', shortLabel: 'Insights', icon: TrendingUp },
   { to: '/plans', label: 'Learning Plans', shortLabel: 'Plans', icon: Compass },
   { to: '/subjects', label: 'Subjects', shortLabel: 'Subjects', icon: BookOpen },

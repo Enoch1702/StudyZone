@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { PublicRoute } from './components/auth/PublicRoute'
 import { AppLayout } from './components/layout/AppLayout'
 import DashboardPage from './pages/DashboardPage'
+import FocusPage from './pages/FocusPage'
 import LearningAnalyticsPage from './pages/LearningAnalyticsPage'
 import LearningPlansPage from './pages/LearningPlansPage'
 import LearningPlanDetailPage from './pages/LearningPlanDetailPage'
@@ -30,6 +31,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<DashboardPage />} />
+              <Route path="focus" element={<FocusPage />} />
               <Route path="analytics" element={<LearningAnalyticsPage />} />
               <Route path="plans" element={<LearningPlansPage />} />
               <Route path="plans/:planId" element={<LearningPlanDetailPage />} />

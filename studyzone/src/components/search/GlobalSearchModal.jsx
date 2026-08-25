@@ -12,6 +12,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Timer,
   TrendingUp,
   X,
   ArrowRight,
@@ -31,6 +32,15 @@ const QUICK_COMMANDS = [
     subtitle: 'Workspace overview and daily focus',
     icon: LayoutDashboard,
     route: '/',
+  },
+  {
+    id: 'cmd-focus',
+    type: 'command',
+    category: 'Quick Commands',
+    title: 'Go to Focus Mode',
+    subtitle: 'Pomodoro timer and deep study sessions',
+    icon: Timer,
+    route: '/focus',
   },
   {
     id: 'cmd-analytics',

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../context/useAuth'
 import { PageContainer } from '../components/layout/PageContainer'
 import { WelcomeSection } from '../components/dashboard/WelcomeSection'
+import { SmartNextActionCard } from '../components/dashboard/SmartNextActionCard'
 import { StatsGrid } from '../components/dashboard/StatsGrid'
 import { TodaysFocus } from '../components/dashboard/TodaysFocus'
 import { UpcomingDeadlinesList } from '../components/dashboard/UpcomingDeadlinesList'
@@ -9,6 +10,7 @@ import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans
 import { LearningInsightsPreview } from '../components/dashboard/LearningInsightsPreview'
 import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
+import { DailyWrapUpCard } from '../components/dashboard/DailyWrapUpCard'
 import {
   fetchDashboardData,
   computeTaskStats,
@@ -22,6 +24,7 @@ import {
   calculateNeglectedAreas,
   calculateTaskCompletion,
 } from '../services/learningAnalyticsService'
+import { computeSmartNextAction } from '../services/smartNextActionService'
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -87,6 +90,19 @@ export default function DashboardPage() {
     return calculateTaskCompletion(dashData?.tasks || [])
   }, [dashData?.tasks])
 
+  // Deterministic Smart Next Action recommendation
+  const smartNextAction = useMemo(() => {
+    if (!dashData) return null
+    return computeSmartNextAction({
+      tasks: dashData.tasks || [],
+      deadlines: dashData.deadlines || [],
+      subjects: dashData.subjects || [],
+      plans: dashData.plans || [],
+      milestones: dashData.milestones || [],
+      sessions: dashData.sessions || [],
+    })
+  }, [dashData])
+
   return (
     <PageContainer width="wide" className="space-y-5">
       <WelcomeSection
@@ -95,6 +111,11 @@ export default function DashboardPage() {
         focusTasks={dashData?.focusTasks ?? []}
         deadlines={dashData?.deadlines ?? []}
       />
+
+      {/* Smart Next Action Hero Recommendation */}
+      {!loading && smartNextAction && (
+        <SmartNextActionCard action={smartNextAction} />
+      )}
 
       <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
 
@@ -134,11 +155,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Daily Wrap-Up and Productivity Sessions Grid */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-5">
           <ProductivityChart
             loading={loading}
             weeklyActivity={dashData?.weeklyActivity ?? null}
+          />
+          <DailyWrapUpCard
+            tasks={dashData?.tasks ?? []}
+            sessions={dashData?.sessions ?? []}
+            currentStreak={consistency.currentStreak}
           />
         </div>
         <div className="lg:col-span-2">

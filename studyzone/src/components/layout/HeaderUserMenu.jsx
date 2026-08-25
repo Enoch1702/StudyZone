@@ -7,6 +7,7 @@ import {
   LogOut,
   Settings,
   Sparkles,
+  Timer,
   TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
@@ -112,6 +113,14 @@ export function HeaderUserMenu() {
               >
                 <Settings className="h-3.5 w-3.5 text-muted" />
                 <span>Settings & Profile</span>
+              </Link>
+              <Link
+                to="/focus"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+              >
+                <Timer className="h-3.5 w-3.5 text-muted" />
+                <span>Focus Mode</span>
               </Link>
               <Link
                 to="/ai-assistant"

@@ -27,6 +27,19 @@ export function formatDate(dateStr) {
   })
 }
 
+export function formatDuration(minutes) {
+  const mins = Math.max(0, Math.round(Number(minutes) || 0))
+  if (mins === 0) return '0m'
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  const rem = mins % 60
+  return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`
+}
+
+export function formatMinutesToHoursMinutes(minutes) {
+  return formatDuration(minutes)
+}
+
 export function daysUntil(dateStr) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)

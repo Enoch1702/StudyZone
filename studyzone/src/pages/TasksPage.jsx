@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, ClipboardList, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { AlertCircle, ClipboardList, Pencil, Plus, RefreshCw, Search, Timer, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
 import { Input, Select } from '../components/ui/Input'
@@ -20,12 +21,14 @@ import { bannerVariant } from '../lib/motion'
 
 export default function TasksPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   // ─── Data state ───────────────────────────────────────────────
   const [tasks, setTasks] = useState([])
   const [subjects, setSubjects] = useState([])
   const [plans, setPlans] = useState([])
   const [milestones, setMilestones] = useState([])
+  const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -44,7 +47,7 @@ export default function TasksPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [bannerError, setBannerError] = useState('')
 
-  // ─── Fetch tasks + subjects + plans + milestones together ────
+  // ─── Fetch tasks + subjects + plans + milestones + sessions ──
   useEffect(() => {
     let ignore = false
 
@@ -54,10 +57,12 @@ export default function TasksPage() {
       setLoading(true)
       setFetchError('')
 
-      const [tasksResult, subjectsResult, plansResult] = await Promise.all([
+      const [tasksResult, subjectsResult, plansResult, sessionRes, milestoneRes] = await Promise.all([
         getTasks(user.id),
         getSubjects(user.id),
         getLearningPlans(user.id),
+        supabase.from('study_sessions').select('task_id, duration_minutes').eq('user_id', user.id),
+        supabase.from('learning_milestones').select('*').eq('user_id', user.id),
       ])
 
       if (ignore) return
@@ -68,7 +73,6 @@ export default function TasksPage() {
         setTasks(tasksResult.data || [])
       }
 
-      // Subjects failures are non-fatal — tasks still load without subject labels
       if (!subjectsResult.error) {
         setSubjects(subjectsResult.data || [])
       }
@@ -77,14 +81,12 @@ export default function TasksPage() {
         setPlans(plansResult.data)
       }
 
-      // Load user milestones
-      const { data: mData } = await supabase
-        .from('learning_milestones')
-        .select('*')
-        .eq('user_id', user.id)
+      if (sessionRes.data) {
+        setSessions(sessionRes.data)
+      }
 
-      if (mData) {
-        setMilestones(mData)
+      if (milestoneRes.data) {
+        setMilestones(milestoneRes.data)
       }
 
       setLoading(false)
@@ -97,44 +99,50 @@ export default function TasksPage() {
     }
   }, [user, reloadKey])
 
+  // Map of total focus minutes per task
+  const taskFocusTimeMap = useMemo(() => {
+    const map = new Map()
+    for (const s of sessions) {
+      if (s.task_id) {
+        const current = map.get(s.task_id) || 0
+        map.set(s.task_id, current + (s.duration_minutes || 0))
+      }
+    }
+    return map
+  }, [sessions])
+
   // ─── Subject lookup helper ────────────────────────────────────
-  /** Returns the subject name for a given subject_id, or an empty string */
+  const subjectMap = useMemo(() => {
+    const map = {}
+    for (const s of subjects) {
+      map[s.id] = s.name
+    }
+    return map
+  }, [subjects])
+
   function subjectName(subjectId) {
-    if (!subjectId) return ''
-    const match = subjects.find((s) => s.id === subjectId)
-    return match ? match.name : ''
+    if (!subjectId) return null
+    return subjectMap[subjectId] || null
   }
 
-  // ─── Client-side filtering ────────────────────────────────────
+  // ─── Filtered + searched task list ────────────────────────────
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const taskSubjectName = subjectName(task.subject_id)
+    const q = search.trim().toLowerCase()
+    return tasks.filter((t) => {
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false
+      if (subjectFilter !== 'all' && t.subject_id !== subjectFilter) return false
+      if (statusFilter !== 'all' && t.status !== statusFilter) return false
+      if (!q) return true
 
-      const matchesSearch =
-        search === '' ||
-        task.title.toLowerCase().includes(search.toLowerCase()) ||
-        taskSubjectName.toLowerCase().includes(search.toLowerCase())
-
-      const matchesPriority =
-        priorityFilter === 'all' || task.priority === priorityFilter
-
-      const matchesSubject =
-        subjectFilter === 'all' || task.subject_id === subjectFilter
-
-      const matchesStatus =
-        statusFilter === 'all' || task.status === statusFilter
-
-      return matchesSearch && matchesPriority && matchesSubject && matchesStatus
+      const titleMatch = t.title?.toLowerCase().includes(q)
+      const descMatch = t.description?.toLowerCase().includes(q)
+      const sub = (subjectMap[t.subject_id] || '').toLowerCase()
+      const subMatch = sub ? sub.includes(q) : false
+      return titleMatch || descMatch || subMatch
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, subjects, search, priorityFilter, subjectFilter, statusFilter])
+  }, [tasks, search, priorityFilter, subjectFilter, statusFilter, subjectMap])
 
-  // ─── Retry ───────────────────────────────────────────────────
-  function handleRetry() {
-    setReloadKey((prev) => prev + 1)
-  }
-
-  // ─── Modal openers ───────────────────────────────────────────
+  // ─── Handlers ──────────────────────────────────────────────────
   function handleOpenCreate() {
     setBannerError('')
     setModalState({ isOpen: true, task: null })
@@ -150,101 +158,94 @@ export default function TasksPage() {
     setDeleteModalState({ isOpen: true, task })
   }
 
-  // ─── Save (Create or Edit) ────────────────────────────────────
+  function handleFocusTask(task) {
+    navigate('/focus', {
+      state: { taskId: task.id, subjectId: task.subject_id },
+    })
+  }
+
+  async function handleToggleComplete(task) {
+    setBannerError('')
+    const isCompleted = task.status === 'completed'
+    const newStatus = isCompleted ? 'pending' : 'completed'
+    const now = new Date().toISOString()
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, status: newStatus, completed_at: isCompleted ? null : now }
+          : t,
+      ),
+    )
+
+    const result = await toggleTaskComplete(task.id, isCompleted, user.id)
+
+    if (result.error) {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: task.status, completed_at: task.completed_at } : t)),
+      )
+      setBannerError(result.error.message || 'Failed to update task status.')
+    }
+  }
+
   async function handleSaveTask(formData) {
     if (!user?.id) return
     setActionLoading(true)
     setBannerError('')
 
+    const payload = {
+      user_id: user.id,
+      title: formData.title,
+      description: formData.description,
+      subject_id: formData.subject_id,
+      plan_id: formData.plan_id,
+      milestone_id: formData.milestone_id,
+      priority: formData.priority,
+      status: formData.status,
+      due_date: formData.due_date,
+      estimated_minutes: formData.estimated_minutes,
+    }
+
+    let result
     if (modalState.task) {
-      // Edit mode
-      const { data, error } = await updateTask({
-        id: modalState.task.id,
-        userId: user.id,
-        ...formData,
-      })
-
-      if (error) {
-        setBannerError(error.message || 'Failed to update task.')
-      } else if (data) {
-        setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)))
-        setModalState({ isOpen: false, task: null })
-      }
+      result = await updateTask(modalState.task.id, payload, user.id)
     } else {
-      // Create mode
-      const { data, error } = await createTask({
-        userId: user.id,
-        ...formData,
-      })
-
-      if (error) {
-        setBannerError(error.message || 'Failed to create task.')
-      } else if (data) {
-        setTasks((prev) => [...prev, data])
-        setModalState({ isOpen: false, task: null })
-      }
+      result = await createTask(payload)
     }
 
     setActionLoading(false)
-  }
 
-  // ─── Toggle complete ──────────────────────────────────────────
-  async function handleToggleComplete(task) {
-    if (!user?.id) return
-    const isCompleted = task.status === 'completed'
-
-    // Optimistic UI update
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === task.id
-          ? {
-              ...t,
-              status: isCompleted ? 'pending' : 'completed',
-              completed_at: isCompleted ? null : new Date().toISOString(),
-            }
-          : t,
-      ),
-    )
-
-    const { data, error } = await toggleTaskComplete({
-      id: task.id,
-      userId: user.id,
-      isCompleted,
-    })
-
-    if (error) {
-      // Revert optimistic update on failure
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)))
-      setBannerError(error.message || 'Failed to update task status.')
-    } else if (data) {
-      // Confirm with server response
-      setTasks((prev) => prev.map((t) => (t.id === data.id ? data : t)))
+    if (result.error) {
+      setBannerError(result.error.message || 'Failed to save task.')
+      return
     }
+
+    setModalState({ isOpen: false, task: null })
+    setReloadKey((k) => k + 1)
   }
 
-  // ─── Delete ───────────────────────────────────────────────────
   async function handleConfirmDelete() {
-    if (!user?.id || !deleteModalState.task) return
+    if (!deleteModalState.task || !user?.id) return
+    const taskId = deleteModalState.task.id
     setActionLoading(true)
     setBannerError('')
 
-    const taskToDelete = deleteModalState.task
-    const { error } = await deleteTask({
-      id: taskToDelete.id,
-      userId: user.id,
-    })
+    const result = await deleteTask(taskId, user.id)
+    setActionLoading(false)
 
-    if (error) {
-      setBannerError(error.message || 'Failed to delete task.')
-    } else {
-      setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id))
-      setDeleteModalState({ isOpen: false, task: null })
+    if (result.error) {
+      setBannerError(result.error.message || 'Failed to delete task.')
+      return
     }
 
-    setActionLoading(false)
+    setDeleteModalState({ isOpen: false, task: null })
+    setTasks((prev) => prev.filter((t) => t.id !== taskId))
   }
 
-  // ─── Status badge helper ──────────────────────────────────────
+  function handleRetry() {
+    setReloadKey((k) => k + 1)
+  }
+
   function statusBadgeVariant(status) {
     if (status === 'completed') return 'success'
     if (status === 'in-progress') return 'accent'
@@ -327,7 +328,7 @@ export default function TasksPage() {
             <option value="urgent">Urgent</option>
           </Select>
 
-          {/* Subject filter — uses real subjects from Supabase */}
+          {/* Subject filter */}
           <Select
             value={subjectFilter}
             onChange={(e) => setSubjectFilter(e.target.value)}
@@ -403,7 +404,7 @@ export default function TasksPage() {
                     Status
                   </th>
                   <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
-                    Due
+                    Due & Focus
                   </th>
                   <th className="px-4 py-3 font-semibold text-xs text-muted-foreground uppercase tracking-wider" scope="col">
                     <span className="sr-only">Actions</span>
@@ -413,6 +414,8 @@ export default function TasksPage() {
               <tbody>
                 {filteredTasks.map((task) => {
                   const isCompleted = task.status === 'completed'
+                  const focusedMinutes = taskFocusTimeMap.get(task.id) || 0
+
                   return (
                     <tr
                       key={task.id}
@@ -439,18 +442,37 @@ export default function TasksPage() {
                           {statusLabel(task.status)}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-muted">
+                      <td className="px-4 py-3 text-muted text-xs">
                         {task.due_date ? formatDate(task.due_date) : (
                           <span className="italic text-muted-foreground/60">—</span>
+                        )}
+                        {(focusedMinutes > 0 || task.estimated_minutes) && (
+                          <span className="text-[10px] text-muted-foreground block font-mono mt-0.5">
+                            {focusedMinutes > 0 ? `${focusedMinutes}m focused` : ''}
+                            {focusedMinutes > 0 && task.estimated_minutes ? ' / ' : ''}
+                            {task.estimated_minutes ? `${task.estimated_minutes}m est` : ''}
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
+                          {/* Quick Focus Button */}
+                          {!isCompleted && (
+                            <button
+                              type="button"
+                              aria-label={`Focus on ${task.title}`}
+                              title="Start Focus Session"
+                              onClick={() => handleFocusTask(task)}
+                              className="rounded-lg p-1.5 text-accent hover:bg-accent/15 transition-colors active:scale-95 cursor-pointer"
+                            >
+                              <Timer className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             aria-label={`Edit ${task.title}`}
                             onClick={() => handleOpenEdit(task)}
-                            className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95"
+                            className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95 cursor-pointer"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
@@ -458,7 +480,7 @@ export default function TasksPage() {
                             type="button"
                             aria-label={`Delete ${task.title}`}
                             onClick={() => handleOpenDelete(task)}
-                            className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
+                            className="rounded-lg p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95 cursor-pointer"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
