@@ -168,7 +168,7 @@ export default function AIAssistantPage() {
     return () => {
       isMounted = false
     }
-  }, [user, location.state, activeConversationId])
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
