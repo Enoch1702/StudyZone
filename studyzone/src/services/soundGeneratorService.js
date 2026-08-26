@@ -5,15 +5,16 @@
  */
 
 let audioCtx = null
-let currentNoiseNode = null
+let currentActiveSource = null
 let currentGainNode = null
 let isPlayingAmbient = false
 let currentPreset = 'off'
+let activeSessionToken = 0
 
 const VOLUME_STORAGE_KEY = 'studyzone_focus_ambient_volume'
 const PRESET_STORAGE_KEY = 'studyzone_focus_ambient_preset'
 
-function getAudioContext() {
+export function getAudioContext() {
   if (!audioCtx) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext
     if (AudioContextClass) {
@@ -21,7 +22,9 @@ function getAudioContext() {
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume()
+    audioCtx.resume().catch(() => {
+      // Browser autoplay restriction, will resume on user interaction
+    })
   }
   return audioCtx
 }
@@ -100,10 +103,10 @@ function createPinkNoiseBuffer(ctx) {
     const white = Math.random() * 2 - 1
     b0 = 0.99886 * b0 + white * 0.0555179
     b1 = 0.99332 * b1 + white * 0.0750759
-    b2 = 0.969 * b2 + white * 0.153852
-    b3 = 0.8665 * b3 + white * 0.3104856
-    b4 = 0.55 * b4 + white * 0.5329522
-    b5 = -0.7616 * b5 - white * 0.016898
+    b2 = 0.96900 * b2 + white * 0.1538520
+    b3 = 0.86650 * b3 + white * 0.3104856
+    b4 = 0.55000 * b4 + white * 0.5329522
+    b5 = -0.7616 * b5 - white * 0.0168980
     output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11
     b6 = white * 0.115926
   }
@@ -117,25 +120,23 @@ function createWhiteNoiseBuffer(ctx) {
   const output = buffer.getChannelData(0)
 
   for (let i = 0; i < bufferSize; i++) {
-    output[i] = (Math.random() * 2 - 1) * 0.2
+    output[i] = (Math.random() * 2 - 1) * 0.25
   }
 
   return buffer
 }
 
 function createCampfireBuffer(ctx) {
-  const bufferSize = ctx.sampleRate * 6
+  const bufferSize = ctx.sampleRate * 5
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
   let lastOut = 0.0
 
   for (let i = 0; i < bufferSize; i++) {
-    // Low warm rumble background
     const white = Math.random() * 2 - 1
     const rumble = (lastOut + 0.015 * white) / 1.02
     lastOut = rumble
 
-    // Subtle random crackle impulses (0.08% chance per sample)
     let crackle = 0
     if (Math.random() < 0.0008) {
       crackle = (Math.random() * 2 - 1) * (0.4 + Math.random() * 0.6)
@@ -147,10 +148,43 @@ function createCampfireBuffer(ctx) {
   return buffer
 }
 
+// ─── Synchronous Audio Cleanup ────────────────────────────────────
+
+function cleanupActiveNodesImmediately() {
+  if (currentActiveSource) {
+    try {
+      if (typeof currentActiveSource.stop === 'function') {
+        currentActiveSource.stop()
+      }
+      if (typeof currentActiveSource.disconnect === 'function') {
+        currentActiveSource.disconnect()
+      }
+    } catch {
+      // Ignore already stopped/disconnected nodes
+    }
+    currentActiveSource = null
+  }
+
+  if (currentGainNode) {
+    try {
+      currentGainNode.disconnect()
+    } catch {
+      // Ignore
+    }
+    currentGainNode = null
+  }
+
+  isPlayingAmbient = false
+}
+
 // ─── Sound Playback Controller ────────────────────────────────────
 
 export function startAmbientSound(presetId, volume = 0.4) {
-  stopAmbientSound()
+  // Generate unique session token to prevent race conditions
+  activeSessionToken += 1
+  const sessionToken = activeSessionToken
+
+  cleanupActiveNodesImmediately()
 
   if (!presetId || presetId === 'off') {
     currentPreset = 'off'
@@ -161,16 +195,20 @@ export function startAmbientSound(presetId, volume = 0.4) {
   const ctx = getAudioContext()
   if (!ctx) return
 
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {})
+  }
+
   currentPreset = presetId
   savePreset(presetId)
 
   const gainNode = ctx.createGain()
-  gainNode.gain.setValueAtTime(0.001, ctx.currentTime)
-  gainNode.gain.exponentialRampToValueAtTime(Math.max(0.001, volume), ctx.currentTime + 0.5)
+  const targetGain = Math.max(0.0001, Math.min(1, volume))
+  gainNode.gain.setValueAtTime(targetGain, ctx.currentTime)
   gainNode.connect(ctx.destination)
   currentGainNode = gainNode
 
-  // 1. Harmonics (432Hz & 528Hz Solfeggio)
+  // 1. Harmonics (432Hz Harmonic & 528Hz Solfeggio)
   if (presetId === 'binaural' || presetId === 'solfeggio') {
     const baseFreq = presetId === 'solfeggio' ? 528 : 432
     const osc1 = ctx.createOscillator()
@@ -198,7 +236,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
     osc2.start()
     osc3.start()
 
-    currentNoiseNode = {
+    currentActiveSource = {
       stop: () => {
         try {
           osc1.stop()
@@ -207,6 +245,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
           osc1.disconnect()
           osc2.disconnect()
           osc3.disconnect()
+          subGain.disconnect()
         } catch {
           // ignore
         }
@@ -243,7 +282,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
     source.start()
     lfo.start()
 
-    currentNoiseNode = {
+    currentActiveSource = {
       stop: () => {
         try {
           source.stop()
@@ -251,6 +290,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
           source.disconnect()
           filter.disconnect()
           lfo.disconnect()
+          lfoGain.disconnect()
         } catch {
           // ignore
         }
@@ -286,7 +326,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
     source.start()
     lfo.start()
 
-    currentNoiseNode = {
+    currentActiveSource = {
       stop: () => {
         try {
           source.stop()
@@ -294,6 +334,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
           source.disconnect()
           filter.disconnect()
           lfo.disconnect()
+          lfoGain.disconnect()
         } catch {
           // ignore
         }
@@ -316,7 +357,17 @@ export function startAmbientSound(presetId, volume = 0.4) {
     filter.connect(gainNode)
     source.start()
 
-    currentNoiseNode = source
+    currentActiveSource = {
+      stop: () => {
+        try {
+          source.stop()
+          source.disconnect()
+          filter.disconnect()
+        } catch {
+          // ignore
+        }
+      },
+    }
   }
 
   // 5. Warm Campfire (Low rumble + crackle impulses)
@@ -334,7 +385,17 @@ export function startAmbientSound(presetId, volume = 0.4) {
     filter.connect(gainNode)
     source.start()
 
-    currentNoiseNode = source
+    currentActiveSource = {
+      stop: () => {
+        try {
+          source.stop()
+          source.disconnect()
+          filter.disconnect()
+        } catch {
+          // ignore
+        }
+      },
+    }
   }
 
   // 6. Standard Noise Buffers (Brown, Pink, White)
@@ -363,53 +424,39 @@ export function startAmbientSound(presetId, volume = 0.4) {
     filter.connect(gainNode)
     source.start()
 
-    currentNoiseNode = source
+    currentActiveSource = {
+      stop: () => {
+        try {
+          source.stop()
+          source.disconnect()
+          filter.disconnect()
+        } catch {
+          // ignore
+        }
+      },
+    }
   }
 
-  isPlayingAmbient = true
+  if (sessionToken === activeSessionToken) {
+    isPlayingAmbient = true
+  }
 }
 
 export function setAmbientVolume(volume) {
   saveVolume(volume)
   if (currentGainNode && audioCtx) {
-    currentGainNode.gain.cancelScheduledValues(audioCtx.currentTime)
-    currentGainNode.gain.setValueAtTime(Math.max(0.0001, volume), audioCtx.currentTime)
+    try {
+      currentGainNode.gain.cancelScheduledValues(audioCtx.currentTime)
+      currentGainNode.gain.setValueAtTime(Math.max(0.0001, Math.min(1, volume)), audioCtx.currentTime)
+    } catch {
+      // ignore
+    }
   }
 }
 
 export function stopAmbientSound() {
-  if (!currentNoiseNode || !currentGainNode || !audioCtx) {
-    isPlayingAmbient = false
-    return
-  }
-
-  try {
-    currentGainNode.gain.cancelScheduledValues(audioCtx.currentTime)
-    currentGainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3)
-
-    setTimeout(() => {
-      if (currentNoiseNode) {
-        try {
-          currentNoiseNode.stop()
-          if (currentNoiseNode.disconnect) currentNoiseNode.disconnect()
-        } catch {
-          // ignore
-        }
-        currentNoiseNode = null
-      }
-      if (currentGainNode) {
-        try {
-          currentGainNode.disconnect()
-        } catch {
-          // ignore
-        }
-        currentGainNode = null
-      }
-      isPlayingAmbient = false
-    }, 350)
-  } catch {
-    isPlayingAmbient = false
-  }
+  activeSessionToken += 1
+  cleanupActiveNodesImmediately()
 }
 
 export function isAmbientActive() {
@@ -423,6 +470,10 @@ export function getCurrentAmbientPreset() {
 export function playCompletionChime() {
   const ctx = getAudioContext()
   if (!ctx) return
+
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {})
+  }
 
   const now = ctx.currentTime
   const frequencies = [528, 800, 1200, 1600]

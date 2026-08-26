@@ -28,6 +28,7 @@ import { PageContainer } from '../components/layout/PageContainer'
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../context/useAuth'
+import { useAudio } from '../context/useAudio'
 import { getSubjects } from '../services/subjectsService'
 import { getTasks } from '../services/tasksService'
 import {
@@ -37,15 +38,6 @@ import {
   logCompletedFocusSession,
   getFocusSessionStats,
 } from '../services/focusTimerService'
-import {
-  AMBIENT_PRESETS,
-  startAmbientSound,
-  stopAmbientSound,
-  setAmbientVolume,
-  playCompletionChime,
-  getSavedVolume,
-  getSavedPreset,
-} from '../services/soundGeneratorService'
 import { cn, formatDuration, formatMinutesToHoursMinutes } from '../lib/utils'
 
 function formatSeconds(totalSeconds) {
@@ -57,6 +49,15 @@ function formatSeconds(totalSeconds) {
 export default function FocusPage() {
   const { user } = useAuth()
   const location = useLocation()
+  const {
+    ambientPreset,
+    ambientVolume,
+    isPlaying: isAudioPlaying,
+    presets: ambientPresetsList,
+    playPreset,
+    setVolume: setAudioVolume,
+    playCompletionChime,
+  } = useAudio()
 
   // ─── Initial Restored Session State ────────────────────────────
   const initialSavedSession = useMemo(() => loadActiveFocusState(), [])
@@ -123,9 +124,7 @@ export default function FocusPage() {
     () => initialSavedSession?.cycleIndex ?? 1,
   )
 
-  // ─── Focus Environment & Audio State ───────────────────────────
-  const [ambientPreset, setAmbientPreset] = useState(() => getSavedPreset())
-  const [ambientVolume, setAmbientVolState] = useState(() => getSavedVolume())
+  // ─── Focus Environment & Display State ─────────────────────────
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isWakeLockActive, setIsWakeLockActive] = useState(false)
   const [hasNotificationPermission, setHasNotificationPermission] = useState(
@@ -212,19 +211,6 @@ export default function FocusPage() {
     selectedTaskId,
   ])
 
-  // ─── Ambient Audio Sync with Timer Running State ───────────────
-  useEffect(() => {
-    if (isRunning && !isPaused && ambientPreset !== 'off') {
-      startAmbientSound(ambientPreset, ambientVolume)
-    } else {
-      stopAmbientSound()
-    }
-
-    return () => {
-      stopAmbientSound()
-    }
-  }, [isRunning, isPaused, ambientPreset, ambientVolume])
-
   // ─── Screen WakeLock Management ────────────────────────────────
   useEffect(() => {
     let isCancelled = false
@@ -303,7 +289,6 @@ export default function FocusPage() {
   async function triggerPhaseComplete() {
     setIsRunning(false)
     setIsPaused(false)
-    stopAmbientSound()
 
     // 1. Play synthesized Tibetan singing bowl chime
     playCompletionChime()
@@ -723,37 +708,37 @@ export default function FocusPage() {
                   <Headphones className="h-4 w-4 text-purple-400" />
                   <span>Synthesized Ambient Sound</span>
                 </div>
-                {ambientPreset !== 'off' && isRunning && !isPaused && (
+                {ambientPreset !== 'off' && isAudioPlaying && (
                   <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
                 )}
               </CardTitle>
               <CardDescription className="text-xs">
-                Pure Web Audio generated noise — zero downloads or streaming breaks.
+                Pure Web Audio generated soundscapes — persistent across your entire session.
               </CardDescription>
             </CardHeader>
 
             <div className="p-4 pt-0 space-y-3">
               <div className="grid grid-cols-2 gap-1.5">
-                {AMBIENT_PRESETS.map((preset) => {
+                {ambientPresetsList.map((preset) => {
                   const isCurrent = ambientPreset === preset.id
                   return (
                     <button
                       key={preset.id}
                       type="button"
-                      onClick={() => {
-                        setAmbientPreset(preset.id)
-                        if (isRunning && !isPaused) {
-                          startAmbientSound(preset.id, ambientVolume)
-                        }
-                      }}
+                      onClick={() => playPreset(preset.id)}
                       className={cn(
-                        'rounded-xl p-2 text-left border transition-all text-xs font-semibold cursor-pointer',
-                        isCurrent
+                        'rounded-xl p-2 text-left border transition-all text-xs font-semibold cursor-pointer flex items-center justify-between gap-1',
+                        isCurrent && ambientPreset !== 'off'
                           ? 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-2xs'
+                          : isCurrent && preset.id === 'off'
+                          ? 'bg-surface-raised border-border text-foreground font-bold'
                           : 'bg-surface-raised/40 border-border/70 hover:bg-surface-raised text-muted hover:text-foreground',
                       )}
                     >
-                      <p className="truncate">{preset.name}</p>
+                      <span className="truncate">{preset.name}</span>
+                      {isCurrent && ambientPreset !== 'off' && isAudioPlaying && (
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse shrink-0" />
+                      )}
                     </button>
                   )
                 })}
@@ -766,8 +751,7 @@ export default function FocusPage() {
                     type="button"
                     onClick={() => {
                       const next = ambientVolume === 0 ? 0.4 : 0
-                      setAmbientVolState(next)
-                      setAmbientVolume(next)
+                      setAudioVolume(next)
                     }}
                     className="text-muted hover:text-foreground transition-colors cursor-pointer"
                   >
@@ -779,11 +763,7 @@ export default function FocusPage() {
                     max="1"
                     step="0.05"
                     value={ambientVolume}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value)
-                      setAmbientVolState(val)
-                      setAmbientVolume(val)
-                    }}
+                    onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
                     className="w-full accent-purple-400 cursor-pointer h-1.5 bg-surface-raised rounded-lg"
                   />
                   <span className="text-[10px] font-mono text-muted w-8 text-right">

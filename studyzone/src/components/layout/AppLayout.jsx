@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { GlobalAudioBar } from './GlobalAudioBar'
 import { SearchProvider } from '../../context/SearchContext'
 import { GlobalSearchModal } from '../search/GlobalSearchModal'
 import { LearnerOnboardingModal } from '../onboarding/LearnerOnboardingModal'
@@ -65,6 +66,9 @@ export function AppLayout() {
 
         {/* Global Command & Search Modal (Ctrl/Cmd+K) */}
         <GlobalSearchModal />
+
+        {/* Global Background Ambient Audio Bar */}
+        <GlobalAudioBar />
 
         {/* First-time Learner Onboarding Modal */}
         <LearnerOnboardingModal isOpen={showOnboarding} />
