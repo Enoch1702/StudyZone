@@ -61,7 +61,7 @@ export function HeaderUserMenu() {
   async function handleSignOut() {
     setIsOpen(false)
     await signOut()
-    navigate('/login')
+    navigate('/')
   }
 
   return (

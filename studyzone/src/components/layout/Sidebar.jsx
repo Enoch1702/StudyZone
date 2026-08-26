@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   BookOpen,
@@ -35,6 +35,7 @@ const navItems = [
 
 export function Sidebar({ open, onClose }) {
   const { profile, user, signOut } = useAuth()
+  const navigate = useNavigate()
   const displayName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
@@ -43,8 +44,9 @@ export function Sidebar({ open, onClose }) {
   const displayEmail = profile?.email || user?.email || ''
 
   async function handleSignOut() {
-    await signOut()
     if (onClose) onClose()
+    await signOut()
+    navigate('/')
   }
 
   return (

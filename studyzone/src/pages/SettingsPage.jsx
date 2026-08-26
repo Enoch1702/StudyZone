@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   Bell,
@@ -35,6 +36,7 @@ function escapeCsvField(val) {
 
 export default function SettingsPage() {
   const { profile, user, updateProfile, signOut } = useAuth()
+  const navigate = useNavigate()
 
   const defaultName = profile?.full_name || user?.user_metadata?.full_name || ''
   const [fullName, setFullName] = useState(defaultName)
@@ -175,7 +177,10 @@ export default function SettingsPage() {
             type="button"
             variant="danger"
             size="sm"
-            onClick={() => signOut()}
+            onClick={async () => {
+              await signOut()
+              navigate('/')
+            }}
             className="gap-2 cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />

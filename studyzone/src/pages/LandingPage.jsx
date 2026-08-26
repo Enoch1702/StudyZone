@@ -297,7 +297,7 @@ export default function LandingPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider text-muted font-bold">Good morning</span>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">Enoch M · College</h2>
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">Alex Chen · Computer Science</h2>
                       <p className="text-xs text-muted">2 tasks remaining today · 2 deadlines on your radar this week</p>
                     </div>
                     <div className="flex items-center gap-2">
