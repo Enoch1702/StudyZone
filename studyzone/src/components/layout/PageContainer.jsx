@@ -15,13 +15,27 @@ export function PageContainer({ children, width = 'default', className }) {
   )
 }
 
-export function PageHeader({ description, actions }) {
+export function PageHeader({ title, description, icon: Icon, actions }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
-      {description && (
-        <p className="max-w-2xl text-sm leading-relaxed text-muted">{description}</p>
-      )}
-      {actions && <div className="shrink-0">{actions}</div>}
+    <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        {Icon && (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/8 text-accent">
+            <Icon className="h-5 w-5 text-accent" />
+          </div>
+        )}
+        <div>
+          {title && (
+            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {title}
+            </h1>
+          )}
+          {description && (
+            <p className="mt-0.5 text-xs text-muted sm:text-sm max-w-2xl">{description}</p>
+          )}
+        </div>
+      </div>
+      {actions && <div className="shrink-0 self-start sm:self-auto">{actions}</div>}
     </div>
   )
 }

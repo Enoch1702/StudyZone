@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   LogOut,
   Moon,
+  Sliders,
   Sparkles,
   User,
 } from 'lucide-react'
@@ -75,7 +76,11 @@ export default function SettingsPage() {
 
   return (
     <PageContainer width="narrow" className="space-y-5">
-      <PageHeader description="Manage your profile, learning preferences, alerts, and data archives." />
+      <PageHeader
+        title="Settings & Preferences"
+        description="Manage your profile, learning preferences, alerts, and data archives."
+        icon={Sliders}
+      />
 
       {/* Profile Name & Email Card */}
       <Card>

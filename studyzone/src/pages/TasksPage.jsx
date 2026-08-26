@@ -261,7 +261,9 @@ export default function TasksPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
+        title="Tasks & Action Items"
         description="Organize, track, and complete what you're working on."
+        icon={ClipboardList}
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />

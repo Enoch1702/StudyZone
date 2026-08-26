@@ -155,7 +155,9 @@ export default function SubjectsPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
+        title="Subjects & Areas"
         description="Organize your subjects, skills, courses, and exam topics in one place."
+        icon={BookOpen}
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />

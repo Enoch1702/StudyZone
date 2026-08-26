@@ -221,7 +221,9 @@ export default function DeadlinesPage() {
   return (
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
+        title="Deadlines & Exams"
         description="Track exams, assignments, project milestones, and certification target dates."
+        icon={CalendarDays}
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
             <Plus className="h-4 w-4" />
