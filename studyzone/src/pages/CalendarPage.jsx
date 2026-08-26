@@ -128,9 +128,11 @@ export default function CalendarPage() {
   // Quick Add Modal State
   const [quickAddModal, setQuickAddModal] = useState({ isOpen: false, type: 'task' })
   const [quickAddTitle, setQuickAddTitle] = useState('')
+  const [quickAddDate, setQuickAddDate] = useState(() => todayStr)
   const [quickAddSubjectId, setQuickAddSubjectId] = useState('')
   const [quickAddPriority, setQuickAddPriority] = useState('medium')
   const [quickAddLoading, setQuickAddLoading] = useState(false)
+  const [quickAddError, setQuickAddError] = useState('')
 
   const reloadData = useCallback(async () => {
     if (!user?.id) return
@@ -286,6 +288,7 @@ export default function CalendarPage() {
 
   function handleSelectDate(dateStr) {
     setSelectedDateStr(dateStr)
+    setQuickAddDate(dateStr)
     setIsInspectorOpen(true)
   }
 
@@ -297,34 +300,60 @@ export default function CalendarPage() {
   // Quick Add submit
   async function handleQuickAddSubmit(e) {
     e.preventDefault()
+    setQuickAddError('')
     if (!quickAddTitle.trim() || !user?.id) return
 
+    const targetDate = quickAddDate || selectedDateStr || todayStr
     setQuickAddLoading(true)
 
-    if (quickAddModal.type === 'task') {
-      await createTask({
-        user_id: user.id,
-        title: quickAddTitle.trim(),
-        subject_id: quickAddSubjectId || null,
-        priority: quickAddPriority,
-        due_date: selectedDateStr,
-        status: 'pending',
-      })
-    } else {
-      await createDeadline({
-        user_id: user.id,
-        title: quickAddTitle.trim(),
-        subject_id: quickAddSubjectId || null,
-        due_date: selectedDateStr,
-        deadline_type: 'assignment',
-      })
-    }
+    try {
+      if (quickAddModal.type === 'task') {
+        const res = await createTask({
+          userId: user.id,
+          title: quickAddTitle.trim(),
+          subjectId: quickAddSubjectId || null,
+          priority: quickAddPriority,
+          dueDate: targetDate,
+          status: 'pending',
+        })
+        if (res.error) {
+          setQuickAddError(res.error.message || 'Failed to schedule task.')
+          setQuickAddLoading(false)
+          return
+        }
+      } else {
+        const res = await createDeadline({
+          userId: user.id,
+          title: quickAddTitle.trim(),
+          subjectId: quickAddSubjectId || null,
+          dueDate: targetDate,
+          deadlineType: 'assignment',
+        })
+        if (res.error) {
+          setQuickAddError(res.error.message || 'Failed to schedule deadline.')
+          setQuickAddLoading(false)
+          return
+        }
+      }
 
-    setQuickAddLoading(false)
-    setQuickAddModal({ isOpen: false, type: 'task' })
-    setQuickAddTitle('')
-    setQuickAddSubjectId('')
-    reloadData()
+      // If scheduled for another month, smoothly navigate to that month
+      const d = new Date(targetDate)
+      if (!isNaN(d.getTime())) {
+        setCurrentYear(d.getFullYear())
+        setCurrentMonth(d.getMonth())
+        setSelectedDateStr(targetDate)
+      }
+
+      setQuickAddLoading(false)
+      setQuickAddModal({ isOpen: false, type: 'task' })
+      setQuickAddTitle('')
+      setQuickAddSubjectId('')
+      setQuickAddError('')
+      await reloadData()
+    } catch (err) {
+      setQuickAddError(err instanceof Error ? err.message : 'Unexpected error saving item.')
+      setQuickAddLoading(false)
+    }
   }
 
   const calendarGrid = useMemo(() => {
@@ -349,8 +378,8 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Month Navigation */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        {/* Month Navigation & Action */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <div className="flex items-center rounded-xl border border-border bg-surface p-1 shadow-2xs">
             <button
               type="button"
@@ -381,6 +410,19 @@ export default function CalendarPage() {
             className="text-xs font-semibold cursor-pointer"
           >
             Today
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setQuickAddDate(selectedDateStr || todayStr)
+              setQuickAddModal({ isOpen: true, type: 'task' })
+            }}
+            className="gap-1.5 text-xs font-bold shadow-xs cursor-pointer"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Schedule Task</span>
           </Button>
         </div>
       </div>
@@ -621,16 +663,25 @@ export default function CalendarPage() {
             >
               <div className="flex items-center justify-between border-b border-border/60 pb-3">
                 <h3 className="text-sm font-bold text-foreground">
-                  Schedule {quickAddModal.type === 'task' ? 'Task' : 'Deadline'} for {formatDate(selectedDateStr)}
+                  Schedule {quickAddModal.type === 'task' ? 'Task' : 'Deadline'}
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setQuickAddModal({ isOpen: false, type: 'task' })}
+                  onClick={() => {
+                    setQuickAddModal({ isOpen: false, type: 'task' })
+                    setQuickAddError('')
+                  }}
                   className="rounded-lg p-1 text-muted hover:text-foreground cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
+              {quickAddError && (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-300">
+                  {quickAddError}
+                </div>
+              )}
 
               <form onSubmit={handleQuickAddSubmit} className="space-y-3">
                 <div>
@@ -644,6 +695,19 @@ export default function CalendarPage() {
                     onChange={(e) => setQuickAddTitle(e.target.value)}
                     placeholder={quickAddModal.type === 'task' ? 'e.g. Complete chapter 4 exercise' : 'e.g. Midterm exam submission'}
                     className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">
+                    Target Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={quickAddDate}
+                    onChange={(e) => setQuickAddDate(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
                   />
                 </div>
 
@@ -688,7 +752,10 @@ export default function CalendarPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setQuickAddModal({ isOpen: false, type: 'task' })}
+                    onClick={() => {
+                      setQuickAddModal({ isOpen: false, type: 'task' })
+                      setQuickAddError('')
+                    }}
                     className="cursor-pointer"
                   >
                     Cancel
