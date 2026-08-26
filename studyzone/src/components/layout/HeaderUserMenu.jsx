@@ -116,7 +116,7 @@ export function HeaderUserMenu() {
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
               >
                 <LayoutDashboard className="h-3.5 w-3.5 text-muted" />
-                <span>Dashboard (Home)</span>
+                <span>Dashboard</span>
               </Link>
               <Link
                 to="/"
@@ -124,7 +124,7 @@ export function HeaderUserMenu() {
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
               >
                 <Globe className="h-3.5 w-3.5 text-muted" />
-                <span>Public Landing Page</span>
+                <span>Home Page</span>
               </Link>
               <Link
                 to="/settings"

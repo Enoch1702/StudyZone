@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   BookOpen,
@@ -20,7 +20,7 @@ import { useAuth } from '../../context/useAuth'
 import { cn, getInitials } from '../../lib/utils'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard, end: true },
+  { to: '/dashboard', label: 'Dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/focus', label: 'Focus Mode', shortLabel: 'Focus', icon: Timer },
   { to: '/calendar', label: 'Study Calendar', shortLabel: 'Cal', icon: CalendarDays },
   { to: '/flashcards', label: 'Flashcards', shortLabel: 'Cards', icon: Brain },
@@ -71,14 +71,19 @@ export function Sidebar({ open, onClose }) {
         )}
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
-          <div className="flex items-center gap-2">
+          <Link
+            to="/"
+            onClick={onClose}
+            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+            title="Go to Home Page"
+          >
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted border border-accent/20">
               <GraduationCap className="h-3.5 w-3.5 text-accent" />
             </div>
             <span className="text-sm font-semibold tracking-tight text-foreground">
               StudyZone
             </span>
-          </div>
+          </Link>
           <button
             type="button"
             aria-label="Close sidebar"
@@ -130,7 +135,7 @@ export function Sidebar({ open, onClose }) {
             className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-raised/60 hover:text-foreground transition-colors"
           >
             <Globe className="h-3.5 w-3.5 text-muted shrink-0" />
-            <span>Public Home Page</span>
+            <span>Home Page</span>
           </NavLink>
 
           <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50 transition-colors hover:border-border">
