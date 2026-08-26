@@ -64,7 +64,7 @@ export class ErrorBoundary extends Component {
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  window.location.href = '/'
+                  window.location.href = '/dashboard'
                 }}
                 className="w-full sm:w-auto gap-2 text-xs font-semibold cursor-pointer"
               >

@@ -24,7 +24,8 @@ export function PublicRoute() {
   }
 
   if (user) {
-    const origin = location.state?.from?.pathname || '/'
+    const rawOrigin = location.state?.from?.pathname
+    const origin = rawOrigin && rawOrigin !== '/' ? rawOrigin : '/dashboard'
     return <Navigate to={origin} replace />
   }
 

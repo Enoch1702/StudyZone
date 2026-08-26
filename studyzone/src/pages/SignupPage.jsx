@@ -21,7 +21,8 @@ export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [confirmationNeeded, setConfirmationNeeded] = useState(false)
 
-  const from = location.state?.from?.pathname || '/'
+  const rawFrom = location.state?.from?.pathname
+  const from = rawFrom && rawFrom !== '/' ? rawFrom : '/dashboard'
 
   async function handleSubmit(e) {
     e.preventDefault()

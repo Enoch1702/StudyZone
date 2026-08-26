@@ -10,6 +10,7 @@ import { useAuth } from '../../context/useAuth'
 import { pageEntrance } from '../../lib/motion'
 
 const pageTitles = {
+  '/dashboard': 'Dashboard',
   '/': 'Dashboard',
   '/focus': 'Focus Mode',
   '/calendar': 'Study Calendar',

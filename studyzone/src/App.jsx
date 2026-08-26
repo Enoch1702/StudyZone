@@ -8,6 +8,7 @@ import { LoadingState } from './components/ui/LoadingSpinner'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 
 // Route-level code splitting via dynamic imports
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const FocusPage = lazy(() => import('./pages/FocusPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
@@ -38,6 +39,9 @@ export default function App() {
         <AuthProvider>
           <Suspense fallback={<SuspenseFallback />}>
             <Routes>
+              {/* Public Landing Page */}
+              <Route path="/" element={<LandingPage />} />
+
               {/* Public Authentication Routes */}
               <Route element={<PublicRoute />}>
                 <Route path="login" element={<LoginPage />} />
@@ -47,7 +51,7 @@ export default function App() {
               {/* Protected Application Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
-                  <Route index element={<DashboardPage />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="focus" element={<FocusPage />} />
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="flashcards" element={<FlashcardsPage />} />

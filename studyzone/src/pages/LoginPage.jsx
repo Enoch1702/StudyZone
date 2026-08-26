@@ -18,7 +18,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const from = location.state?.from?.pathname || '/'
+  const rawFrom = location.state?.from?.pathname
+  const from = rawFrom && rawFrom !== '/' ? rawFrom : '/dashboard'
 
   async function handleSubmit(e) {
     e.preventDefault()

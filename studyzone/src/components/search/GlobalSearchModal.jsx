@@ -32,7 +32,7 @@ const QUICK_COMMANDS = [
     title: 'Go to Dashboard',
     subtitle: 'Workspace overview and daily focus',
     icon: LayoutDashboard,
-    route: '/',
+    route: '/dashboard',
   },
   {
     id: 'cmd-focus',

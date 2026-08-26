@@ -258,7 +258,7 @@ export async function syncDeterministicNotifications(userId) {
           type: 'streak_risk',
           title: 'Keep Your Study Streak Active',
           message: 'You have not logged a study session today yet. Log 15-30 minutes to maintain your daily learning momentum!',
-          link: '/',
+          link: '/dashboard',
           metadata: { dedupe_key: dedupeKey },
         })
         existingDedupeKeys.add(dedupeKey)
