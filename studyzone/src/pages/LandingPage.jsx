@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -26,12 +26,20 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
+import { stopAmbientSound } from '../services/soundGeneratorService'
 import { cn } from '../lib/utils'
 
 export default function LandingPage() {
   const { user } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activePreviewTab, setActivePreviewTab] = useState('dashboard')
+
+  // Ensure ambient sound is silenced when landing page is viewed by logged out users
+  useEffect(() => {
+    if (!user) {
+      stopAmbientSound()
+    }
+  }, [user])
 
   const previewTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { AuthContext } from './useAuth'
+import { stopAmbientSound } from '../services/soundGeneratorService'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -100,13 +101,15 @@ export function AuthProvider({ children }) {
       setUser(currentUser)
       setAuthError(null)
 
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || !currentUser) {
+        stopAmbientSound()
         setProfile(null)
         setLoading(false)
       } else if (currentUser) {
         await loadProfile(currentUser)
         setLoading(false)
       } else {
+        stopAmbientSound()
         setProfile(null)
         setLoading(false)
       }
@@ -186,6 +189,7 @@ export function AuthProvider({ children }) {
    */
   const signOut = useCallback(async () => {
     setAuthError(null)
+    stopAmbientSound()
     try {
       const { error } = await supabase.auth.signOut()
       setUser(null)
