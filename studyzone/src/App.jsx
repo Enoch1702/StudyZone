@@ -1,51 +1,69 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { PublicRoute } from './components/auth/PublicRoute'
 import { AppLayout } from './components/layout/AppLayout'
-import DashboardPage from './pages/DashboardPage'
-import FocusPage from './pages/FocusPage'
-import LearningAnalyticsPage from './pages/LearningAnalyticsPage'
-import LearningPlansPage from './pages/LearningPlansPage'
-import LearningPlanDetailPage from './pages/LearningPlanDetailPage'
-import SubjectsPage from './pages/SubjectsPage'
-import TasksPage from './pages/TasksPage'
-import DeadlinesPage from './pages/DeadlinesPage'
-import AIAssistantPage from './pages/AIAssistantPage'
-import SettingsPage from './pages/SettingsPage'
-import LoginPage from './pages/LoginPage'
-import SignupPage from './pages/SignupPage'
+import { LoadingState } from './components/ui/LoadingSpinner'
+
+// Route-level code splitting via dynamic imports
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const FocusPage = lazy(() => import('./pages/FocusPage'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'))
+const LearningAnalyticsPage = lazy(() => import('./pages/LearningAnalyticsPage'))
+const LearningPlansPage = lazy(() => import('./pages/LearningPlansPage'))
+const LearningPlanDetailPage = lazy(() => import('./pages/LearningPlanDetailPage'))
+const SubjectsPage = lazy(() => import('./pages/SubjectsPage'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
+const DeadlinesPage = lazy(() => import('./pages/DeadlinesPage'))
+const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const SignupPage = lazy(() => import('./pages/SignupPage'))
+
+function SuspenseFallback() {
+  return (
+    <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+      <LoadingState message="Loading StudyZone..." />
+    </div>
+  )
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public Authentication Routes */}
-          <Route element={<PublicRoute />}>
-            <Route path="login" element={<LoginPage />} />
-            <Route path="signup" element={<SignupPage />} />
-          </Route>
-
-          {/* Protected Application Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="focus" element={<FocusPage />} />
-              <Route path="analytics" element={<LearningAnalyticsPage />} />
-              <Route path="plans" element={<LearningPlansPage />} />
-              <Route path="plans/:planId" element={<LearningPlanDetailPage />} />
-              <Route path="subjects" element={<SubjectsPage />} />
-              <Route path="tasks" element={<TasksPage />} />
-              <Route path="deadlines" element={<DeadlinesPage />} />
-              <Route path="ai-assistant" element={<AIAssistantPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+        <Suspense fallback={<SuspenseFallback />}>
+          <Routes>
+            {/* Public Authentication Routes */}
+            <Route element={<PublicRoute />}>
+              <Route path="login" element={<LoginPage />} />
+              <Route path="signup" element={<SignupPage />} />
             </Route>
-          </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Protected Application Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="focus" element={<FocusPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="flashcards" element={<FlashcardsPage />} />
+                <Route path="analytics" element={<LearningAnalyticsPage />} />
+                <Route path="plans" element={<LearningPlansPage />} />
+                <Route path="plans/:planId" element={<LearningPlanDetailPage />} />
+                <Route path="subjects" element={<SubjectsPage />} />
+                <Route path="tasks" element={<TasksPage />} />
+                <Route path="deadlines" element={<DeadlinesPage />} />
+                <Route path="ai-assistant" element={<AIAssistantPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   )

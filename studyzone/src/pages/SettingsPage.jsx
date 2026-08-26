@@ -1,5 +1,17 @@
 import { useState } from 'react'
-import { AlertCircle, Bell, CheckCircle2, LogOut, Moon, Sparkles, User } from 'lucide-react'
+import {
+  AlertCircle,
+  Bell,
+  CheckCircle2,
+  Database,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  LogOut,
+  Moon,
+  Sparkles,
+  User,
+} from 'lucide-react'
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
@@ -8,6 +20,7 @@ import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
 import { LEARNER_TYPES, PRIMARY_GOALS } from '../lib/learnerProfile'
 import { updateLearnerProfile, updateNotificationPreferences } from '../services/learnerProfileService'
+import { supabase } from '../lib/supabase'
 
 export default function SettingsPage() {
   const { profile, user, updateProfile, signOut } = useAuth()
@@ -127,6 +140,9 @@ export default function SettingsPage() {
       {/* In-App Notification Alert Preferences */}
       <NotificationPreferencesCard />
 
+      {/* Data Portability & Complete Export */}
+      <DataExportSettingsCard />
+
       {/* Theme & Display */}
       <Card>
         <CardHeader>
@@ -156,7 +172,7 @@ export default function SettingsPage() {
             variant="danger"
             size="sm"
             onClick={() => signOut()}
-            className="gap-2"
+            className="gap-2 cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />
             <span>Sign out</span>
@@ -164,6 +180,225 @@ export default function SettingsPage() {
         </div>
       </Card>
     </PageContainer>
+  )
+}
+
+/**
+ * Settings card for complete JSON and CSV data export.
+ */
+function DataExportSettingsCard() {
+  const { user } = useAuth()
+  const [exportingJson, setExportingJson] = useState(false)
+  const [exportingTasksCsv, setExportingTasksCsv] = useState(false)
+  const [exportingSessionsCsv, setExportingSessionsCsv] = useState(false)
+  const [exportSuccess, setExportSuccess] = useState('')
+
+  function triggerDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // ─── 1. Full JSON Backup (Including AI Chat History) ──────────
+  async function handleExportJson() {
+    if (!user?.id) return
+    setExportingJson(true)
+    setExportSuccess('')
+
+    try {
+      const [
+        profRes, subRes, taskRes, deadRes, sessRes,
+        planRes, milRes, notifRes, convRes, msgRes,
+        deckRes, cardRes, revRes,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('subjects').select('*').eq('user_id', user.id),
+        supabase.from('tasks').select('*').eq('user_id', user.id),
+        supabase.from('deadlines').select('*').eq('user_id', user.id),
+        supabase.from('study_sessions').select('*').eq('user_id', user.id),
+        supabase.from('learning_plans').select('*').eq('user_id', user.id),
+        supabase.from('learning_milestones').select('*').eq('user_id', user.id),
+        supabase.from('notifications').select('*').eq('user_id', user.id),
+        supabase.from('ai_conversations').select('*').eq('user_id', user.id),
+        supabase.from('ai_messages').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_decks').select('*').eq('user_id', user.id),
+        supabase.from('flashcards').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_reviews').select('*').eq('user_id', user.id),
+      ])
+
+      const backupData = {
+        studyzone_export_version: '1.2',
+        exported_at: new Date().toISOString(),
+        user_id: user.id,
+        user_email: user.email,
+        profile: profRes.data || null,
+        subjects: subRes.data || [],
+        tasks: taskRes.data || [],
+        deadlines: deadRes.data || [],
+        study_sessions: sessRes.data || [],
+        learning_plans: planRes.data || [],
+        learning_milestones: milRes.data || [],
+        notifications: notifRes.data || [],
+        ai_conversations: convRes.data || [],
+        ai_messages: msgRes.data || [],
+        flashcard_decks: deckRes.data || [],
+        flashcards: cardRes.data || [],
+        flashcard_reviews: revRes.data || [],
+      }
+
+      const jsonStr = JSON.stringify(backupData, null, 2)
+      const ts = new Date().toISOString().slice(0, 10)
+      triggerDownload(jsonStr, `studyzone_complete_backup_${ts}.json`, 'application/json')
+
+      setExportSuccess('Full JSON backup downloaded successfully.')
+      setTimeout(() => setExportSuccess(''), 4000)
+    } catch (err) {
+      console.warn('JSON export failed:', err)
+    } finally {
+      setExportingJson(false)
+    }
+  }
+
+  // ─── 2. Export Tasks (CSV) ────────────────────────────────────
+  async function handleExportTasksCsv() {
+    if (!user?.id) return
+    setExportingTasksCsv(true)
+    setExportSuccess('')
+
+    try {
+      const [taskRes, subRes] = await Promise.all([
+        supabase.from('tasks').select('*').eq('user_id', user.id),
+        supabase.from('subjects').select('*').eq('user_id', user.id),
+      ])
+
+      const subMap = new Map((subRes.data || []).map((s) => [s.id, s.name]))
+      const tasks = taskRes.data || []
+
+      const headers = ['ID', 'Title', 'Subject', 'Priority', 'Status', 'Due Date', 'Est Minutes', 'Created At', 'Completed At']
+      const rows = tasks.map((t) => [
+        t.id,
+        `"${(t.title || '').replace(/"/g, '""')}"`,
+        `"${(subMap.get(t.subject_id) || '').replace(/"/g, '""')}"`,
+        t.priority,
+        t.status,
+        t.due_date || '',
+        t.estimated_minutes || 0,
+        t.created_at,
+        t.completed_at || '',
+      ])
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+      const ts = new Date().toISOString().slice(0, 10)
+      triggerDownload(csvContent, `studyzone_tasks_${ts}.csv`, 'text/csv;charset=utf-8;')
+
+      setExportSuccess('Tasks CSV downloaded.')
+      setTimeout(() => setExportSuccess(''), 4000)
+    } finally {
+      setExportingTasksCsv(false)
+    }
+  }
+
+  // ─── 3. Export Study Sessions (CSV) ───────────────────────────
+  async function handleExportSessionsCsv() {
+    if (!user?.id) return
+    setExportingSessionsCsv(true)
+    setExportSuccess('')
+
+    try {
+      const [sessRes, subRes] = await Promise.all([
+        supabase.from('study_sessions').select('*').eq('user_id', user.id),
+        supabase.from('subjects').select('*').eq('user_id', user.id),
+      ])
+
+      const subMap = new Map((subRes.data || []).map((s) => [s.id, s.name]))
+      const sessions = sessRes.data || []
+
+      const headers = ['ID', 'Started At', 'Ended At', 'Duration Minutes', 'Subject', 'Notes']
+      const rows = sessions.map((s) => [
+        s.id,
+        s.started_at,
+        s.ended_at || '',
+        s.duration_minutes || 0,
+        `"${(subMap.get(s.subject_id) || '').replace(/"/g, '""')}"`,
+        `"${(s.notes || '').replace(/"/g, '""')}"`,
+      ])
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+      const ts = new Date().toISOString().slice(0, 10)
+      triggerDownload(csvContent, `studyzone_sessions_${ts}.csv`, 'text/csv;charset=utf-8;')
+
+      setExportSuccess('Study Sessions CSV downloaded.')
+      setTimeout(() => setExportSuccess(''), 4000)
+    } finally {
+      setExportingSessionsCsv(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4 text-accent" />
+          <CardTitle>Data Portability & Archives</CardTitle>
+        </div>
+        <CardDescription>
+          Export your complete learning history, flashcards, and AI chat archives anytime.
+        </CardDescription>
+      </CardHeader>
+
+      <div className="space-y-4">
+        {exportSuccess && (
+          <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs text-accent">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{exportSuccess}</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {/* Full JSON Backup */}
+          <button
+            type="button"
+            disabled={exportingJson}
+            onClick={handleExportJson}
+            className="flex flex-col items-center justify-center p-4 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/15 transition-all text-center group cursor-pointer disabled:opacity-50"
+          >
+            <FileJson className="h-6 w-6 text-accent mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">Full JSON Backup</span>
+            <span className="text-[10px] text-muted mt-0.5">All tables & AI chats</span>
+          </button>
+
+          {/* Tasks CSV */}
+          <button
+            type="button"
+            disabled={exportingTasksCsv}
+            onClick={handleExportTasksCsv}
+            className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+          >
+            <FileSpreadsheet className="h-6 w-6 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">Tasks (CSV)</span>
+            <span className="text-[10px] text-muted mt-0.5">Spreadsheet format</span>
+          </button>
+
+          {/* Sessions CSV */}
+          <button
+            type="button"
+            disabled={exportingSessionsCsv}
+            onClick={handleExportSessionsCsv}
+            className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+          >
+            <Download className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">Sessions (CSV)</span>
+            <span className="text-[10px] text-muted mt-0.5">Study log history</span>
+          </button>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -405,7 +640,7 @@ function LearnerProfileSettingsCard() {
             value={learnerType}
             onChange={(e) => setLearnerType(e.target.value)}
             disabled={saving}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             {LEARNER_TYPES.map((t) => (
               <option key={t.id} value={t.id}>
@@ -424,7 +659,7 @@ function LearnerProfileSettingsCard() {
             value={primaryGoal}
             onChange={(e) => setPrimaryGoal(e.target.value)}
             disabled={saving}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
           >
             {PRIMARY_GOALS.map((g) => (
               <option key={g.id} value={g.id}>

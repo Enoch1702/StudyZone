@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   BookOpen,
+  Brain,
+  CalendarDays,
   Compass,
   LogOut,
   Settings,
@@ -121,6 +123,22 @@ export function HeaderUserMenu() {
               >
                 <Timer className="h-3.5 w-3.5 text-muted" />
                 <span>Focus Mode</span>
+              </Link>
+              <Link
+                to="/calendar"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+              >
+                <CalendarDays className="h-3.5 w-3.5 text-muted" />
+                <span>Study Calendar</span>
+              </Link>
+              <Link
+                to="/flashcards"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+              >
+                <Brain className="h-3.5 w-3.5 text-muted" />
+                <span>Flashcards</span>
               </Link>
               <Link
                 to="/ai-assistant"

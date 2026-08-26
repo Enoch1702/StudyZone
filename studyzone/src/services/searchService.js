@@ -28,6 +28,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
       deadlinesRes,
       plansRes,
       milestonesRes,
+      decksRes,
     ] = await Promise.all([
       supabase
         .from('subjects')
@@ -54,6 +55,11 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
         .from('learning_milestones')
         .select('id, plan_id, title, description, position, status, target_date')
         .eq('user_id', userId),
+
+      supabase
+        .from('flashcard_decks')
+        .select('id, title, description, subject_id')
+        .eq('user_id', userId),
     ])
 
     const subjects = subjectsRes.data || []
@@ -61,6 +67,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
     const deadlines = deadlinesRes.data || []
     const plans = plansRes.data || []
     const milestones = milestonesRes.data || []
+    const decks = decksRes?.data || []
 
     // Build lookup maps for cross-referencing
     const subjectMap = new Map(subjects.map((s) => [s.id, s.name]))
@@ -262,6 +269,41 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
     if (matchedMilestones.length > 0) {
       resultsByCategory['Milestones'] = matchedMilestones
       totalResults += matchedMilestones.length
+    }
+
+    // 6. Filter Flashcard Decks
+    const matchedDecks = decks
+      .filter((d) => {
+        const title = (d.title || '').toLowerCase()
+        const desc = (d.description || '').toLowerCase()
+        const subName = (subjectMap.get(d.subject_id) || '').toLowerCase()
+        return (
+          title.includes(normalizedQuery) ||
+          desc.includes(normalizedQuery) ||
+          subName.includes(normalizedQuery)
+        )
+      })
+      .slice(0, limitPerCategory)
+      .map((d) => {
+        const sub = subjectMap.get(d.subject_id)
+        return {
+          id: `deck-${d.id}`,
+          rawId: d.id,
+          type: 'flashcard_deck',
+          category: 'Flashcards',
+          title: d.title,
+          subtitle: sub ? `Subject: ${sub}` : (d.description || 'Active recall deck'),
+          route: '/flashcards',
+          metadata: {
+            deckId: d.id,
+            subject: sub,
+          },
+        }
+      })
+
+    if (matchedDecks.length > 0) {
+      resultsByCategory['Flashcards'] = matchedDecks
+      totalResults += matchedDecks.length
     }
 
     return { resultsByCategory, totalResults, error: null }

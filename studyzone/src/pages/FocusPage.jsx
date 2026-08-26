@@ -2,19 +2,26 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
+  Bell,
   BookOpen,
   CheckCircle2,
   Clock,
+  Eye,
   FastForward,
   Flame,
+  Headphones,
   Hourglass,
   Layers,
+  Maximize2,
+  Minimize2,
   Pause,
   Play,
   RotateCcw,
   Sparkles,
   Square,
   Timer,
+  Volume2,
+  VolumeX,
   Zap,
 } from 'lucide-react'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -30,6 +37,15 @@ import {
   logCompletedFocusSession,
   getFocusSessionStats,
 } from '../services/focusTimerService'
+import {
+  AMBIENT_PRESETS,
+  startAmbientSound,
+  stopAmbientSound,
+  setAmbientVolume,
+  playCompletionChime,
+  getSavedVolume,
+  getSavedPreset,
+} from '../services/soundGeneratorService'
 import { cn, formatDuration, formatMinutesToHoursMinutes } from '../lib/utils'
 
 function formatSeconds(totalSeconds) {
@@ -107,6 +123,15 @@ export default function FocusPage() {
     () => initialSavedSession?.cycleIndex ?? 1,
   )
 
+  // ─── Focus Environment & Audio State ───────────────────────────
+  const [ambientPreset, setAmbientPreset] = useState(() => getSavedPreset())
+  const [ambientVolume, setAmbientVolState] = useState(() => getSavedVolume())
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false)
+  const [hasNotificationPermission, setHasNotificationPermission] = useState(
+    () => typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted',
+  )
+
   // ─── Completion Modal & Stats ──────────────────────────────────
   const [completionData, setCompletionData] = useState(null)
   const [stats, setStats] = useState({
@@ -121,6 +146,7 @@ export default function FocusPage() {
   const timerIntervalRef = useRef(null)
   const targetEndTimeRef = useRef(null)
   const lastTickTimeRef = useRef(null)
+  const wakeLockSentinelRef = useRef(null)
 
   // ─── Load Subjects, Tasks, and Stats ───────────────────────────
   useEffect(() => {
@@ -186,6 +212,78 @@ export default function FocusPage() {
     selectedTaskId,
   ])
 
+  // ─── Ambient Audio Sync with Timer Running State ───────────────
+  useEffect(() => {
+    if (isRunning && !isPaused && ambientPreset !== 'off') {
+      startAmbientSound(ambientPreset, ambientVolume)
+    } else {
+      stopAmbientSound()
+    }
+
+    return () => {
+      stopAmbientSound()
+    }
+  }, [isRunning, isPaused, ambientPreset, ambientVolume])
+
+  // ─── Screen WakeLock Management ────────────────────────────────
+  useEffect(() => {
+    let isCancelled = false
+
+    async function handleWakeLock() {
+      if (isRunning && !isPaused) {
+        if ('wakeLock' in navigator) {
+          try {
+            const sentinel = await navigator.wakeLock.request('screen')
+            if (!isCancelled) {
+              wakeLockSentinelRef.current = sentinel
+              setIsWakeLockActive(true)
+              sentinel.addEventListener('release', () => {
+                if (!isCancelled) setIsWakeLockActive(false)
+              })
+            } else {
+              sentinel.release().catch(() => {})
+            }
+          } catch {
+            if (!isCancelled) setIsWakeLockActive(false)
+          }
+        }
+      } else {
+        if (wakeLockSentinelRef.current) {
+          wakeLockSentinelRef.current.release().catch(() => {})
+          wakeLockSentinelRef.current = null
+        }
+        if (!isCancelled) setIsWakeLockActive(false)
+      }
+    }
+
+    handleWakeLock()
+
+    return () => {
+      isCancelled = true
+      if (wakeLockSentinelRef.current) {
+        wakeLockSentinelRef.current.release().catch(() => {})
+        wakeLockSentinelRef.current = null
+      }
+    }
+  }, [isRunning, isPaused])
+
+  // ─── Notification Permission Request ───────────────────────────
+  async function requestNotificationPermission() {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const perm = await Notification.requestPermission()
+      setHasNotificationPermission(perm === 'granted')
+    }
+  }
+
+  // ─── Fullscreen Toggle ─────────────────────────────────────────
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {})
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {})
+    }
+  }
+
   // ─── Update Initial Timer when switching preset in Idle state ──
   function handleSelectPreset(presetId) {
     if (sessionPhase !== 'idle' && isRunning) return
@@ -205,6 +303,24 @@ export default function FocusPage() {
   async function triggerPhaseComplete() {
     setIsRunning(false)
     setIsPaused(false)
+    stopAmbientSound()
+
+    // 1. Play synthesized Tibetan singing bowl chime
+    playCompletionChime()
+
+    // 2. Send browser notification if permitted
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('StudyZone Focus Mode', {
+          body: sessionPhase === 'focus'
+            ? '🎯 Focus block completed! Time for a well-deserved break.'
+            : '☕ Break over! Ready for your next focus session?',
+          icon: '/favicon.ico',
+        })
+      } catch {
+        // ignore
+      }
+    }
 
     if (sessionPhase === 'focus') {
       const focusedMins = Math.max(1, Math.round(totalPhaseSeconds / 60))
@@ -380,7 +496,7 @@ export default function FocusPage() {
 
   return (
     <PageContainer width="wide" className="space-y-6 pb-12">
-      {/* Top Banner Alert (e.g. after early logging) */}
+      {/* Top Banner Alert */}
       <AnimatePresence>
         {bannerMessage && (
           <motion.div
@@ -406,13 +522,49 @@ export default function FocusPage() {
               Focus Mode
             </h1>
             <p className="text-xs sm:text-sm text-muted">
-              Distraction-free deep work intervals automatically tracked in your study analytics.
+              Distraction-free deep work environment with synthesized ambient noise and automatic session tracking.
             </p>
           </div>
         </div>
 
-        {/* Status Badge */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        {/* Status Badge & Environment Controls */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {/* Notification Permission Button */}
+          {!hasNotificationPermission && (
+            <button
+              type="button"
+              onClick={requestNotificationPermission}
+              title="Enable browser notifications on session complete"
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
+            >
+              <Bell className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Alerts</span>
+            </button>
+          )}
+
+          {/* WakeLock indicator */}
+          {isWakeLockActive && (
+            <span
+              title="Screen WakeLock Active — Display will not sleep during focus"
+              className="inline-flex items-center gap-1 rounded-xl bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-xs font-semibold text-amber-400"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Awake</span>
+            </span>
+          )}
+
+          {/* Fullscreen Button */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            <span className="hidden md:inline">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
+          </button>
+
+          {/* Phase Badge */}
           {sessionPhase === 'focus' && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -442,7 +594,7 @@ export default function FocusPage() {
 
       {/* Main Focus Control Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Preset & Context Settings (4 cols on lg) */}
+        {/* Left Column: Preset, Audio, and Context (4 cols on lg) */}
         <div className="lg:col-span-4 space-y-4">
           {/* Preset Selector Card */}
           <Card className="border-border/90 bg-surface shadow-md">
@@ -558,6 +710,85 @@ export default function FocusPage() {
                       />
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Ambient Noise Generator Card */}
+          <Card className="border-border/90 bg-surface shadow-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Headphones className="h-4 w-4 text-purple-400" />
+                  <span>Synthesized Ambient Sound</span>
+                </div>
+                {ambientPreset !== 'off' && isRunning && !isPaused && (
+                  <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
+                )}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Pure Web Audio generated noise — zero downloads or streaming breaks.
+              </CardDescription>
+            </CardHeader>
+
+            <div className="p-4 pt-0 space-y-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {AMBIENT_PRESETS.map((preset) => {
+                  const isCurrent = ambientPreset === preset.id
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setAmbientPreset(preset.id)
+                        if (isRunning && !isPaused) {
+                          startAmbientSound(preset.id, ambientVolume)
+                        }
+                      }}
+                      className={cn(
+                        'rounded-xl p-2 text-left border transition-all text-xs font-semibold cursor-pointer',
+                        isCurrent
+                          ? 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-2xs'
+                          : 'bg-surface-raised/40 border-border/70 hover:bg-surface-raised text-muted hover:text-foreground',
+                      )}
+                    >
+                      <p className="truncate">{preset.name}</p>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Volume Slider */}
+              {ambientPreset !== 'off' && (
+                <div className="pt-2 border-t border-border/60 flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = ambientVolume === 0 ? 0.4 : 0
+                      setAmbientVolState(next)
+                      setAmbientVolume(next)
+                    }}
+                    className="text-muted hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    {ambientVolume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={ambientVolume}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value)
+                      setAmbientVolState(val)
+                      setAmbientVolume(val)
+                    }}
+                    className="w-full accent-purple-400 cursor-pointer h-1.5 bg-surface-raised rounded-lg"
+                  />
+                  <span className="text-[10px] font-mono text-muted w-8 text-right">
+                    {Math.round(ambientVolume * 100)}%
+                  </span>
                 </div>
               )}
             </div>

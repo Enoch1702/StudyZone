@@ -12,6 +12,8 @@ import { pageEntrance } from '../../lib/motion'
 const pageTitles = {
   '/': 'Dashboard',
   '/focus': 'Focus Mode',
+  '/calendar': 'Study Calendar',
+  '/flashcards': 'Flashcards',
   '/analytics': 'Learning Insights',
   '/plans': 'Learning Plans',
   '/subjects': 'Subjects',

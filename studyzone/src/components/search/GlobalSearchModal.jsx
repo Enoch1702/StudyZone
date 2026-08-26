@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   BookOpen,
+  Brain,
   CalendarDays,
   CheckSquare,
   Compass,
@@ -38,9 +39,27 @@ const QUICK_COMMANDS = [
     type: 'command',
     category: 'Quick Commands',
     title: 'Go to Focus Mode',
-    subtitle: 'Pomodoro timer and deep study sessions',
+    subtitle: 'Pomodoro timer, ambient noise, and deep study sessions',
     icon: Timer,
     route: '/focus',
+  },
+  {
+    id: 'cmd-calendar',
+    type: 'command',
+    category: 'Quick Commands',
+    title: 'Go to Study Calendar',
+    subtitle: 'Interactive timetable of deadlines and scheduled tasks',
+    icon: CalendarDays,
+    route: '/calendar',
+  },
+  {
+    id: 'cmd-flashcards',
+    type: 'command',
+    category: 'Quick Commands',
+    title: 'Go to Flashcards',
+    subtitle: 'Active recall decks and SuperMemo SM-2 spaced repetition',
+    icon: Brain,
+    route: '/flashcards',
   },
   {
     id: 'cmd-analytics',
@@ -119,6 +138,8 @@ function getCategoryIcon(type) {
       return Compass
     case 'milestone':
       return Milestone
+    case 'flashcard_deck':
+      return Brain
     case 'command':
       return ArrowRight
     default:
