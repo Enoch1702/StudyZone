@@ -1,4 +1,6 @@
 {
+  "buildCommand": "cd studyzone && npm run build",
+  "outputDirectory": "studyzone/dist",
   "rewrites": [
     {
       "source": "/(.*)",
