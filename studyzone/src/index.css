@@ -29,6 +29,73 @@
     color-scheme: dark;
   }
 
+  /* ─── 5 Curated StudyZone Themes ─────────────────────────────── */
+  :root,
+  [data-theme="midnight"] {
+    --color-background: #09090b;
+    --color-surface: #111113;
+    --color-surface-raised: #18181b;
+    --color-border: #27272a;
+    --color-border-subtle: #1f1f23;
+    --color-foreground: #fafafa;
+    --color-muted: #a1a1aa;
+    --color-accent: #4f7cff;
+    --color-accent-hover: #3d6ae8;
+    --color-accent-muted: rgba(79, 124, 255, 0.14);
+  }
+
+  [data-theme="ocean"] {
+    --color-background: #070e17;
+    --color-surface: #0c1624;
+    --color-surface-raised: #132034;
+    --color-border: #1e2f47;
+    --color-border-subtle: #162438;
+    --color-foreground: #f0f6fc;
+    --color-muted: #94a3b8;
+    --color-accent: #38bdf8;
+    --color-accent-hover: #0ea5e9;
+    --color-accent-muted: rgba(56, 189, 248, 0.14);
+  }
+
+  [data-theme="emerald"] {
+    --color-background: #06120d;
+    --color-surface: #0b1c15;
+    --color-surface-raised: #12281e;
+    --color-border: #1d3c2e;
+    --color-border-subtle: #142e22;
+    --color-foreground: #f2fbf6;
+    --color-muted: #93a99e;
+    --color-accent: #10b981;
+    --color-accent-hover: #059669;
+    --color-accent-muted: rgba(16, 185, 129, 0.14);
+  }
+
+  [data-theme="amethyst"] {
+    --color-background: #0c0914;
+    --color-surface: #140f21;
+    --color-surface-raised: #1d1630;
+    --color-border: #2e234c;
+    --color-border-subtle: #231a3b;
+    --color-foreground: #f8f6fc;
+    --color-muted: #a69bb8;
+    --color-accent: #a855f7;
+    --color-accent-hover: #9333ea;
+    --color-accent-muted: rgba(168, 85, 247, 0.14);
+  }
+
+  [data-theme="espresso"] {
+    --color-background: #110d0b;
+    --color-surface: #191410;
+    --color-surface-raised: #231c17;
+    --color-border: #362c24;
+    --color-border-subtle: #2b221b;
+    --color-foreground: #faf6f0;
+    --color-muted: #b5a494;
+    --color-accent: #f59e0b;
+    --color-accent-hover: #d97706;
+    --color-accent-muted: rgba(245, 158, 11, 0.14);
+  }
+
   body {
     margin: 0;
     min-height: 100svh;
@@ -37,6 +104,7 @@
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {

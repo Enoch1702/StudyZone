@@ -6,8 +6,10 @@ import {
   Brain,
   CalendarDays,
   Compass,
+  Globe,
+  LayoutDashboard,
   LogOut,
-  Settings,
+  Palette,
   Sparkles,
   Timer,
   TrendingUp,
@@ -109,12 +111,28 @@ export function HeaderUserMenu() {
             {/* Menu Links */}
             <div className="py-1">
               <Link
+                to="/dashboard"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+              >
+                <LayoutDashboard className="h-3.5 w-3.5 text-muted" />
+                <span>Dashboard (Home)</span>
+              </Link>
+              <Link
+                to="/"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+              >
+                <Globe className="h-3.5 w-3.5 text-muted" />
+                <span>Public Landing Page</span>
+              </Link>
+              <Link
                 to="/settings"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
               >
-                <Settings className="h-3.5 w-3.5 text-muted" />
-                <span>Settings & Profile</span>
+                <Palette className="h-3.5 w-3.5 text-muted" />
+                <span>Themes & Settings</span>
               </Link>
               <Link
                 to="/focus"

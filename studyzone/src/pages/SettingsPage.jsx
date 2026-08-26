@@ -3,13 +3,14 @@ import {
   AlertCircle,
   Bell,
   Brain,
+  Check,
   CheckCircle2,
   Database,
   Download,
   FileJson,
   FileSpreadsheet,
   LogOut,
-  Moon,
+  Palette,
   Sliders,
   Sparkles,
   User,
@@ -20,9 +21,11 @@ import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
+import { useTheme } from '../context/useTheme'
 import { LEARNER_TYPES, PRIMARY_GOALS } from '../lib/learnerProfile'
 import { updateLearnerProfile, updateNotificationPreferences } from '../services/learnerProfileService'
 import { supabase } from '../lib/supabase'
+import { cn } from '../lib/utils'
 
 function escapeCsvField(val) {
   if (val === null || val === undefined) return '""'
@@ -155,19 +158,8 @@ export default function SettingsPage() {
       {/* Data Portability & Complete Export */}
       <DataExportSettingsCard />
 
-      {/* Theme & Display */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Moon className="h-4 w-4 text-muted" />
-            <CardTitle>Appearance</CardTitle>
-          </div>
-          <CardDescription>Theme and display settings</CardDescription>
-        </CardHeader>
-        <p className="text-sm text-muted">
-          Dark mode is enabled by default. Light mode will be available in a future update.
-        </p>
-      </Card>
+      {/* Workspace Theme & Appearance */}
+      <ThemeSettingsCard />
 
       {/* Account Session & Sign Out */}
       <Card>
@@ -778,3 +770,75 @@ function LearnerProfileSettingsCard() {
     </Card>
   )
 }
+
+/**
+ * Theme & Color Scheme selector card with live previews.
+ */
+function ThemeSettingsCard() {
+  const { theme, setTheme, themes } = useTheme()
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Palette className="h-4 w-4 text-accent" />
+          <CardTitle>Workspace Themes & Colors</CardTitle>
+        </div>
+        <CardDescription>
+          Customize StudyZone&apos;s dark-first appearance with curated color palettes.
+        </CardDescription>
+      </CardHeader>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {themes.map((t) => {
+          const isSelected = theme === t.id
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTheme(t.id)}
+              className={cn(
+                'rounded-2xl p-4 text-left border transition-all cursor-pointer flex flex-col justify-between gap-3',
+                isSelected
+                  ? 'border-accent bg-surface-raised shadow-md ring-1 ring-accent/30'
+                  : 'border-border/80 bg-surface-raised/40 hover:bg-surface-raised hover:border-border',
+              )}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground">{t.name}</span>
+                  {isSelected && (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-accent text-white">
+                      <Check className="h-2.5 w-2.5" />
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted">{t.description}</p>
+              </div>
+
+              {/* Color Swatch Preview */}
+              <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+                <div
+                  className="h-4 w-4 rounded-full border border-white/20 shadow-xs"
+                  style={{ backgroundColor: t.bgColor }}
+                  title="Background"
+                />
+                <div
+                  className="h-4 w-4 rounded-full border border-white/20 shadow-xs"
+                  style={{ backgroundColor: t.surfaceColor }}
+                  title="Surface"
+                />
+                <div
+                  className="h-4 w-4 rounded-full border border-white/20 shadow-xs ml-auto"
+                  style={{ backgroundColor: t.accentColor }}
+                  title="Accent"
+                />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+

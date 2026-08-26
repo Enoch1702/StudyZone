@@ -1,6 +1,7 @@
 /**
  * Sound Generator Service using 100% synthesized Web Audio API.
- * Provides zero-dependency, royalty-free, offline-ready ambient noise and focus chimes.
+ * Provides zero-dependency, royalty-free, offline-ready ambient noise,
+ * calm natural soundscapes (Rain, Ocean, Wind, Campfire), and focus chimes.
  */
 
 let audioCtx = null
@@ -26,11 +27,16 @@ function getAudioContext() {
 }
 
 export const AMBIENT_PRESETS = [
-  { id: 'off', name: 'Mute', description: 'No background audio' },
-  { id: 'brown', name: 'Brown Noise', description: 'Deep, warm rumble for deep ADHD & coding flow' },
-  { id: 'pink', name: 'Pink Noise', description: 'Balanced rainfall-like soothing frequency' },
-  { id: 'white', name: 'White Noise', description: 'Crisp focus sound masking background distractions' },
-  { id: 'binaural', name: '432Hz Harmonic', description: 'Calm harmonic focus tone' },
+  { id: 'off', name: 'Mute', description: 'No background audio', category: 'General' },
+  { id: 'rain', name: 'Gentle Rain', description: 'Soothing rain shower masking background noise', category: 'Nature' },
+  { id: 'ocean', name: 'Ocean Waves', description: 'Rhythmic tidal swells with slow calming ebb and flow', category: 'Nature' },
+  { id: 'wind', name: 'Forest Wind', description: 'Deep canopy breeze through pine branches', category: 'Nature' },
+  { id: 'campfire', name: 'Warm Campfire', description: 'Cozy hearth crackle and warm sub-frequencies', category: 'Nature' },
+  { id: 'brown', name: 'Brown Noise', description: 'Deep, warm rumble for ADHD & coding flow', category: 'Noise' },
+  { id: 'pink', name: 'Pink Noise', description: 'Balanced 1/f rainfall-like soothing frequency', category: 'Noise' },
+  { id: 'white', name: 'White Noise', description: 'Crisp focus sound masking sharp distractions', category: 'Noise' },
+  { id: 'solfeggio', name: '528Hz Clarity', description: 'Solfeggio transformation tone with harmonic sub-sine', category: 'Harmonic' },
+  { id: 'binaural', name: '432Hz Harmonic', description: 'Calm harmonic focus tone for deep study', category: 'Harmonic' },
 ]
 
 export function getSavedVolume() {
@@ -66,9 +72,8 @@ export function savePreset(presetId) {
   }
 }
 
-/**
- * Creates an audio buffer with Brown Noise (integrated white noise).
- */
+// ─── Noise Buffer Generators ──────────────────────────────────────
+
 function createBrownNoiseBuffer(ctx) {
   const bufferSize = ctx.sampleRate * 5
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
@@ -79,26 +84,17 @@ function createBrownNoiseBuffer(ctx) {
     const white = Math.random() * 2 - 1
     output[i] = (lastOut + 0.02 * white) / 1.02
     lastOut = output[i]
-    output[i] *= 3.5 // Gain boost for deep rumble
+    output[i] *= 3.5
   }
 
   return buffer
 }
 
-/**
- * Creates an audio buffer with Pink Noise (1/f spectral density via Paul Kellet filter).
- */
 function createPinkNoiseBuffer(ctx) {
   const bufferSize = ctx.sampleRate * 5
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
-  let b0 = 0
-  let b1 = 0
-  let b2 = 0
-  let b3 = 0
-  let b4 = 0
-  let b5 = 0
-  let b6 = 0
+  let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
 
   for (let i = 0; i < bufferSize; i++) {
     const white = Math.random() * 2 - 1
@@ -115,9 +111,6 @@ function createPinkNoiseBuffer(ctx) {
   return buffer
 }
 
-/**
- * Creates an audio buffer with White Noise.
- */
 function createWhiteNoiseBuffer(ctx) {
   const bufferSize = ctx.sampleRate * 5
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
@@ -130,9 +123,32 @@ function createWhiteNoiseBuffer(ctx) {
   return buffer
 }
 
-/**
- * Starts synthesized ambient soundscape.
- */
+function createCampfireBuffer(ctx) {
+  const bufferSize = ctx.sampleRate * 6
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
+  const output = buffer.getChannelData(0)
+  let lastOut = 0.0
+
+  for (let i = 0; i < bufferSize; i++) {
+    // Low warm rumble background
+    const white = Math.random() * 2 - 1
+    const rumble = (lastOut + 0.015 * white) / 1.02
+    lastOut = rumble
+
+    // Subtle random crackle impulses (0.08% chance per sample)
+    let crackle = 0
+    if (Math.random() < 0.0008) {
+      crackle = (Math.random() * 2 - 1) * (0.4 + Math.random() * 0.6)
+    }
+
+    output[i] = rumble * 1.6 + crackle
+  }
+
+  return buffer
+}
+
+// ─── Sound Playback Controller ────────────────────────────────────
+
 export function startAmbientSound(presetId, volume = 0.4) {
   stopAmbientSound()
 
@@ -154,23 +170,24 @@ export function startAmbientSound(presetId, volume = 0.4) {
   gainNode.connect(ctx.destination)
   currentGainNode = gainNode
 
-  if (presetId === 'binaural') {
-    // Harmonic drone at 432Hz + octave 216Hz + sub 108Hz
+  // 1. Harmonics (432Hz & 528Hz Solfeggio)
+  if (presetId === 'binaural' || presetId === 'solfeggio') {
+    const baseFreq = presetId === 'solfeggio' ? 528 : 432
     const osc1 = ctx.createOscillator()
     const osc2 = ctx.createOscillator()
     const osc3 = ctx.createOscillator()
 
     osc1.type = 'sine'
-    osc1.frequency.setValueAtTime(432, ctx.currentTime)
+    osc1.frequency.setValueAtTime(baseFreq, ctx.currentTime)
 
     osc2.type = 'sine'
-    osc2.frequency.setValueAtTime(216, ctx.currentTime)
+    osc2.frequency.setValueAtTime(baseFreq / 2, ctx.currentTime)
 
     osc3.type = 'sine'
-    osc3.frequency.setValueAtTime(108, ctx.currentTime)
+    osc3.frequency.setValueAtTime(baseFreq / 4, ctx.currentTime)
 
     const subGain = ctx.createGain()
-    subGain.gain.setValueAtTime(0.3, ctx.currentTime)
+    subGain.gain.setValueAtTime(0.25, ctx.currentTime)
 
     osc1.connect(subGain)
     osc2.connect(subGain)
@@ -195,7 +212,133 @@ export function startAmbientSound(presetId, volume = 0.4) {
         }
       },
     }
-  } else {
+  }
+
+  // 2. Ocean Waves (Synthesized with periodic LFO filter swell)
+  else if (presetId === 'ocean') {
+    const buffer = createPinkNoiseBuffer(ctx)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(450, ctx.currentTime)
+    filter.Q.setValueAtTime(3, ctx.currentTime)
+
+    // LFO to create slow tidal swell (~0.12Hz)
+    const lfo = ctx.createOscillator()
+    lfo.type = 'sine'
+    lfo.frequency.setValueAtTime(0.12, ctx.currentTime)
+
+    const lfoGain = ctx.createGain()
+    lfoGain.gain.setValueAtTime(320, ctx.currentTime)
+
+    lfo.connect(lfoGain)
+    lfoGain.connect(filter.frequency)
+
+    source.connect(filter)
+    filter.connect(gainNode)
+
+    source.start()
+    lfo.start()
+
+    currentNoiseNode = {
+      stop: () => {
+        try {
+          source.stop()
+          lfo.stop()
+          source.disconnect()
+          filter.disconnect()
+          lfo.disconnect()
+        } catch {
+          // ignore
+        }
+      },
+    }
+  }
+
+  // 3. Forest Wind (Resonant sweeping bandpass)
+  else if (presetId === 'wind') {
+    const buffer = createPinkNoiseBuffer(ctx)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(400, ctx.currentTime)
+    filter.Q.setValueAtTime(2.5, ctx.currentTime)
+
+    const lfo = ctx.createOscillator()
+    lfo.type = 'sine'
+    lfo.frequency.setValueAtTime(0.08, ctx.currentTime)
+
+    const lfoGain = ctx.createGain()
+    lfoGain.gain.setValueAtTime(250, ctx.currentTime)
+
+    lfo.connect(lfoGain)
+    lfoGain.connect(filter.frequency)
+
+    source.connect(filter)
+    filter.connect(gainNode)
+
+    source.start()
+    lfo.start()
+
+    currentNoiseNode = {
+      stop: () => {
+        try {
+          source.stop()
+          lfo.stop()
+          source.disconnect()
+          filter.disconnect()
+          lfo.disconnect()
+        } catch {
+          // ignore
+        }
+      },
+    }
+  }
+
+  // 4. Gentle Rain (Filtered pink noise with gentle treble sheen)
+  else if (presetId === 'rain') {
+    const buffer = createPinkNoiseBuffer(ctx)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(1400, ctx.currentTime)
+
+    source.connect(filter)
+    filter.connect(gainNode)
+    source.start()
+
+    currentNoiseNode = source
+  }
+
+  // 5. Warm Campfire (Low rumble + crackle impulses)
+  else if (presetId === 'campfire') {
+    const buffer = createCampfireBuffer(ctx)
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    source.loop = true
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(2200, ctx.currentTime)
+
+    source.connect(filter)
+    filter.connect(gainNode)
+    source.start()
+
+    currentNoiseNode = source
+  }
+
+  // 6. Standard Noise Buffers (Brown, Pink, White)
+  else {
     let buffer
     if (presetId === 'brown') {
       buffer = createBrownNoiseBuffer(ctx)
@@ -209,10 +352,12 @@ export function startAmbientSound(presetId, volume = 0.4) {
     source.buffer = buffer
     source.loop = true
 
-    // Lowpass filter to avoid harsh digital edges
     const filter = ctx.createBiquadFilter()
     filter.type = 'lowpass'
-    filter.frequency.setValueAtTime(presetId === 'brown' ? 800 : presetId === 'pink' ? 4000 : 8000, ctx.currentTime)
+    filter.frequency.setValueAtTime(
+      presetId === 'brown' ? 800 : presetId === 'pink' ? 4000 : 8000,
+      ctx.currentTime,
+    )
 
     source.connect(filter)
     filter.connect(gainNode)
@@ -224,9 +369,6 @@ export function startAmbientSound(presetId, volume = 0.4) {
   isPlayingAmbient = true
 }
 
-/**
- * Updates the ambient volume smoothly in real time.
- */
 export function setAmbientVolume(volume) {
   saveVolume(volume)
   if (currentGainNode && audioCtx) {
@@ -235,9 +377,6 @@ export function setAmbientVolume(volume) {
   }
 }
 
-/**
- * Stops ambient sound with a gentle fade-out.
- */
 export function stopAmbientSound() {
   if (!currentNoiseNode || !currentGainNode || !audioCtx) {
     isPlayingAmbient = false
@@ -252,7 +391,7 @@ export function stopAmbientSound() {
       if (currentNoiseNode) {
         try {
           currentNoiseNode.stop()
-          currentNoiseNode.disconnect()
+          if (currentNoiseNode.disconnect) currentNoiseNode.disconnect()
         } catch {
           // ignore
         }
@@ -281,16 +420,11 @@ export function getCurrentAmbientPreset() {
   return currentPreset
 }
 
-/**
- * Plays a synthesized Tibetan Singing Bowl / Focus Completion Bell Chime.
- */
 export function playCompletionChime() {
   const ctx = getAudioContext()
   if (!ctx) return
 
   const now = ctx.currentTime
-
-  // Harmonics for a rich singing bowl: Fundamental 528Hz (Love/Focus frequency), 800Hz, 1200Hz
   const frequencies = [528, 800, 1200, 1600]
   const gains = [0.4, 0.2, 0.1, 0.05]
 
@@ -300,7 +434,6 @@ export function playCompletionChime() {
 
     osc.type = 'sine'
     osc.frequency.setValueAtTime(freq, now)
-    // Slight pitch drop creates authentic bell resonance
     osc.frequency.exponentialRampToValueAtTime(freq * 0.995, now + 3.0)
 
     const initialGain = gains[idx]

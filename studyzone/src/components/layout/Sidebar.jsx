@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckSquare,
   Compass,
+  Globe,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -121,8 +122,17 @@ export function Sidebar({ open, onClose }) {
           ))}
         </nav>
 
-        {/* User Account & Sign Out footer */}
-        <div className="border-t border-border p-2">
+        {/* Public Home & User Account footer */}
+        <div className="border-t border-border p-2 space-y-1.5">
+          <NavLink
+            to="/"
+            onClick={onClose}
+            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-raised/60 hover:text-foreground transition-colors"
+          >
+            <Globe className="h-3.5 w-3.5 text-muted shrink-0" />
+            <span>Public Home Page</span>
+          </NavLink>
+
           <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50 transition-colors hover:border-border">
             <div className="flex items-center gap-2 min-w-0">
               <div

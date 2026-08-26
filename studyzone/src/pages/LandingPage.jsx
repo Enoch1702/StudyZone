@@ -188,6 +188,33 @@ export default function LandingPage() {
           />
 
           <div className="mx-auto max-w-5xl text-center space-y-6">
+            {/* Signed-in user quick jump banner */}
+            {user && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mx-auto max-w-lg rounded-2xl border border-accent/40 bg-surface-raised/90 p-3 flex items-center justify-between gap-3 text-left shadow-lg"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-foreground truncate">
+                      Signed in as {user?.email}
+                    </p>
+                    <p className="text-[10px] text-muted truncate">
+                      Your personalized workspace is active
+                    </p>
+                  </div>
+                </div>
+                <Link to="/dashboard" className="shrink-0">
+                  <Button size="sm" className="gap-1 text-xs font-bold shadow-xs cursor-pointer">
+                    <span>Open Dashboard</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              </motion.div>
+            )}
+
             {/* Eyebrow badge */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
