@@ -1,0 +1,18 @@
+# StudyZone Robots Configuration
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /signup
+
+# Disallow private authenticated workspace routes from indexing
+Disallow: /dashboard
+Disallow: /focus
+Disallow: /calendar
+Disallow: /flashcards
+Disallow: /analytics
+Disallow: /plans
+Disallow: /subjects
+Disallow: /tasks
+Disallow: /deadlines
+Disallow: /ai-assistant
+Disallow: /settings

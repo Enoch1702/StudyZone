@@ -1,60 +1,97 @@
-# StudyZone — Intelligent Study & Learning Management Platform
+# StudyZone — Intelligent Personal Learning System
 
-StudyZone is a full-stack, dark-first intelligent learning platform built to help students, developers, and self-directed learners organize coursework, master difficult subjects through spaced repetition, track daily study momentum, and receive AI coaching backed by real study metrics.
+<div align="center">
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Deployment-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://your-studyzone-deployment.vercel.app)
+[![React](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite%206-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
+<br />
+
+> 🌐 **Live Deployed Application**: **[https://your-studyzone-deployment.vercel.app](https://your-studyzone-deployment.vercel.app)**  
+> *(Update this placeholder URL with your production Vercel deployment link)*
+
+</div>
+
+---
+
+## 📖 Overview
+
+**StudyZone** is a full-stack, dark-first intelligent learning platform built to help students, developers, and self-directed learners organize coursework, master difficult subjects through spaced repetition, track daily study momentum, and receive contextual AI coaching backed by verified study metrics.
+
+The application follows a standard product flow:
+1. **Public Showcase (`/`)**: Discover StudyZone's methodology, explore features, soundscapes, and color themes.
+2. **Authentication (`/login` & `/signup`)**: Secure email authentication powered by Supabase.
+3. **Personal Workspace (`/dashboard`)**: Distraction-free, dark-first learning operating system.
 
 ---
 
 ## 🌟 Core Feature Matrix
 
-### 1. 📊 Smart Dashboard & Best Next Action Engine
-- **Next Action Recommendation**: Evaluates pending tasks, upcoming deadlines, and streak status to surface the single highest-leverage task.
-- **Real-Time Workload Metrics**: Live metrics for total tasks, completion rates, 7-day workload horizon, and active learning plan progress.
-- **Integrated Study Logger**: Rapidly record focus blocks with subject tags, task links, and notes.
+### 1. 🏠 Public Landing Experience (`/`)
+- **5-Step Learning Methodology**: Visual representation of the `PLAN → FOCUS → TRACK → IMPROVE → REMEMBER` cycle.
+- **Interactive Feature Matrix**: 6 deep-dive cards detailing course hierarchy, AI coaching, calendar integration, and spaced repetition.
+- **Privacy & Engineering Guarantee**: Clear explanation of client-side RLS isolation, server-side AI keys, and Web Audio synthesis.
 
-### 2. ⏱ Focus Mode & Pomodoro Productivity Suite
-- **5 Structured Focus Presets**: Classic Pomodoro (25m/5m), Deep Work (50m/10m), Extended Focus (90m/20m), Quick Focus (15m/5m), and Custom interval modes.
-- **100% Synthesized Web Audio Soundscape**: Zero external audio downloads or streaming risks:
-  - **Brown Noise**: Deep Brownian rumble for ADHD & coding flow.
-  - **Pink Noise**: Balanced 1/f soothing frequency.
-  - **White Noise**: Crisp frequency masking background distractions.
-  - **432Hz Harmonic Sine Drone**: Triple-harmonic calm focus tone.
-  - **Tibetan Singing Bowl Chime**: Synthesized bell that rings on interval transitions.
-- **Screen WakeLock API & Fullscreen Mode**: Prevents screen sleep during active focus sessions.
+### 2. 📊 Smart Dashboard & Best Next Action Engine (`/dashboard`)
+- **Best Next Action Recommendation**: Algorithmic evaluation of pending tasks, urgency scores, and deadlines to highlight the highest-leverage task.
+- **Real-Time Workload Metrics**: Total tasks, completion rates, 7-day workload horizon, and active learning plan progress.
+- **Integrated Study Logger**: Rapidly record focus blocks with subject tags, linked tasks, and notes.
 
-### 3. 📅 Interactive Learning Calendar & Timetable
-- **6-Week $\times$ 7-Day Month Grid**: Unified timetable aggregating deadlines, scheduled tasks, and focus sessions.
-- **Timezone-Safe Date Handling**: Uses local calendar date components to prevent UTC date-boundary shifts.
-- **Interactive Day Inspector**: Side drawer opening on date selection with item breakdowns and a 1-click **"Focus"** launcher.
+### 3. 🎨 5 Curated Dark-First Color Themes
+- **Midnight Slate** *(Default)*: Classic zinc with vivid electric blue accent (`#4f7cff`).
+- **Deep Ocean**: Marine abyss navy with ice cyan accent (`#38bdf8`).
+- **Nordic Forest**: Pine forest evergreen with emerald accent (`#10b981`).
+- **Obsidian Amethyst**: Deep violet with royal purple accent (`#a855f7`).
+- **Warm Espresso**: Dark cocoa with warm amber gold accent (`#f59e0b`).
+- *Persistent via `localStorage` and managed dynamically via CSS custom property tokens.*
 
-### 4. 🧠 Active Recall Flashcards & SuperMemo SM-2 Spaced Repetition
-- **SuperMemo SM-2 Algorithm**: Pure implementation calculating quality response scores ($q \in [0..5]$), consecutive repetitions ($n$), updated intervals ($I$), and variable Easiness Factor ($EF \ge 1.3$).
+### 4. ⏱ Focus Mode & 10 Synthesized Soundscapes (`/focus`)
+- **Structured Focus Presets**: Classic Pomodoro (25m/5m), Deep Work (50m/10m), Extended Focus (90m/20m), Quick Focus (15m/5m), and Custom interval modes.
+- **100% Synthesized Web Audio Soundscapes** (Zero audio streaming or external audio dependencies):
+  - 🌧 **Gentle Rain**: Filtered pink noise with 1.4kHz lowpass sheen.
+  - 🌊 **Ocean Waves**: Rhythmic 0.12Hz LFO modulated rolling surf swells.
+  - 🍃 **Forest Wind**: Resonant sweeping bandpass (400Hz center, Q=2.5) with gentle breeze LFO.
+  - 🔥 **Warm Campfire**: Deep sub-rumble with randomized amplitude crackle impulses.
+  - ✨ **528Hz Clarity**: Pure 528Hz transformation tone with sub-octave drone.
+  - 🔊 **432Hz Harmonic**: Triple-harmonic calm focus drone.
+  - 🟤 **Brown Noise**: Deep Brownian rumble for ADHD & coding flow.
+  - 🌸 **Pink Noise**: Balanced 1/f soothing frequency.
+  - ⚪ **White Noise**: Full-spectrum masking frequency.
+  - 🔇 **Mute**: Pure silent timer.
+- **Screen WakeLock API & Fullscreen Mode**: Keeps display awake during active study intervals.
+
+### 5. 🧠 Spaced Repetition Flashcards & SuperMemo SM-2 (`/flashcards`)
+- **SuperMemo SM-2 Algorithm**: Mathematical implementation calculating response quality ($q \in [0..5]$), consecutive repetitions ($n$), updated intervals ($I$), and variable Easiness Factor ($EF \ge 1.3$).
 - **3D Active Recall Deck View**: Flip cards with keyboard navigation (`Space`, `1-4` ratings: *Again*, *Hard*, *Good*, *Easy*).
 - **AI Deck Generator (Proposal & Approval Flow)**: Prompts Gemini AI for question/answer pairs from any topic or lecture notes; presents an interactive review modal before persisting to Supabase.
 - **Resilient Cache Fallback**: Supabase is the single primary source of truth; LocalStorage functions as a read-through cache without conflicting client IDs.
 
-### 5. 🤖 AI Study Assistant, Conversational History & Action Proposals
+### 6. 📅 Interactive Learning Calendar & Timetable (`/calendar`)
+- **6-Week $\times$ 7-Day Month Grid**: Unified timetable aggregating deadlines, scheduled tasks, and focus sessions.
+- **Timezone-Safe Date Handling**: Uses local calendar date components to prevent UTC date-boundary shifts.
+- **Interactive Day Inspector**: Side drawer opening on date selection with item breakdowns and a 1-click **"Focus"** launcher.
+
+### 7. 🤖 Contextual AI Study Assistant & Chat History (`/ai-assistant`)
 - **Multi-Thread Chat History**: Scoped `ai_conversations` and `ai_messages` tables with cascade deletion.
 - **Context-Aware Coaching**: Injects 7-day study analytics, task completion rates, and upcoming workload.
 - **Action Proposal Approval System**: AI proposes structured tasks, deadlines, and learning plans. **Zero autonomous writes are permitted**—mutations require explicit user review and approval before execution.
 
-### 6. 🧭 Structured Learning Plans & Milestone Hierarchy
+### 8. 🧭 Structured Learning Plans & Milestone Hierarchy (`/plans`)
 - **Milestone Roadmaps**: Break major subjects or semester goals into progressive milestones.
 - **Deterministic Progress Tracking**: Progress automatically recalculates based on completed linked tasks and milestones.
 
-### 7. 📈 Learning Insights & Analytics
+### 9. 📈 Learning Insights & Analytics (`/analytics`)
 - **7-Day Consistency Tracker**: Daily active day checkmarks and study streak tracking.
 - **Learning Area Balance**: Distribution of time spent across different subjects.
 - **Upcoming Workload Horizon**: Daily load bar distribution over the next 7 days.
 
-### 8. 🔔 In-App Notification System
-- **Deterministic Notification Engine**: Generates in-app alerts for overdue tasks, deadlines due within 48 hours, and evening streak risks.
-- **Deduplication Safeguards**: Metadata deduplication keys prevent repeated alert spam.
-- **Persistent Preferences**: User toggles in Settings persist directly to Supabase `profiles`.
-
-### 9. 🔍 Global Command & Search Palette (`Cmd + K` / `Ctrl + K`)
-- Instant search across Subjects, Tasks, Deadlines, Learning Plans, Milestones, Flashcard Decks, and Calendar.
-
-### 10. 📦 Data Portability & Complete Backup
+### 10. 🔍 Global Command Palette & Complete Data Portability
+- **Command Palette (`Cmd + K` / `Ctrl + K`)**: Instant search and navigation across Subjects, Tasks, Deadlines, Plans, and Decks.
 - **Full JSON Backup**: 1-click export of all user tables (including complete AI chat history).
 - **CSV Spreadsheet Exports**: Formatted and quote-escaped exports for Tasks, Study Sessions, and Flashcards.
 
@@ -97,14 +134,14 @@ StudyZone is a full-stack, dark-first intelligent learning platform built to hel
 
 ## 🛠 Tech Stack
 
-- **Frontend Framework**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Frontend Framework**: [React 19](https://react.dev/) + [Vite 6](https://vitejs.dev/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Animation**: [Motion](https://motion.dev/) (Framer Motion)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Backend & Database**: [Supabase](https://supabase.com/) (PostgreSQL)
 - **Authentication**: Supabase Auth (JWT & Session persistence)
-- **AI Engine**: Google Gemini API via Supabase Edge Functions
-- **Sound Generation**: Web Audio API (Brownian, Pink, White noise oscillators & harmonic biquad filters)
+- **AI Engine**: Google Gemini 2.5 Flash via Supabase Edge Functions
+- **Sound Generation**: Web Audio API (Generative pink/brown noise, resonant biquad filters, harmonic drone oscillators)
 
 ---
 
@@ -127,12 +164,7 @@ npm install
 ```
 
 ### Step 3: Configure Environment Variables
-Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
-
-Fill in your Supabase project credentials:
+Create `.env` in `studyzone/`:
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
@@ -146,24 +178,25 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-## 📦 Production Build & Deployment
+## 📦 Production Deployment (Vercel)
 
-### Build for Production
-```bash
-npm run build
-```
-The optimized bundle will be created in `dist/` with automated code splitting for vendor libraries and routes.
-
-### Deploy to Vercel
+### Option A: Deploying from Repository Root (Recommended)
 1. Push your repository to GitHub.
-2. Import the project in the [Vercel Dashboard](https://vercel.com).
-3. Set the Root Directory to `studyzone` (if deploying from the subfolder) or leave default.
-4. Add the environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-5. The included `vercel.json` will automatically handle SPA client-side routing.
+2. In the [Vercel Dashboard](https://vercel.com), click **Add New &rarr; Project** and import `StudyZone`.
+3. In **Project Settings**:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `studyzone`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Add the **Environment Variables**:
+   - `VITE_SUPABASE_URL` = `https://your-project.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = `your-anon-key`
+5. Click **Deploy**. Vercel will build the project and output your live production URL.
+
+### Option B: Deploying with Root `vercel.json`
+If deploying with root directory set to `./`, the included root `vercel.json` automatically triggers `cd studyzone && npm run build` and serves `studyzone/dist` with full SPA rewrite support.
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License.
+This project is open source and available under the [MIT License](LICENSE).
