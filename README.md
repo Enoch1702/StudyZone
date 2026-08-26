@@ -24,8 +24,8 @@
 **StudyZone** is a full-stack, dark-first intelligent learning platform built to help students, developers, and self-directed learners organize coursework, master difficult subjects through spaced repetition, track daily study momentum, and receive contextual AI coaching backed by verified study metrics.
 
 The application follows a standard product flow:
-1. **Public Showcase (`/`)**: Discover StudyZone's methodology, explore features, soundscapes, and color themes.
-2. **Authentication (`/login` & `/signup`)**: Secure email authentication powered by Supabase.
+1. **Public Showcase (`/`)**: Discover StudyZone's methodology, explore features, interactive product previews, soundscapes, and color themes.
+2. **Authentication (`/login` & `/signup`)**: Secure email authentication and session management powered by Supabase Auth.
 3. **Personal Workspace (`/dashboard`)**: Distraction-free, dark-first learning operating system.
 
 ---
@@ -34,8 +34,10 @@ The application follows a standard product flow:
 
 ### 1. 🏠 Public Landing Experience (`/`)
 - **5-Step Learning Methodology**: Visual representation of the `PLAN → FOCUS → TRACK → IMPROVE → REMEMBER` cycle.
-- **Interactive Feature Matrix**: 6 deep-dive cards detailing course hierarchy, AI coaching, calendar integration, and spaced repetition.
+- **Interactive Feature Matrix**: Deep-dive showcase detailing course hierarchy, AI coaching, calendar integration, and spaced repetition.
+- **Interactive Product Tour**: Switch between live previews of Dashboard, Focus Mode, Timetable, Flashcards, and Analytics.
 - **Privacy & Engineering Guarantee**: Clear explanation of client-side RLS isolation, server-side AI keys, and Web Audio synthesis.
+- **SEO & Crawl Security**: `robots.txt` automatically protects private workspace routes (`/dashboard`, `/tasks`, `/settings`, etc.) while allowing public indexation of `/`.
 
 ### 2. 📊 Smart Dashboard & Best Next Action Engine (`/dashboard`)
 - **Best Next Action Recommendation**: Algorithmic evaluation of pending tasks, urgency scores, and deadlines to highlight the highest-leverage task.
@@ -50,9 +52,12 @@ The application follows a standard product flow:
 - **Warm Espresso**: Dark cocoa with warm amber gold accent (`#f59e0b`).
 - *Persistent via `localStorage` and managed dynamically via CSS custom property tokens.*
 
-### 4. ⏱ Focus Mode & 10 Synthesized Soundscapes (`/focus`)
+### 4. ⏱ Focus Mode & Global Persistent Audio (`/focus`)
 - **Structured Focus Presets**: Classic Pomodoro (25m/5m), Deep Work (50m/10m), Extended Focus (90m/20m), Quick Focus (15m/5m), and Custom interval modes.
-- **100% Synthesized Web Audio Soundscapes** (Zero audio streaming or external audio dependencies):
+- **App-Wide Persistent Soundscapes**: Audio playback continues seamlessly in the background across all pages (`/dashboard`, `/tasks`, `/calendar`, etc.) via a root `<AudioProvider>`.
+- **Global Audio Floating Bar**: Inline volume control, play/pause toggle, and drawer soundscape picker accessible from any page.
+- **1-Click Focus Task Completion**: When completing a focus block linked to a specific task, the modal offers an instant 1-click action to mark that task as completed in Supabase.
+- **10 Pure Synthesized Web Audio Soundscapes** (Zero audio downloads or streaming latency):
   - 🌧 **Gentle Rain**: Filtered pink noise with 1.4kHz lowpass sheen.
   - 🌊 **Ocean Waves**: Rhythmic 0.12Hz LFO modulated rolling surf swells.
   - 🍃 **Forest Wind**: Resonant sweeping bandpass (400Hz center, Q=2.5) with gentle breeze LFO.
@@ -69,11 +74,12 @@ The application follows a standard product flow:
 - **SuperMemo SM-2 Algorithm**: Mathematical implementation calculating response quality ($q \in [0..5]$), consecutive repetitions ($n$), updated intervals ($I$), and variable Easiness Factor ($EF \ge 1.3$).
 - **3D Active Recall Deck View**: Flip cards with keyboard navigation (`Space`, `1-4` ratings: *Again*, *Hard*, *Good*, *Easy*).
 - **AI Deck Generator (Proposal & Approval Flow)**: Prompts Gemini AI for question/answer pairs from any topic or lecture notes; presents an interactive review modal before persisting to Supabase.
-- **Resilient Cache Fallback**: Supabase is the single primary source of truth; LocalStorage functions as a read-through cache without conflicting client IDs.
+- **Resilient Cache Fallback**: Supabase is the primary source of truth; LocalStorage functions as a read-through cache without conflicting client IDs.
 
 ### 6. 📅 Interactive Learning Calendar & Timetable (`/calendar`)
 - **6-Week $\times$ 7-Day Month Grid**: Unified timetable aggregating deadlines, scheduled tasks, and focus sessions.
-- **Timezone-Safe Date Handling**: Uses local calendar date components to prevent UTC date-boundary shifts.
+- **Future Date & Month Scheduling**: Schedule tasks and deadlines for specific dates in any future month with instant month auto-synchronization.
+- **Timezone-Safe Date Handling**: Uses unified local `toLocalDateKey` formatting to prevent UTC date-boundary shifts.
 - **Interactive Day Inspector**: Side drawer opening on date selection with item breakdowns and a 1-click **"Focus"** launcher.
 
 ### 7. 🤖 Contextual AI Study Assistant & Chat History (`/ai-assistant`)
@@ -107,7 +113,8 @@ The application follows a standard product flow:
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      Service Layer                          │
+│                  Hardened Service Layer                     │
+│  (Dual-Casing Normalization: camelCase & snake_case Safe)   │
 │   (auth · tasks · deadlines · flashcards · sessions · AI)   │
 └──────────────┬──────────────────────────────┬───────────────┘
                │                              │
@@ -129,6 +136,7 @@ The application follows a standard product flow:
 - **Frontend Anon Key Only**: The client bundle contains only the public publishable/anon Supabase key.
 - **Server-Side AI Secrets**: Gemini API keys exist exclusively in Supabase Edge Function secrets.
 - **Zero Autonomous Writes**: The AI engine can only suggest action proposals; no database writes occur without explicit user confirmation.
+- **Logout Silence Guarantee**: Audio generators and user sessions are instantly severed upon logout or navigation to unauthenticated routes.
 
 ---
 
