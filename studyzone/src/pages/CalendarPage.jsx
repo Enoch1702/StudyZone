@@ -30,6 +30,20 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
+/**
+ * Safely converts an ISO timestamp or date string to local YYYY-MM-DD format
+ * avoiding timezone offset date shifts.
+ */
+function toLocalDateStr(dateInput) {
+  if (!dateInput) return null
+  const d = new Date(dateInput)
+  if (isNaN(d.getTime())) return null
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function getCalendarGrid(year, month) {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
@@ -45,10 +59,13 @@ function getCalendarGrid(year, month) {
   const prevMonthLastDay = new Date(year, month, 0).getDate()
   for (let i = startingDayOfWeek - 1; i >= 0; i--) {
     const d = prevMonthLastDay - i
-    const dateObj = new Date(year, month - 1, d)
+    const prevMonthDate = new Date(year, month - 1, d)
+    const prevYear = prevMonthDate.getFullYear()
+    const prevM = String(prevMonthDate.getMonth() + 1).padStart(2, '0')
+    const prevD = String(d).padStart(2, '0')
     week.push({
       day: d,
-      dateStr: dateObj.toISOString().slice(0, 10),
+      dateStr: `${prevYear}-${prevM}-${prevD}`,
       isCurrentMonth: false,
     })
   }
@@ -71,10 +88,13 @@ function getCalendarGrid(year, month) {
   // Fill in next month's leading days
   let nextMonthDay = 1
   while (week.length > 0 && week.length < 7) {
-    const dateStr = `${month + 2 > 12 ? year + 1 : year}-${String((month + 2 > 12 ? 1 : month + 2)).padStart(2, '0')}-${String(nextMonthDay).padStart(2, '0')}`
+    const nextMonthDate = new Date(year, month + 1, nextMonthDay)
+    const nextYear = nextMonthDate.getFullYear()
+    const nextM = String(nextMonthDate.getMonth() + 1).padStart(2, '0')
+    const nextD = String(nextMonthDay).padStart(2, '0')
     week.push({
       day: nextMonthDay,
-      dateStr,
+      dateStr: `${nextYear}-${nextM}-${nextD}`,
       isCurrentMonth: false,
     })
     nextMonthDay++
@@ -91,7 +111,7 @@ export default function CalendarPage() {
   const navigate = useNavigate()
 
   const today = useMemo(() => new Date(), [])
-  const todayStr = useMemo(() => today.toISOString().slice(0, 10), [today])
+  const todayStr = useMemo(() => toLocalDateStr(today), [today])
 
   const [currentYear, setCurrentYear] = useState(() => today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(() => today.getMonth())
@@ -174,21 +194,21 @@ export default function CalendarPage() {
     return map
   }, [subjects])
 
-  // Map events by dateStr ('YYYY-MM-DD')
+  // Map events by dateStr ('YYYY-MM-DD') using local date formatting
   const eventsByDate = useMemo(() => {
     const map = new Map()
 
     function addEvent(dateStr, event) {
       if (!dateStr) return
-      const key = dateStr.slice(0, 10)
-      if (!map.has(key)) map.set(key, [])
-      map.get(key).push(event)
+      if (!map.has(dateStr)) map.set(dateStr, [])
+      map.get(dateStr).push(event)
     }
 
     // Add Deadlines
     for (const d of deadlines) {
-      if (d.due_date) {
-        addEvent(d.due_date, {
+      const localDateKey = toLocalDateStr(d.due_date)
+      if (localDateKey) {
+        addEvent(localDateKey, {
           id: `dead-${d.id}`,
           type: 'deadline',
           title: d.title,
@@ -203,8 +223,9 @@ export default function CalendarPage() {
 
     // Add Tasks
     for (const t of tasks) {
-      if (t.due_date) {
-        addEvent(t.due_date, {
+      const localDateKey = toLocalDateStr(t.due_date)
+      if (localDateKey) {
+        addEvent(localDateKey, {
           id: `task-${t.id}`,
           type: 'task',
           title: t.title,
@@ -218,10 +239,11 @@ export default function CalendarPage() {
       }
     }
 
-    // Add Study Sessions
+    // Add Study Sessions (using local start date)
     for (const s of sessions) {
-      if (s.started_at) {
-        addEvent(s.started_at, {
+      const localDateKey = toLocalDateStr(s.started_at)
+      if (localDateKey) {
+        addEvent(localDateKey, {
           id: `sess-${s.id}`,
           type: 'session',
           title: s.notes || 'Study Session',

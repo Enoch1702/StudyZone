@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   AlertCircle,
   Bell,
+  Brain,
   CheckCircle2,
   Database,
   Download,
@@ -21,6 +22,12 @@ import { useAuth } from '../context/useAuth'
 import { LEARNER_TYPES, PRIMARY_GOALS } from '../lib/learnerProfile'
 import { updateLearnerProfile, updateNotificationPreferences } from '../services/learnerProfileService'
 import { supabase } from '../lib/supabase'
+
+function escapeCsvField(val) {
+  if (val === null || val === undefined) return '""'
+  const str = String(val)
+  return `"${str.replace(/"/g, '""')}"`
+}
 
 export default function SettingsPage() {
   const { profile, user, updateProfile, signOut } = useAuth()
@@ -68,7 +75,7 @@ export default function SettingsPage() {
 
   return (
     <PageContainer width="narrow" className="space-y-5">
-      <PageHeader description="Manage your profile and application preferences." />
+      <PageHeader description="Manage your profile, learning preferences, alerts, and data archives." />
 
       {/* Profile Name & Email Card */}
       <Card>
@@ -118,7 +125,7 @@ export default function SettingsPage() {
               className="opacity-75 cursor-not-allowed"
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Email is managed by Supabase authentication.
+              Email is managed securely by Supabase authentication.
             </p>
           </div>
           <Button type="submit" size="sm" disabled={saving}>
@@ -191,6 +198,7 @@ function DataExportSettingsCard() {
   const [exportingJson, setExportingJson] = useState(false)
   const [exportingTasksCsv, setExportingTasksCsv] = useState(false)
   const [exportingSessionsCsv, setExportingSessionsCsv] = useState(false)
+  const [exportingCardsCsv, setExportingCardsCsv] = useState(false)
   const [exportSuccess, setExportSuccess] = useState('')
 
   function triggerDownload(content, filename, mimeType) {
@@ -205,7 +213,7 @@ function DataExportSettingsCard() {
     URL.revokeObjectURL(url)
   }
 
-  // ─── 1. Full JSON Backup (Including AI Chat History) ──────────
+  // ─── 1. Full JSON Backup (All User Tables Scoped to auth.uid()) ───
   async function handleExportJson() {
     if (!user?.id) return
     setExportingJson(true)
@@ -254,7 +262,7 @@ function DataExportSettingsCard() {
 
       const jsonStr = JSON.stringify(backupData, null, 2)
       const ts = new Date().toISOString().slice(0, 10)
-      triggerDownload(jsonStr, `studyzone_complete_backup_${ts}.json`, 'application/json')
+      triggerDownload(jsonStr, `studyzone_backup_${ts}.json`, 'application/json')
 
       setExportSuccess('Full JSON backup downloaded successfully.')
       setTimeout(() => setExportSuccess(''), 4000)
@@ -282,15 +290,15 @@ function DataExportSettingsCard() {
 
       const headers = ['ID', 'Title', 'Subject', 'Priority', 'Status', 'Due Date', 'Est Minutes', 'Created At', 'Completed At']
       const rows = tasks.map((t) => [
-        t.id,
-        `"${(t.title || '').replace(/"/g, '""')}"`,
-        `"${(subMap.get(t.subject_id) || '').replace(/"/g, '""')}"`,
-        t.priority,
-        t.status,
-        t.due_date || '',
-        t.estimated_minutes || 0,
-        t.created_at,
-        t.completed_at || '',
+        escapeCsvField(t.id),
+        escapeCsvField(t.title),
+        escapeCsvField(subMap.get(t.subject_id) || ''),
+        escapeCsvField(t.priority),
+        escapeCsvField(t.status),
+        escapeCsvField(t.due_date || ''),
+        escapeCsvField(t.estimated_minutes || 0),
+        escapeCsvField(t.created_at),
+        escapeCsvField(t.completed_at || ''),
       ])
 
       const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
@@ -321,12 +329,12 @@ function DataExportSettingsCard() {
 
       const headers = ['ID', 'Started At', 'Ended At', 'Duration Minutes', 'Subject', 'Notes']
       const rows = sessions.map((s) => [
-        s.id,
-        s.started_at,
-        s.ended_at || '',
-        s.duration_minutes || 0,
-        `"${(subMap.get(s.subject_id) || '').replace(/"/g, '""')}"`,
-        `"${(s.notes || '').replace(/"/g, '""')}"`,
+        escapeCsvField(s.id),
+        escapeCsvField(s.started_at),
+        escapeCsvField(s.ended_at || ''),
+        escapeCsvField(s.duration_minutes || 0),
+        escapeCsvField(subMap.get(s.subject_id) || ''),
+        escapeCsvField(s.notes || ''),
       ])
 
       const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
@@ -337,6 +345,44 @@ function DataExportSettingsCard() {
       setTimeout(() => setExportSuccess(''), 4000)
     } finally {
       setExportingSessionsCsv(false)
+    }
+  }
+
+  // ─── 4. Export Flashcards (CSV) ───────────────────────────────
+  async function handleExportCardsCsv() {
+    if (!user?.id) return
+    setExportingCardsCsv(true)
+    setExportSuccess('')
+
+    try {
+      const [cardRes, deckRes] = await Promise.all([
+        supabase.from('flashcards').select('*').eq('user_id', user.id),
+        supabase.from('flashcard_decks').select('*').eq('user_id', user.id),
+      ])
+
+      const deckMap = new Map((deckRes.data || []).map((d) => [d.id, d.title]))
+      const cards = cardRes.data || []
+
+      const headers = ['ID', 'Deck', 'Front', 'Back', 'Easiness Factor', 'Interval Days', 'Repetitions', 'Next Review Date']
+      const rows = cards.map((c) => [
+        escapeCsvField(c.id),
+        escapeCsvField(deckMap.get(c.deck_id) || ''),
+        escapeCsvField(c.front),
+        escapeCsvField(c.back),
+        escapeCsvField(c.easiness_factor),
+        escapeCsvField(c.interval_days),
+        escapeCsvField(c.repetitions),
+        escapeCsvField(c.next_review_at || ''),
+      ])
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+      const ts = new Date().toISOString().slice(0, 10)
+      triggerDownload(csvContent, `studyzone_flashcards_${ts}.csv`, 'text/csv;charset=utf-8;')
+
+      setExportSuccess('Flashcards CSV downloaded.')
+      setTimeout(() => setExportSuccess(''), 4000)
+    } finally {
+      setExportingCardsCsv(false)
     }
   }
 
@@ -360,16 +406,16 @@ function DataExportSettingsCard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           {/* Full JSON Backup */}
           <button
             type="button"
             disabled={exportingJson}
             onClick={handleExportJson}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/15 transition-all text-center group cursor-pointer disabled:opacity-50"
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-accent/40 bg-accent/10 hover:bg-accent/15 transition-all text-center group cursor-pointer disabled:opacity-50"
           >
-            <FileJson className="h-6 w-6 text-accent mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-foreground">Full JSON Backup</span>
+            <FileJson className="h-5 w-5 text-accent mb-1.5 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">JSON Backup</span>
             <span className="text-[10px] text-muted mt-0.5">All tables & AI chats</span>
           </button>
 
@@ -378,9 +424,9 @@ function DataExportSettingsCard() {
             type="button"
             disabled={exportingTasksCsv}
             onClick={handleExportTasksCsv}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
           >
-            <FileSpreadsheet className="h-6 w-6 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
+            <FileSpreadsheet className="h-5 w-5 text-emerald-400 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-foreground">Tasks (CSV)</span>
             <span className="text-[10px] text-muted mt-0.5">Spreadsheet format</span>
           </button>
@@ -390,11 +436,23 @@ function DataExportSettingsCard() {
             type="button"
             disabled={exportingSessionsCsv}
             onClick={handleExportSessionsCsv}
-            className="flex flex-col items-center justify-center p-4 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
           >
-            <Download className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
+            <Download className="h-5 w-5 text-purple-400 mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-foreground">Sessions (CSV)</span>
             <span className="text-[10px] text-muted mt-0.5">Study log history</span>
+          </button>
+
+          {/* Flashcards CSV */}
+          <button
+            type="button"
+            disabled={exportingCardsCsv}
+            onClick={handleExportCardsCsv}
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+          >
+            <Brain className="h-5 w-5 text-sky-400 mb-1.5 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">Cards (CSV)</span>
+            <span className="text-[10px] text-muted mt-0.5">Flashcard decks</span>
           </button>
         </div>
       </div>
@@ -464,10 +522,10 @@ function NotificationPreferencesCard() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-muted" />
-          <CardTitle>In-App Notifications & Alerts</CardTitle>
+          <CardTitle>In-App Notification Alerts</CardTitle>
         </div>
         <CardDescription>
-          Configure which reminders and alerts appear in your in-app notification bell.
+          Configure which in-app reminders and milestone alerts appear in your notification bell.
         </CardDescription>
       </CardHeader>
 
@@ -490,7 +548,7 @@ function NotificationPreferencesCard() {
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
             <div>
               <p className="text-xs sm:text-sm font-semibold text-foreground">Upcoming & Due Deadlines</p>
-              <p className="text-[11px] text-muted mt-0.5">Alerts when exams or assignments are due within 48 hours.</p>
+              <p className="text-[11px] text-muted mt-0.5">In-app bell alerts when exams or assignments are due within 48 hours.</p>
             </div>
             <input
               type="checkbox"
@@ -504,7 +562,7 @@ function NotificationPreferencesCard() {
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
             <div>
               <p className="text-xs sm:text-sm font-semibold text-foreground">Overdue Task Alerts</p>
-              <p className="text-[11px] text-muted mt-0.5">Reminders when high-priority tasks pass their due date.</p>
+              <p className="text-[11px] text-muted mt-0.5">In-app reminders when high-priority tasks pass their due date.</p>
             </div>
             <input
               type="checkbox"
@@ -518,7 +576,7 @@ function NotificationPreferencesCard() {
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border-subtle bg-surface-raised/40 p-3.5 hover:bg-surface-raised/70 transition-colors">
             <div>
               <p className="text-xs sm:text-sm font-semibold text-foreground">Study Streak & Momentum Alerts</p>
-              <p className="text-[11px] text-muted mt-0.5">Evening reminders to log study sessions and maintain your active streak.</p>
+              <p className="text-[11px] text-muted mt-0.5">Evening in-app reminders to log study sessions and maintain your active streak.</p>
             </div>
             <input
               type="checkbox"
