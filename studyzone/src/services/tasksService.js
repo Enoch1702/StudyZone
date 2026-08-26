@@ -55,18 +55,18 @@ export async function getTasks(userId) {
  * @param {number|null} [params.estimatedMinutes] - Positive integer or null
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createTask({
-  userId,
-  subjectId,
-  planId,
-  milestoneId,
-  title,
-  description,
-  priority = 'medium',
-  status = 'pending',
-  dueDate,
-  estimatedMinutes,
-}) {
+export async function createTask(params = {}) {
+  const userId = params.userId || params.user_id
+  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
+  const planId = params.planId !== undefined ? params.planId : params.plan_id
+  const milestoneId = params.milestoneId !== undefined ? params.milestoneId : params.milestone_id
+  const title = params.title
+  const description = params.description
+  const priority = params.priority || 'medium'
+  const status = params.status || 'pending'
+  const dueDate = params.dueDate !== undefined ? params.dueDate : params.due_date
+  const estimatedMinutes = params.estimatedMinutes !== undefined ? params.estimatedMinutes : params.estimated_minutes
+
   if (!userId) {
     return { data: null, error: new Error('Authenticated user is required to create a task.') }
   }
@@ -122,33 +122,20 @@ export async function createTask({
 
 /**
  * Update an existing task owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Task UUID
- * @param {string} params.userId - Authenticated user UUID
- * @param {string|null} [params.subjectId]
- * @param {string|null} [params.planId]
- * @param {string|null} [params.milestoneId]
- * @param {string} params.title
- * @param {string} [params.description]
- * @param {string} [params.priority]
- * @param {string} [params.status]
- * @param {string|null} [params.dueDate]
- * @param {number|null} [params.estimatedMinutes]
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function updateTask({
-  id,
-  userId,
-  subjectId,
-  planId,
-  milestoneId,
-  title,
-  description,
-  priority,
-  status,
-  dueDate,
-  estimatedMinutes,
-}) {
+export async function updateTask(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
+  const planId = params.planId !== undefined ? params.planId : params.plan_id
+  const milestoneId = params.milestoneId !== undefined ? params.milestoneId : params.milestone_id
+  const title = params.title
+  const description = params.description
+  const priority = params.priority
+  const status = params.status
+  const dueDate = params.dueDate !== undefined ? params.dueDate : params.due_date
+  const estimatedMinutes = params.estimatedMinutes !== undefined ? params.estimatedMinutes : params.estimated_minutes
+
   if (!id || !userId) {
     return { data: null, error: new Error('Task ID and user ID are required.') }
   }
@@ -223,7 +210,11 @@ export async function updateTask({
  * @param {boolean} params.isCompleted - Current completed state (true = currently completed)
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function toggleTaskComplete({ id, userId, isCompleted }) {
+export async function toggleTaskComplete(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const isCompleted = params.isCompleted !== undefined ? params.isCompleted : params.is_completed
+
   if (!id || !userId) {
     return { data: null, error: new Error('Task ID and user ID are required.') }
   }
@@ -258,28 +249,22 @@ export async function toggleTaskComplete({ id, userId, isCompleted }) {
 }
 
 /**
- * Delete a task owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Task UUID
- * @param {string} params.userId - Authenticated user UUID
- * @returns {Promise<{ error: Error|null }>}
+ * Permanently delete a task belonging to the authenticated user.
  */
-export async function deleteTask({ id, userId }) {
-  if (!id || !userId) {
-    return { error: new Error('Task ID and user ID are required.') }
+export async function deleteTask(params = {}) {
+  const id = typeof params === 'object' ? params.id : params
+  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+
+  if (!id) {
+    return { error: new Error('Task ID is required.') }
   }
 
   try {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId)
+    let query = supabase.from('tasks').delete().eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
 
-    if (error) {
-      return { error }
-    }
-
+    const { error } = await query
+    if (error) return { error }
     return { error: null }
   } catch (err) {
     return {

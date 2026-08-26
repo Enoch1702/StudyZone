@@ -21,10 +21,34 @@ export function getInitials(name) {
 }
 
 export function formatDate(dateStr) {
+  if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
   })
+}
+
+/**
+ * Safely converts an ISO timestamp or date input to local YYYY-MM-DD format
+ * avoiding timezone offset date shifts.
+ */
+export function toLocalDateKey(dateInput) {
+  if (!dateInput) return null
+  const d = new Date(dateInput)
+  if (isNaN(d.getTime())) return null
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Format total seconds into MM:SS format for countdown timers.
+ */
+export function formatSeconds(totalSeconds) {
+  const mins = Math.floor(Math.max(0, totalSeconds) / 60)
+  const secs = Math.floor(Math.max(0, totalSeconds) % 60)
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
 export function formatDuration(minutes) {
@@ -40,7 +64,41 @@ export function formatMinutesToHoursMinutes(minutes) {
   return formatDuration(minutes)
 }
 
+/**
+ * Friendly formatter for conversation message timestamps.
+ */
+export function formatConversationTime(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
+  const now = new Date()
+  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+/**
+ * Creates a fast lookup map for subjects by id.
+ */
+export function createSubjectLookup(subjects = []) {
+  const map = new Map()
+  for (const s of subjects) {
+    if (s?.id) map.set(s.id, s)
+  }
+  return {
+    get: (id) => map.get(id),
+    getName: (id) => map.get(id)?.name || 'General',
+    getColor: (id) => map.get(id)?.color || '#6366f1',
+    has: (id) => map.has(id),
+    map,
+  }
+}
+
 export function daysUntil(dateStr) {
+  if (!dateStr) return 0
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const target = new Date(dateStr)

@@ -44,7 +44,12 @@ export async function getSubjects(userId) {
  * @param {string} [params.color] - Hex color code
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createSubject({ userId, name, description, color }) {
+export async function createSubject(params = {}) {
+  const userId = params.userId || params.user_id
+  const name = params.name
+  const description = params.description
+  const color = params.color
+
   if (!userId) {
     return { data: null, error: new Error('Authenticated user is required to create a subject.') }
   }
@@ -83,15 +88,14 @@ export async function createSubject({ userId, name, description, color }) {
 
 /**
  * Update an existing subject owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Subject UUID
- * @param {string} params.userId - Authenticated user UUID
- * @param {string} params.name - Subject name
- * @param {string} [params.description] - Optional description
- * @param {string} [params.color] - Hex color code
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function updateSubject({ id, userId, name, description, color }) {
+export async function updateSubject(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const name = params.name
+  const description = params.description
+  const color = params.color
+
   if (!id || !userId) {
     return { data: null, error: new Error('Subject ID and user ID are required.') }
   }
@@ -130,27 +134,21 @@ export async function updateSubject({ id, userId, name, description, color }) {
 
 /**
  * Delete a subject owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Subject UUID
- * @param {string} params.userId - Authenticated user UUID
- * @returns {Promise<{ error: Error|null }>}
  */
-export async function deleteSubject({ id, userId }) {
-  if (!id || !userId) {
-    return { error: new Error('Subject ID and user ID are required.') }
+export async function deleteSubject(params = {}) {
+  const id = typeof params === 'object' ? params.id : params
+  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+
+  if (!id) {
+    return { error: new Error('Subject ID is required.') }
   }
 
   try {
-    const { error } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId)
+    let query = supabase.from('subjects').delete().eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
 
-    if (error) {
-      return { error }
-    }
-
+    const { error } = await query
+    if (error) return { error }
     return { error: null }
   } catch (err) {
     return {

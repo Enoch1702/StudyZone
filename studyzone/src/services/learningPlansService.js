@@ -76,13 +76,13 @@ export async function getLearningPlanById(planId, userId) {
  * @param {string} [params.status='active']
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createLearningPlan({
-  userId,
-  title,
-  description = null,
-  targetDate = null,
-  status = 'active',
-}) {
+export async function createLearningPlan(params = {}) {
+  const userId = params.userId || params.user_id
+  const title = params.title
+  const description = params.description !== undefined ? params.description : null
+  const targetDate = params.targetDate !== undefined ? params.targetDate : params.target_date
+  const status = params.status || 'active'
+
   if (!userId) {
     return { data: null, error: new Error('Authenticated user is required to create a plan.') }
   }
@@ -117,23 +117,15 @@ export async function createLearningPlan({
 
 /**
  * Update an existing learning plan.
- * @param {Object} params
- * @param {string} params.id
- * @param {string} params.userId
- * @param {string} [params.title]
- * @param {string} [params.description]
- * @param {string} [params.targetDate]
- * @param {string} [params.status]
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function updateLearningPlan({
-  id,
-  userId,
-  title,
-  description,
-  targetDate,
-  status,
-}) {
+export async function updateLearningPlan(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const title = params.title
+  const description = params.description
+  const targetDate = params.targetDate !== undefined ? params.targetDate : params.target_date
+  const status = params.status
+
   if (!id || !userId) {
     return { data: null, error: new Error('Plan ID and User ID are required for update.') }
   }
@@ -169,12 +161,11 @@ export async function updateLearningPlan({
 
 /**
  * Delete a learning plan. (Tasks will have plan_id SET NULL via FK constraint).
- * @param {Object} params
- * @param {string} params.id
- * @param {string} params.userId
- * @returns {Promise<{ error: Error|null }>}
  */
-export async function deleteLearningPlan({ id, userId }) {
+export async function deleteLearningPlan(params = {}) {
+  const id = typeof params === 'object' ? params.id : params
+  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+
   if (!id || !userId) {
     return { error: new Error('Plan ID and User ID are required to delete a plan.') }
   }
@@ -197,8 +188,8 @@ export async function deleteLearningPlan({ id, userId }) {
 /**
  * Quick status update helper.
  */
-export async function updateLearningPlanStatus({ id, userId, status }) {
-  return updateLearningPlan({ id, userId, status })
+export async function updateLearningPlanStatus(params = {}) {
+  return updateLearningPlan(params)
 }
 
 // ---------------------------------------------------------------------------
@@ -236,25 +227,16 @@ export async function getMilestonesForPlan(planId, userId) {
 
 /**
  * Create a new milestone inside a learning plan.
- * @param {Object} params
- * @param {string} params.planId
- * @param {string} params.userId
- * @param {string} params.title
- * @param {string} [params.description]
- * @param {number} [params.position=1]
- * @param {string} [params.targetDate]
- * @param {string} [params.status='pending']
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createMilestone({
-  planId,
-  userId,
-  title,
-  description = null,
-  position = 1,
-  targetDate = null,
-  status = 'pending',
-}) {
+export async function createMilestone(params = {}) {
+  const planId = params.planId !== undefined ? params.planId : params.plan_id
+  const userId = params.userId || params.user_id
+  const title = params.title
+  const description = params.description !== undefined ? params.description : null
+  const position = params.position !== undefined ? params.position : 1
+  const targetDate = params.targetDate !== undefined ? params.targetDate : params.target_date
+  const status = params.status || 'pending'
+
   if (!planId || !userId) {
     return { data: null, error: new Error('Plan ID and User ID are required to create a milestone.') }
   }
@@ -293,16 +275,16 @@ export async function createMilestone({
 /**
  * Update a milestone.
  */
-export async function updateMilestone({
-  id,
-  userId,
-  title,
-  description,
-  position,
-  targetDate,
-  status,
-  completedAt,
-}) {
+export async function updateMilestone(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const title = params.title
+  const description = params.description
+  const position = params.position
+  const targetDate = params.targetDate !== undefined ? params.targetDate : params.target_date
+  const status = params.status
+  const completedAt = params.completedAt !== undefined ? params.completedAt : params.completed_at
+
   if (!id || !userId) {
     return { data: null, error: new Error('Milestone ID and User ID are required.') }
   }
@@ -347,7 +329,10 @@ export async function updateMilestone({
 /**
  * Delete a milestone.
  */
-export async function deleteMilestone({ id, userId }) {
+export async function deleteMilestone(params = {}) {
+  const id = typeof params === 'object' ? params.id : params
+  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+
   if (!id || !userId) {
     return { error: new Error('Milestone ID and User ID are required.') }
   }

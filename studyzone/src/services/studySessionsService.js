@@ -47,7 +47,13 @@ export async function getStudySessionsForWeek(userId, startISO, endISO) {
  * @param {string} [params.notes]
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createStudySession({ userId, subjectId, taskId, durationMinutes, notes }) {
+export async function createStudySession(params = {}) {
+  const userId = params.userId || params.user_id
+  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
+  const taskId = params.taskId !== undefined ? params.taskId : params.task_id
+  const durationMinutes = params.durationMinutes !== undefined ? params.durationMinutes : params.duration_minutes
+  const notes = params.notes
+
   if (!userId) {
     return { data: null, error: new Error('Authenticated user is required.') }
   }

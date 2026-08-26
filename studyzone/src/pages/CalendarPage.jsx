@@ -22,27 +22,13 @@ import { getTasks, createTask } from '../services/tasksService'
 import { getDeadlines, createDeadline } from '../services/deadlinesService'
 import { getSubjects } from '../services/subjectsService'
 import { supabase } from '../lib/supabase'
-import { cn, formatDate, formatDuration, getDeadlineUrgency } from '../lib/utils'
+import { cn, formatDate, formatDuration, getDeadlineUrgency, toLocalDateKey } from '../lib/utils'
 
 const DAYS_OF_WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
-
-/**
- * Safely converts an ISO timestamp or date string to local YYYY-MM-DD format
- * avoiding timezone offset date shifts.
- */
-function toLocalDateStr(dateInput) {
-  if (!dateInput) return null
-  const d = new Date(dateInput)
-  if (isNaN(d.getTime())) return null
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 function getCalendarGrid(year, month) {
   const firstDay = new Date(year, month, 1)
@@ -111,7 +97,7 @@ export default function CalendarPage() {
   const navigate = useNavigate()
 
   const today = useMemo(() => new Date(), [])
-  const todayStr = useMemo(() => toLocalDateStr(today), [today])
+  const todayStr = useMemo(() => toLocalDateKey(today), [today])
 
   const [currentYear, setCurrentYear] = useState(() => today.getFullYear())
   const [currentMonth, setCurrentMonth] = useState(() => today.getMonth())
@@ -208,7 +194,7 @@ export default function CalendarPage() {
 
     // Add Deadlines
     for (const d of deadlines) {
-      const localDateKey = toLocalDateStr(d.due_date)
+      const localDateKey = toLocalDateKey(d.due_date)
       if (localDateKey) {
         addEvent(localDateKey, {
           id: `dead-${d.id}`,
@@ -225,7 +211,7 @@ export default function CalendarPage() {
 
     // Add Tasks
     for (const t of tasks) {
-      const localDateKey = toLocalDateStr(t.due_date)
+      const localDateKey = toLocalDateKey(t.due_date)
       if (localDateKey) {
         addEvent(localDateKey, {
           id: `task-${t.id}`,
@@ -243,7 +229,7 @@ export default function CalendarPage() {
 
     // Add Study Sessions (using local start date)
     for (const s of sessions) {
-      const localDateKey = toLocalDateStr(s.started_at)
+      const localDateKey = toLocalDateKey(s.started_at)
       if (localDateKey) {
         addEvent(localDateKey, {
           id: `sess-${s.id}`,

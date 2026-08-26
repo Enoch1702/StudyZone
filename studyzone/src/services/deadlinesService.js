@@ -49,7 +49,14 @@ export async function getDeadlines(userId) {
  * @param {string} params.dueDate - ISO date string (required)
  * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function createDeadline({ userId, subjectId, title, description, deadlineType, dueDate }) {
+export async function createDeadline(params = {}) {
+  const userId = params.userId || params.user_id
+  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
+  const title = params.title
+  const description = params.description
+  const deadlineType = params.deadlineType !== undefined ? params.deadlineType : params.deadline_type
+  const dueDate = params.dueDate !== undefined ? params.dueDate : params.due_date
+
   if (!userId) {
     return { data: null, error: new Error('Authenticated user is required to create a deadline.') }
   }
@@ -100,17 +107,16 @@ export async function createDeadline({ userId, subjectId, title, description, de
 
 /**
  * Update an existing deadline owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Deadline UUID
- * @param {string} params.userId - Authenticated user UUID
- * @param {string|null} params.subjectId
- * @param {string} params.title
- * @param {string} [params.description]
- * @param {string} [params.deadlineType]
- * @param {string} params.dueDate - ISO date string (required)
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
  */
-export async function updateDeadline({ id, userId, subjectId, title, description, deadlineType, dueDate }) {
+export async function updateDeadline(params = {}) {
+  const id = params.id
+  const userId = params.userId || params.user_id
+  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
+  const title = params.title
+  const description = params.description
+  const deadlineType = params.deadlineType !== undefined ? params.deadlineType : params.deadline_type
+  const dueDate = params.dueDate !== undefined ? params.dueDate : params.due_date
+
   if (!id || !userId) {
     return { data: null, error: new Error('Deadline ID and user ID are required.') }
   }
@@ -161,27 +167,21 @@ export async function updateDeadline({ id, userId, subjectId, title, description
 
 /**
  * Delete a deadline owned by the authenticated user.
- * @param {Object} params
- * @param {string} params.id - Deadline UUID
- * @param {string} params.userId - Authenticated user UUID
- * @returns {Promise<{ error: Error|null }>}
  */
-export async function deleteDeadline({ id, userId }) {
-  if (!id || !userId) {
-    return { error: new Error('Deadline ID and user ID are required.') }
+export async function deleteDeadline(params = {}) {
+  const id = typeof params === 'object' ? params.id : params
+  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+
+  if (!id) {
+    return { error: new Error('Deadline ID is required.') }
   }
 
   try {
-    const { error } = await supabase
-      .from('deadlines')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId)
+    let query = supabase.from('deadlines').delete().eq('id', id)
+    if (userId) query = query.eq('user_id', userId)
 
-    if (error) {
-      return { error }
-    }
-
+    const { error } = await query
+    if (error) return { error }
     return { error: null }
   } catch (err) {
     return {

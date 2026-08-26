@@ -30,7 +30,7 @@ import { Button } from '../components/ui/Button'
 import { useAuth } from '../context/useAuth'
 import { useAudio } from '../context/useAudio'
 import { getSubjects } from '../services/subjectsService'
-import { getTasks } from '../services/tasksService'
+import { getTasks, toggleTaskComplete } from '../services/tasksService'
 import {
   FOCUS_PRESETS,
   saveActiveFocusState,
@@ -38,13 +38,7 @@ import {
   logCompletedFocusSession,
   getFocusSessionStats,
 } from '../services/focusTimerService'
-import { cn, formatDuration, formatMinutesToHoursMinutes } from '../lib/utils'
-
-function formatSeconds(totalSeconds) {
-  const mins = Math.floor(Math.max(0, totalSeconds) / 60)
-  const secs = Math.floor(Math.max(0, totalSeconds) % 60)
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-}
+import { cn, formatDuration, formatSeconds } from '../lib/utils'
 
 export default function FocusPage() {
   const { user } = useAuth()
@@ -338,7 +332,9 @@ export default function FocusPage() {
         nextBreakMins,
         nextBreakPhase,
         subjectName: subjects.find((s) => s.id === selectedSubjectId)?.name,
+        taskId: selectedTaskId || null,
         taskTitle: tasks.find((t) => t.id === selectedTaskId)?.title,
+        taskCompleted: false,
       })
     } else {
       setCompletionData({
@@ -1016,7 +1012,7 @@ export default function FocusPage() {
                 <span className="text-[11px] font-medium uppercase tracking-wider">Today Focus</span>
               </div>
               <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {formatMinutesToHoursMinutes(stats.todayFocusMinutes)}
+                {formatDuration(stats.todayFocusMinutes)}
               </p>
             </Card>
 
@@ -1036,7 +1032,7 @@ export default function FocusPage() {
                 <span className="text-[11px] font-medium uppercase tracking-wider">This Week</span>
               </div>
               <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {formatMinutesToHoursMinutes(stats.weeklyFocusMinutes)}
+                {formatDuration(stats.weeklyFocusMinutes)}
               </p>
             </Card>
 
@@ -1139,7 +1135,32 @@ export default function FocusPage() {
                     </p>
                   )}
 
-                  <div className="mt-6 flex flex-col gap-2">
+                  {completionData.taskId && completionData.taskTitle && (
+                    <div className="pt-2 pb-1 border-y border-border/60 my-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (user?.id && completionData.taskId) {
+                            await toggleTaskComplete({ id: completionData.taskId, userId: user.id, isCompleted: false })
+                            setCompletionData((prev) => ({ ...prev, taskCompleted: true }))
+                          }
+                        }}
+                        disabled={completionData.taskCompleted}
+                        className="w-full gap-2 text-xs border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        <span>
+                          {completionData.taskCompleted
+                            ? 'Task Marked Complete ✓'
+                            : `Mark "${completionData.taskTitle}" as Complete`}
+                        </span>
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-col gap-2">
                     <Button
                       type="button"
                       onClick={() => handleStartBreak(completionData.isLongBreakDue)}

@@ -46,20 +46,8 @@ import {
   buildAnalyticsSummary,
 } from '../services/learningAnalyticsService'
 import { useAuth } from '../context/useAuth'
-import { cn } from '../lib/utils'
+import { cn, formatConversationTime } from '../lib/utils'
 import { staggerContainer, staggerItem } from '../lib/motion'
-
-function formatConversationTime(dateStr) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
 
 /**
  * AI Assistant Page with Persistent Chat History & Adaptive Planning.
