@@ -224,25 +224,41 @@ function DataExportSettingsCard() {
     setExportingJson(true)
     setExportSuccess('')
 
+    const safeFetch = async (queryPromise) => {
+      try {
+        const res = await queryPromise
+        return res?.data || []
+      } catch (err) {
+        console.warn('Dataset query error during export:', err)
+        return []
+      }
+    }
+
     try {
       const [
-        profRes, subRes, taskRes, deadRes, sessRes,
-        planRes, milRes, notifRes, convRes, msgRes,
-        deckRes, cardRes, revRes,
+        profData, subData, taskData, deadData, sessData,
+        planData, milData, notifData, convData, msgData,
+        deckData, cardData, revData,
       ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('subjects').select('*').eq('user_id', user.id),
-        supabase.from('tasks').select('*').eq('user_id', user.id),
-        supabase.from('deadlines').select('*').eq('user_id', user.id),
-        supabase.from('study_sessions').select('*').eq('user_id', user.id),
-        supabase.from('learning_plans').select('*').eq('user_id', user.id),
-        supabase.from('learning_milestones').select('*').eq('user_id', user.id),
-        supabase.from('notifications').select('*').eq('user_id', user.id),
-        supabase.from('ai_conversations').select('*').eq('user_id', user.id),
-        supabase.from('ai_messages').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_decks').select('*').eq('user_id', user.id),
-        supabase.from('flashcards').select('*').eq('user_id', user.id),
-        supabase.from('flashcard_reviews').select('*').eq('user_id', user.id),
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle()
+          .then((r) => r.data || null)
+          .catch(() => null),
+        safeFetch(supabase.from('subjects').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('tasks').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('deadlines').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('study_sessions').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('learning_plans').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('learning_milestones').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('notifications').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('ai_conversations').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('ai_messages').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('flashcard_decks').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('flashcards').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('flashcard_reviews').select('*').eq('user_id', user.id)),
       ])
 
       const backupData = {
@@ -250,19 +266,19 @@ function DataExportSettingsCard() {
         exported_at: new Date().toISOString(),
         user_id: user.id,
         user_email: user.email,
-        profile: profRes.data || null,
-        subjects: subRes.data || [],
-        tasks: taskRes.data || [],
-        deadlines: deadRes.data || [],
-        study_sessions: sessRes.data || [],
-        learning_plans: planRes.data || [],
-        learning_milestones: milRes.data || [],
-        notifications: notifRes.data || [],
-        ai_conversations: convRes.data || [],
-        ai_messages: msgRes.data || [],
-        flashcard_decks: deckRes.data || [],
-        flashcards: cardRes.data || [],
-        flashcard_reviews: revRes.data || [],
+        profile: profData,
+        subjects: subData,
+        tasks: taskData,
+        deadlines: deadData,
+        study_sessions: sessData,
+        learning_plans: planData,
+        learning_milestones: milData,
+        notifications: notifData,
+        ai_conversations: convData,
+        ai_messages: msgData,
+        flashcard_decks: deckData,
+        flashcards: cardData,
+        flashcard_reviews: revData,
       }
 
       const jsonStr = JSON.stringify(backupData, null, 2)
