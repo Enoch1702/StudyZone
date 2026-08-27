@@ -182,6 +182,12 @@ export default function FlashcardsPage() {
     function handleKeyDown(e) {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
 
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setActiveDeck(null)
+        return
+      }
+
       if (e.code === 'Space' || e.key === 'Enter') {
         e.preventDefault()
         setIsFlipped((prev) => !prev)
