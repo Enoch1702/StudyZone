@@ -461,12 +461,12 @@ export default function AIAssistantPage() {
               className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface"
             >
               {/* New Chat Button */}
-              <div className="p-3 border-b border-border/70">
+              <div className="p-3 border-b border-border">
                 <button
                   type="button"
                   onClick={handleNewChat}
                   disabled={isLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white hover:bg-accent/90 shadow-2xs transition-all cursor-pointer disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-xs font-bold text-white hover:opacity-95 shadow-md shadow-violet-500/20 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>New Chat</span>
@@ -492,12 +492,12 @@ export default function AIAssistantPage() {
                         className={cn(
                           'group flex items-center justify-between rounded-xl px-2.5 py-2 text-left transition-all cursor-pointer',
                           isActive
-                            ? 'bg-accent/15 border border-accent/40 text-foreground'
+                            ? 'bg-ai-muted border border-ai-accent/30 text-foreground font-semibold shadow-xs'
                             : 'hover:bg-surface-raised/70 text-foreground/80 border border-transparent',
                         )}
                       >
                         <div className="min-w-0 flex-1 pr-1">
-                          <p className="text-xs font-medium truncate text-foreground">{conv.title}</p>
+                          <p className="text-xs font-semibold truncate text-foreground">{conv.title}</p>
                           <span className="text-[9px] text-muted-foreground">{formatConversationTime(conv.updated_at)}</span>
                         </div>
 

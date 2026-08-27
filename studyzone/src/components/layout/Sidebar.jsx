@@ -76,27 +76,27 @@ export function Sidebar({ open, onClose }) {
           <Link
             to="/"
             onClick={onClose}
-            className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+            className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
             title="Go to Home Page"
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted border border-accent/20">
-              <GraduationCap className="h-3.5 w-3.5 text-accent" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30">
+              <GraduationCap className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">
+            <span className="text-base font-extrabold tracking-tight text-foreground">
               StudyZone
             </span>
           </Link>
           <button
             type="button"
             aria-label="Close sidebar"
-            className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden"
+            className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden cursor-pointer"
             onClick={onClose}
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -105,22 +105,15 @@ export function Sidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150',
+                  'relative flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-150',
                   isActive
-                    ? 'bg-surface-raised text-foreground font-semibold shadow-xs'
-                    : 'text-muted hover:bg-surface-hover hover:text-foreground',
+                    ? 'bg-accent-muted text-accent font-bold border border-accent/25 shadow-xs'
+                    : 'text-muted hover:bg-surface-raised hover:text-foreground font-medium',
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <motion.span
-                      layoutId="sidebar-active-indicator"
-                      className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent"
-                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                    />
-                  )}
                   <Icon
                     className={cn(
                       'relative z-10 h-4 w-4 shrink-0 transition-colors duration-150',

@@ -16,31 +16,34 @@ export function StatCard({
   // Handle "75%" style — extract numeric part
   const percentMatch = typeof value === 'string' ? value.match(/^(\d+(?:\.\d+)?)(%?)$/) : null
 
-  const indicatorDot = {
-    default: 'bg-muted-foreground/50',
-    success: 'bg-success shadow-xs shadow-success/40',
-    warning: 'bg-warning shadow-xs shadow-warning/40',
-    accent: 'bg-accent shadow-xs shadow-accent/40',
+  const iconTheme = {
+    default: 'bg-surface-raised text-muted border-border/80',
+    success: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    warning: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    accent: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   }
 
   return (
     <div
       className={cn(
-        'group rounded-xl border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4 shadow-xs',
-        'transition-all duration-200 hover:border-border-strong hover:bg-surface-raised/40 hover:-translate-y-0.5 hover:shadow-sm',
+        'group rounded-2xl border border-border/80 bg-surface p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_1px_2px_0_rgba(0,0,0,0.02)]',
+        'transition-all duration-200 hover:border-accent/40 hover:bg-surface hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.06)]',
         className,
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-muted flex items-center gap-1.5">
-          <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', indicatorDot[variant] || indicatorDot.default)} />
-          <span>{label}</span>
+        <p className="text-xs font-semibold text-muted">
+          {label}
         </p>
-        {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />}
+        {Icon && (
+          <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg border transition-transform group-hover:scale-110', iconTheme[variant] || iconTheme.default)}>
+            <Icon className="h-3.5 w-3.5" />
+          </div>
+        )}
       </div>
 
-      <div className="mt-2 flex items-baseline gap-2">
-        <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+      <div className="mt-2.5 flex items-baseline gap-2">
+        <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
           {isNumeric ? (
             <AnimatedNumber value={value} />
           ) : percentMatch ? (

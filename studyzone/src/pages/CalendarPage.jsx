@@ -476,19 +476,19 @@ export default function CalendarPage() {
                               <div
                                 key={ev.id}
                                 className={cn(
-                                  'truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-tight flex items-center gap-1 shadow-2xs',
+                                  'truncate rounded-md px-1.5 py-0.5 text-[10px] font-bold leading-tight flex items-center gap-1 shadow-2xs',
                                   ev.type === 'deadline'
-                                    ? 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                                    ? 'bg-danger-muted text-danger border border-danger/30'
                                     : ev.type === 'task'
                                     ? ev.raw.status === 'completed'
-                                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 line-through opacity-70'
-                                      : 'bg-accent/15 text-accent border border-accent/30'
-                                    : 'bg-purple-500/15 text-purple-300 border border-purple-500/30',
+                                      ? 'bg-success-muted text-success border border-success/30 line-through opacity-70'
+                                      : 'bg-accent-muted text-accent border border-accent/30'
+                                    : 'bg-ai-muted text-ai-accent border border-ai-accent/30',
                                 )}
                               >
-                                {ev.type === 'deadline' && <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shrink-0" />}
+                                {ev.type === 'deadline' && <span className="h-1.5 w-1.5 rounded-full bg-danger shrink-0" />}
                                 {ev.type === 'task' && <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />}
-                                {ev.type === 'session' && <span className="h-1.5 w-1.5 rounded-full bg-purple-400 shrink-0" />}
+                                {ev.type === 'session' && <span className="h-1.5 w-1.5 rounded-full bg-ai-accent shrink-0" />}
                                 <span className="truncate">{ev.title}</span>
                               </div>
                             ))}
