@@ -43,13 +43,14 @@ The application follows a standard product flow:
 - **Real-Time Workload Metrics**: Total tasks, completion rates, 7-day workload horizon, and active learning plan progress.
 - **Integrated Study Logger**: Rapidly record focus blocks with subject tags, linked tasks, and notes.
 
-### 3. 🎨 5 Curated Dark-First Color Themes
-- **Midnight Slate** *(Default)*: Classic zinc with vivid electric blue accent (`#4f7cff`).
-- **Deep Ocean**: Marine abyss navy with ice cyan accent (`#38bdf8`).
-- **Nordic Forest**: Pine forest evergreen with emerald accent (`#10b981`).
-- **Obsidian Amethyst**: Deep violet with royal purple accent (`#a855f7`).
-- **Warm Espresso**: Dark cocoa with warm amber gold accent (`#f59e0b`).
-- *Persistent via `localStorage` and managed dynamically via CSS custom property tokens.*
+### 3. 🎨 6 Curated Themes (StudyZone Light + 5 Dark Palettes)
+- ☀️ **StudyZone Light**: Clean, warm neutral daylight workspace (`#f8fafc` canvas, `#ffffff` primary cards, `#0f172a` deep slate text, `#2563eb` electric indigo accent).
+- 🌙 **Midnight Slate** *(Default Dark)*: Classic zinc with vivid electric blue accent (`#4f7cff`).
+- 🌊 **Deep Ocean**: Marine abyss navy with ice cyan accent (`#38bdf8`).
+- 🌲 **Nordic Forest**: Pine forest evergreen with emerald accent (`#10b981`).
+- 🔮 **Obsidian Amethyst**: Deep violet with royal purple accent (`#a855f7`).
+- ☕ **Warm Espresso**: Dark cocoa with warm amber gold accent (`#f59e0b`).
+- *Powered by semantic Tailwind CSS v4 tokens and persistent across sessions via `localStorage`.*
 
 ### 4. ⏱ Focus Mode & Global Persistent Audio (`/focus`)
 - **Structured Focus Presets**: Classic Pomodoro (25m/5m), Deep Work (50m/10m), Extended Focus (90m/20m), Quick Focus (15m/5m), and Custom interval modes.
