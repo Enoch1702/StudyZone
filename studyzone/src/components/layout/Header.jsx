@@ -1,10 +1,13 @@
-import { Menu, Search } from 'lucide-react'
+import { Menu, Moon, Search, Sun } from 'lucide-react'
 import { useSearch } from '../../context/useSearch'
+import { useTheme } from '../../context/useTheme'
 import { NotificationPopover } from '../notifications/NotificationPopover'
 import { HeaderUserMenu } from './HeaderUserMenu'
 
 export function Header({ onMenuClick, title }) {
   const { openSearch } = useSearch()
+  const { theme, setTheme } = useTheme()
+  const isLight = theme === 'light'
   const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   return (
@@ -50,6 +53,17 @@ export function Header({ onMenuClick, title }) {
           className="md:hidden rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground cursor-pointer"
         >
           <Search className="h-4 w-4" />
+        </button>
+
+        {/* 1-Click Theme Toggle Button */}
+        <button
+          type="button"
+          onClick={() => setTheme(isLight ? 'midnight' : 'light')}
+          aria-label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
+          title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          className="flex h-8.5 w-8.5 items-center justify-center rounded-xl border border-border bg-surface text-muted hover:text-foreground hover:bg-surface-raised transition-all cursor-pointer shadow-2xs"
+        >
+          {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-500" />}
         </button>
 
         {/* In-App Notifications Popover */}

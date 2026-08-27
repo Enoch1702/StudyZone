@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ThemeContext, THEMES } from './useTheme'
 
-const THEME_STORAGE_KEY = 'studyzone_theme'
+const THEME_STORAGE_KEY = 'studyzone_theme_v2'
 
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(() => {

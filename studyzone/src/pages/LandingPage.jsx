@@ -17,20 +17,25 @@ import {
   LayoutDashboard,
   Lock,
   Menu,
+  Moon,
   Play,
   ShieldCheck,
   Sparkles,
+  Sun,
   Timer,
   TrendingUp,
   X,
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
+import { useTheme } from '../context/useTheme'
 import { Button } from '../components/ui/Button'
 import { stopAmbientSound } from '../services/soundGeneratorService'
 import { cn } from '../lib/utils'
 
 export default function LandingPage() {
   const { user } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const isLight = theme === 'light'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activePreviewTab, setActivePreviewTab] = useState('dashboard')
 
@@ -81,8 +86,19 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          {/* Right Actions / Auth Switcher */}
+          {/* Right Actions / Auth Switcher & Theme Toggle */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* 1-Click Theme Toggle */}
+            <button
+              type="button"
+              onClick={() => setTheme(isLight ? 'midnight' : 'light')}
+              aria-label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
+              title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-muted hover:text-foreground hover:bg-surface-raised transition-all cursor-pointer shadow-2xs"
+            >
+              {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-500" />}
+            </button>
+
             {user ? (
               <Link to="/dashboard">
                 <Button size="sm" className="gap-2 font-bold shadow-sm shadow-accent/25 cursor-pointer">
@@ -107,15 +123,27 @@ export default function LandingPage() {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground md:hidden cursor-pointer"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile Menu & Theme Toggle */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              type="button"
+              onClick={() => setTheme(isLight ? 'midnight' : 'light')}
+              aria-label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
+              title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              className="flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-border bg-surface text-muted hover:text-foreground cursor-pointer"
+            >
+              {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-500" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Dropdown Menu */}
