@@ -1,0 +1,9 @@
+﻿{
+  "name": "studyzone-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix studyzone run dev",
+    "build": "npm --prefix studyzone run build",
+    "lint": "npm --prefix studyzone run lint"
+  }
+}
