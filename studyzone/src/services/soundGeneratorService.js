@@ -75,10 +75,18 @@ export function savePreset(presetId) {
   }
 }
 
-// ─── Noise Buffer Generators ──────────────────────────────────────
+// ─── Cached Noise Buffers (Prevents mobile audio hitching & memory churn) ───
 
-function createBrownNoiseBuffer(ctx) {
-  const bufferSize = ctx.sampleRate * 5
+let cachedBrownBuffer = null
+let cachedPinkBuffer = null
+let cachedWhiteBuffer = null
+let cachedCampfireBuffer = null
+
+function getBrownNoiseBuffer(ctx) {
+  if (cachedBrownBuffer && cachedBrownBuffer.sampleRate === ctx.sampleRate) {
+    return cachedBrownBuffer
+  }
+  const bufferSize = Math.floor(ctx.sampleRate * 2.5)
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
   let lastOut = 0.0
@@ -90,11 +98,15 @@ function createBrownNoiseBuffer(ctx) {
     output[i] *= 3.5
   }
 
+  cachedBrownBuffer = buffer
   return buffer
 }
 
-function createPinkNoiseBuffer(ctx) {
-  const bufferSize = ctx.sampleRate * 5
+function getPinkNoiseBuffer(ctx) {
+  if (cachedPinkBuffer && cachedPinkBuffer.sampleRate === ctx.sampleRate) {
+    return cachedPinkBuffer
+  }
+  const bufferSize = Math.floor(ctx.sampleRate * 2.5)
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
   let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
@@ -111,11 +123,15 @@ function createPinkNoiseBuffer(ctx) {
     b6 = white * 0.115926
   }
 
+  cachedPinkBuffer = buffer
   return buffer
 }
 
-function createWhiteNoiseBuffer(ctx) {
-  const bufferSize = ctx.sampleRate * 5
+function getWhiteNoiseBuffer(ctx) {
+  if (cachedWhiteBuffer && cachedWhiteBuffer.sampleRate === ctx.sampleRate) {
+    return cachedWhiteBuffer
+  }
+  const bufferSize = Math.floor(ctx.sampleRate * 2.5)
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
 
@@ -123,11 +139,15 @@ function createWhiteNoiseBuffer(ctx) {
     output[i] = (Math.random() * 2 - 1) * 0.25
   }
 
+  cachedWhiteBuffer = buffer
   return buffer
 }
 
-function createCampfireBuffer(ctx) {
-  const bufferSize = ctx.sampleRate * 5
+function getCampfireBuffer(ctx) {
+  if (cachedCampfireBuffer && cachedCampfireBuffer.sampleRate === ctx.sampleRate) {
+    return cachedCampfireBuffer
+  }
+  const bufferSize = Math.floor(ctx.sampleRate * 2.5)
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const output = buffer.getChannelData(0)
   let lastOut = 0.0
@@ -145,6 +165,7 @@ function createCampfireBuffer(ctx) {
     output[i] = rumble * 1.6 + crackle
   }
 
+  cachedCampfireBuffer = buffer
   return buffer
 }
 
@@ -255,7 +276,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
 
   // 2. Ocean Waves (Synthesized with periodic LFO filter swell)
   else if (presetId === 'ocean') {
-    const buffer = createPinkNoiseBuffer(ctx)
+    const buffer = getPinkNoiseBuffer(ctx)
     const source = ctx.createBufferSource()
     source.buffer = buffer
     source.loop = true
@@ -300,7 +321,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
 
   // 3. Forest Wind (Resonant sweeping bandpass)
   else if (presetId === 'wind') {
-    const buffer = createPinkNoiseBuffer(ctx)
+    const buffer = getPinkNoiseBuffer(ctx)
     const source = ctx.createBufferSource()
     source.buffer = buffer
     source.loop = true
@@ -344,7 +365,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
 
   // 4. Gentle Rain (Filtered pink noise with gentle treble sheen)
   else if (presetId === 'rain') {
-    const buffer = createPinkNoiseBuffer(ctx)
+    const buffer = getPinkNoiseBuffer(ctx)
     const source = ctx.createBufferSource()
     source.buffer = buffer
     source.loop = true
@@ -372,7 +393,7 @@ export function startAmbientSound(presetId, volume = 0.4) {
 
   // 5. Warm Campfire (Low rumble + crackle impulses)
   else if (presetId === 'campfire') {
-    const buffer = createCampfireBuffer(ctx)
+    const buffer = getCampfireBuffer(ctx)
     const source = ctx.createBufferSource()
     source.buffer = buffer
     source.loop = true
@@ -402,11 +423,11 @@ export function startAmbientSound(presetId, volume = 0.4) {
   else {
     let buffer
     if (presetId === 'brown') {
-      buffer = createBrownNoiseBuffer(ctx)
+      buffer = getBrownNoiseBuffer(ctx)
     } else if (presetId === 'pink') {
-      buffer = createPinkNoiseBuffer(ctx)
+      buffer = getPinkNoiseBuffer(ctx)
     } else {
-      buffer = createWhiteNoiseBuffer(ctx)
+      buffer = getWhiteNoiseBuffer(ctx)
     }
 
     const source = ctx.createBufferSource()

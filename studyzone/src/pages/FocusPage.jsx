@@ -371,7 +371,7 @@ export default function FocusPage() {
         clearInterval(timerIntervalRef.current)
         triggerPhaseComplete()
       }
-    }, 500)
+    }, 1000)
 
     return () => clearInterval(timerIntervalRef.current)
   }, [isRunning, isPaused, sessionPhase]) // eslint-disable-line react-hooks/exhaustive-deps

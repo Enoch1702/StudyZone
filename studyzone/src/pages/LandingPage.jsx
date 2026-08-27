@@ -191,7 +191,7 @@ export default function LandingPage() {
         <section className="relative pt-12 sm:pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8">
           {/* Subtle Ambient Radial Glow */}
           <div
-            className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[350px] w-[600px] rounded-full bg-accent/8 blur-[120px]"
+            className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[500px] sm:h-[350px] sm:w-[600px] rounded-full bg-accent/8 blur-3xl sm:blur-[100px] transform-gpu"
             aria-hidden="true"
           />
 
@@ -949,7 +949,7 @@ export default function LandingPage() {
         <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="relative rounded-3xl border border-accent/30 bg-gradient-to-b from-surface-raised to-surface p-8 sm:p-14 text-center space-y-6 shadow-2xl overflow-hidden">
             <div
-              className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-96 rounded-full bg-accent/15 blur-3xl"
+              className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-96 rounded-full bg-accent/15 blur-3xl transform-gpu"
               aria-hidden="true"
             />
 

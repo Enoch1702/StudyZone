@@ -1,5 +1,5 @@
-﻿{
-  "name": "studyzone-root",
+{
+  "name": "studyzone-monorepo",
   "private": true,
   "scripts": {
     "dev": "npm --prefix studyzone run dev",
