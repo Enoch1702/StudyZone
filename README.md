@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel%20Deployment-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://your-studyzone-deployment.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-https%3A%2F%2Fstudy--zone--wheat.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://study-zone-wheat.vercel.app)
 [![React](https://img.shields.io/badge/React%2019-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite%206-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
@@ -12,8 +12,7 @@
 
 <br />
 
-> 🌐 **Live Deployed Application**: **[https://your-studyzone-deployment.vercel.app](https://your-studyzone-deployment.vercel.app)**  
-> *(Update this placeholder URL with your production Vercel deployment link)*
+> 🌐 **Live Production Application**: **[https://study-zone-wheat.vercel.app](https://study-zone-wheat.vercel.app)**  
 
 </div>
 
