@@ -411,37 +411,37 @@ Format your response as a strict JSON array of objects with "front" (concise que
                   <button
                     type="button"
                     onClick={() => handleRateCard(1)}
-                    className="flex flex-col items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-rose-300 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                    className="flex flex-col items-center justify-center rounded-xl border border-danger/30 bg-danger-muted p-3 text-danger hover:bg-danger/20 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <span className="text-xs font-bold">1. Again</span>
-                    <span className="text-[10px] text-rose-400/80 mt-0.5">&lt; 1 day</span>
+                    <span className="text-[10px] text-danger/80 mt-0.5">&lt; 1 day</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleRateCard(3)}
-                    className="flex flex-col items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-amber-300 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                    className="flex flex-col items-center justify-center rounded-xl border border-warning/30 bg-warning-muted p-3 text-warning hover:bg-warning/20 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <span className="text-xs font-bold">2. Hard</span>
-                    <span className="text-[10px] text-amber-400/80 mt-0.5">1 day</span>
+                    <span className="text-[10px] text-warning/80 mt-0.5">1 day</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleRateCard(4)}
-                    className="flex flex-col items-center justify-center rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sky-300 hover:bg-sky-500/20 transition-colors cursor-pointer"
+                    className="flex flex-col items-center justify-center rounded-xl border border-success/30 bg-success-muted p-3 text-success hover:bg-success/20 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <span className="text-xs font-bold">3. Good</span>
-                    <span className="text-[10px] text-sky-400/80 mt-0.5">3-6 days</span>
+                    <span className="text-[10px] text-success/80 mt-0.5">3-6 days</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleRateCard(5)}
-                    className="flex flex-col items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-emerald-300 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                    className="flex flex-col items-center justify-center rounded-xl border border-accent/30 bg-accent-muted p-3 text-accent hover:bg-accent/20 transition-all cursor-pointer shadow-xs active:scale-[0.98]"
                   >
                     <span className="text-xs font-bold">4. Easy</span>
-                    <span className="text-[10px] text-emerald-400/80 mt-0.5">&gt; 6 days</span>
+                    <span className="text-[10px] text-accent/80 mt-0.5">&gt; 6 days</span>
                   </button>
                 </div>
               )}

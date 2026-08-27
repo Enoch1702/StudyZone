@@ -2,11 +2,20 @@ import { createContext, useContext } from 'react'
 
 export const THEMES = [
   {
+    id: 'light',
+    name: 'StudyZone Light',
+    description: 'Clean, warm neutral daylight workspace for focused study',
+    accentColor: '#2563eb',
+    surfaceColor: '#ffffff',
+    bgColor: '#f8fafc',
+    isLight: true,
+  },
+  {
     id: 'midnight',
     name: 'Midnight Slate',
     description: 'Classic dark zinc with clean blue accent',
     accentColor: '#4f7cff',
-    surfaceColor: '#111113',
+    surfaceColor: '#121215',
     bgColor: '#09090b',
   },
   {

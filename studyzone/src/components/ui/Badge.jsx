@@ -2,10 +2,12 @@ import { cn } from '../../lib/utils'
 
 const variants = {
   default: 'bg-surface-raised text-muted border-border',
-  accent: 'bg-accent-muted text-accent border-accent/20',
-  success: 'bg-success/10 text-success border-success/20',
-  warning: 'bg-warning/10 text-warning border-warning/20',
-  danger: 'bg-danger/10 text-danger border-danger/20',
+  accent: 'bg-accent-muted text-accent border-accent/25',
+  success: 'bg-success-muted text-success border-success/30',
+  warning: 'bg-warning-muted text-warning border-warning/30',
+  danger: 'bg-danger-muted text-danger border-danger/30',
+  ai: 'bg-ai-muted text-ai-accent border-ai-accent/30',
+  neutral: 'bg-surface text-muted border-border-subtle',
 }
 
 export function Badge({ className, variant = 'default', children }) {

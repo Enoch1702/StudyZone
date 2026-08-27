@@ -131,12 +131,12 @@ export function AIActionProposal({
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="mt-3 overflow-hidden rounded-xl border border-accent/30 bg-surface-raised/80 shadow-md transition-all"
+      className="mt-3 overflow-hidden rounded-xl border border-ai-accent/30 bg-surface shadow-md transition-all"
     >
       {/* Header Banner */}
-      <div className="flex items-center justify-between border-b border-border/80 bg-accent/8 px-4 py-3 sm:px-5">
+      <div className="flex items-center justify-between border-b border-border/80 bg-ai-muted/15 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-accent/20 text-accent">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-ai-muted text-ai-accent">
             <Sparkles className="h-3.5 w-3.5" />
           </div>
           <div>
@@ -150,7 +150,7 @@ export function AIActionProposal({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium text-accent">
+          <span className="text-[11px] font-semibold text-ai-accent">
             {selectedCount} of {items.length} selected
           </span>
           {onDismiss && (
@@ -158,7 +158,7 @@ export function AIActionProposal({
               type="button"
               onClick={onDismiss}
               aria-label="Dismiss action proposals"
-              className="rounded p-1 text-muted hover:bg-surface hover:text-foreground transition-colors"
+              className="rounded p-1 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -478,6 +478,7 @@ export function AIActionProposal({
 
           <Button
             type="button"
+            variant="ai"
             size="sm"
             onClick={handleConfirm}
             disabled={selectedCount === 0 || isSubmitting}

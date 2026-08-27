@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import { CheckCircle2, CheckSquare, Clock, TrendingUp } from 'lucide-react'
 import { StatCard } from '../ui/StatCard'
 import { staggerContainer, staggerItem } from '../../lib/motion'
 
@@ -8,7 +9,7 @@ import { staggerContainer, staggerItem } from '../../lib/motion'
 export function StatsGrid({ loading, stats, error }) {
   if (error) {
     return (
-      <div className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-xs text-danger">
+      <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-xs text-danger">
         Failed to load statistics. {error}
       </div>
     )
@@ -20,7 +21,7 @@ export function StatsGrid({ loading, stats, error }) {
         {[...Array(4)].map((_, i) => (
           <div
             key={i}
-            className="rounded-lg border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4"
+            className="rounded-xl border border-border bg-surface px-4 py-3.5 sm:px-5 sm:py-4 shadow-xs"
           >
             <div className="h-3 w-20 animate-pulse rounded bg-surface-raised" />
             <div className="mt-3 h-7 w-12 animate-pulse rounded bg-surface-raised" />
@@ -41,25 +42,42 @@ export function StatsGrid({ loading, stats, error }) {
       className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4"
     >
       <motion.div variants={staggerItem}>
-        <StatCard label="Total tasks" value={stats.totalTasks} detail="all subjects" />
+        <StatCard
+          label="Total Tasks"
+          value={stats.totalTasks}
+          detail="active workload"
+          variant="default"
+          icon={CheckSquare}
+        />
       </motion.div>
       <motion.div variants={staggerItem}>
         <StatCard
           label="Completed"
           value={stats.completedTasks}
           detail={`${completionRate}% done`}
+          variant="success"
+          icon={CheckCircle2}
         />
       </motion.div>
       <motion.div variants={staggerItem}>
-        <StatCard label="Upcoming" value={stats.upcomingCount} detail="next 7 days" />
+        <StatCard
+          label="Upcoming"
+          value={stats.upcomingCount}
+          detail="next 7 days"
+          variant="warning"
+          icon={Clock}
+        />
       </motion.div>
       <motion.div variants={staggerItem}>
         <StatCard
-          label="Overall progress"
+          label="Overall Progress"
           value={`${stats.overallProgress}%`}
           progress={stats.overallProgress}
+          variant="accent"
+          icon={TrendingUp}
         />
       </motion.div>
     </motion.div>
   )
 }
+

@@ -790,7 +790,7 @@ function ThemeSettingsCard() {
           <CardTitle>Workspace Themes & Colors</CardTitle>
         </div>
         <CardDescription>
-          Customize StudyZone&apos;s dark-first appearance with curated color palettes.
+          Customize StudyZone&apos;s appearance with daylight light mode or curated dark palettes.
         </CardDescription>
       </CardHeader>
 

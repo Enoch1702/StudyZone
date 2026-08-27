@@ -2,13 +2,17 @@ import { cn } from '../../lib/utils'
 
 const variants = {
   primary:
-    'bg-accent text-white hover:bg-accent-hover active:scale-[0.97] focus-visible:ring-accent/50 focus-visible:shadow-[0_0_0_3px_rgba(79,124,255,0.15)]',
+    'bg-accent text-white hover:bg-accent-hover active:scale-[0.98] shadow-xs hover:shadow-sm focus-visible:ring-accent/40',
   secondary:
-    'bg-surface-raised text-foreground border border-border hover:bg-border-subtle hover:border-border/80 active:scale-[0.97] focus-visible:ring-border',
+    'bg-surface text-foreground border border-border hover:bg-surface-raised hover:border-border-strong active:scale-[0.98] focus-visible:ring-border',
+  outline:
+    'bg-transparent text-foreground border border-border hover:bg-surface-raised hover:border-border-strong active:scale-[0.98] focus-visible:ring-border',
   ghost:
-    'text-muted hover:text-foreground hover:bg-surface-raised active:scale-[0.97] focus-visible:ring-border',
+    'text-muted hover:text-foreground hover:bg-surface-raised active:scale-[0.98] focus-visible:ring-border',
   danger:
-    'bg-danger/10 text-danger hover:bg-danger/20 active:scale-[0.97] focus-visible:ring-danger/50',
+    'bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20 active:scale-[0.98] focus-visible:ring-danger/40',
+  ai:
+    'bg-ai-accent text-white hover:opacity-90 active:scale-[0.98] shadow-xs focus-visible:ring-ai-accent/40',
 }
 
 const sizes = {
@@ -27,10 +31,10 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150',
+        'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 cursor-pointer select-none',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        'disabled:pointer-events-none disabled:opacity-50',
-        variants[variant],
+        'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
+        variants[variant] || variants.primary,
         sizes[size],
         className,
       )}

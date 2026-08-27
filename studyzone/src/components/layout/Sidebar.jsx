@@ -96,7 +96,7 @@ export function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
@@ -105,10 +105,10 @@ export function Sidebar({ open, onClose }) {
               onClick={onClose}
               className={({ isActive }) =>
                 cn(
-                  'relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors duration-150',
+                  'relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150',
                   isActive
-                    ? 'text-accent font-semibold'
-                    : 'text-muted hover:bg-surface-raised/60 hover:text-foreground',
+                    ? 'bg-surface-raised text-foreground font-semibold shadow-xs'
+                    : 'text-muted hover:bg-surface-hover hover:text-foreground',
                 )
               }
             >
@@ -116,12 +116,17 @@ export function Sidebar({ open, onClose }) {
                 <>
                   {isActive && (
                     <motion.span
-                      layoutId="sidebar-active-pill"
-                      className="absolute inset-0 rounded-md bg-accent-muted border border-accent/20"
-                      transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                      layoutId="sidebar-active-indicator"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
-                  <Icon className="relative z-10 h-4 w-4 shrink-0 transition-transform duration-150" />
+                  <Icon
+                    className={cn(
+                      'relative z-10 h-4 w-4 shrink-0 transition-colors duration-150',
+                      isActive ? 'text-accent' : 'text-muted group-hover:text-foreground',
+                    )}
+                  />
                   <span className="relative z-10">{label}</span>
                 </>
               )}

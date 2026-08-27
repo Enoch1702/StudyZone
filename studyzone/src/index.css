@@ -1,21 +1,30 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-background: #09090b;
-  --color-surface: #111113;
-  --color-surface-raised: #18181b;
-  --color-border: #27272a;
-  --color-border-subtle: #1f1f23;
-  --color-foreground: #fafafa;
-  --color-muted: #a1a1aa;
-  --color-muted-foreground: #71717a;
-  --color-accent: #4f7cff;
-  --color-accent-hover: #3d6ae8;
-  --color-accent-muted: rgba(79, 124, 255, 0.12);
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-surface-subtle: var(--color-surface-subtle);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-foreground: var(--color-foreground);
+  --color-muted: var(--color-muted);
+  --color-muted-foreground: var(--color-muted-foreground);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-muted: var(--color-accent-muted);
+  --color-focus-ring: var(--color-focus-ring);
+  --color-success: var(--color-success);
+  --color-success-muted: var(--color-success-muted);
+  --color-warning: var(--color-warning);
+  --color-warning-muted: var(--color-warning-muted);
+  --color-danger: var(--color-danger);
+  --color-danger-muted: var(--color-danger-muted);
+  --color-ai-accent: var(--color-ai-accent);
+  --color-ai-muted: var(--color-ai-muted);
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 @layer base {
@@ -25,75 +34,173 @@
     box-sizing: border-box;
   }
 
-  html {
-    color-scheme: dark;
-  }
-
-  /* ─── 5 Curated StudyZone Themes ─────────────────────────────── */
+  /* ─── 1. Default Dark (Midnight Slate) ────────────────────────── */
   :root,
   [data-theme="midnight"] {
+    color-scheme: dark;
     --color-background: #09090b;
-    --color-surface: #111113;
-    --color-surface-raised: #18181b;
-    --color-border: #27272a;
-    --color-border-subtle: #1f1f23;
-    --color-foreground: #fafafa;
-    --color-muted: #a1a1aa;
+    --color-surface: #121215;
+    --color-surface-raised: #18181c;
+    --color-surface-subtle: #0d0d10;
+    --color-surface-hover: #1f1f25;
+    --color-border: #27272e;
+    --color-border-subtle: #1c1c22;
+    --color-border-strong: #3f3f4a;
+    --color-foreground: #f4f4f6;
+    --color-muted: #9fa1ad;
+    --color-muted-foreground: #6f7180;
     --color-accent: #4f7cff;
     --color-accent-hover: #3d6ae8;
-    --color-accent-muted: rgba(79, 124, 255, 0.14);
+    --color-accent-muted: rgba(79, 124, 255, 0.12);
+    --color-focus-ring: rgba(79, 124, 255, 0.35);
+    --color-success: #22c55e;
+    --color-success-muted: rgba(34, 197, 94, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-muted: rgba(245, 158, 11, 0.12);
+    --color-danger: #f43f5e;
+    --color-danger-muted: rgba(244, 63, 94, 0.12);
+    --color-ai-accent: #8b5cf6;
+    --color-ai-muted: rgba(139, 92, 246, 0.12);
   }
 
+  /* ─── 2. First-Class StudyZone Light Theme ─────────────────────── */
+  [data-theme="light"] {
+    color-scheme: light;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-raised: #f1f5f9;
+    --color-surface-subtle: #f8fafc;
+    --color-surface-hover: #eef2f6;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #edf2f7;
+    --color-border-strong: #cbd5e1;
+    --color-foreground: #0f172a;
+    --color-muted: #64748b;
+    --color-muted-foreground: #94a3b8;
+    --color-accent: #2563eb;
+    --color-accent-hover: #1d4ed8;
+    --color-accent-muted: rgba(37, 99, 235, 0.08);
+    --color-focus-ring: rgba(37, 99, 235, 0.25);
+    --color-success: #16a34a;
+    --color-success-muted: rgba(22, 163, 74, 0.1);
+    --color-warning: #d97706;
+    --color-warning-muted: rgba(217, 119, 6, 0.1);
+    --color-danger: #e11d48;
+    --color-danger-muted: rgba(225, 29, 72, 0.1);
+    --color-ai-accent: #7c3aed;
+    --color-ai-muted: rgba(124, 58, 237, 0.08);
+  }
+
+  /* ─── 3. Deep Ocean (Dark) ─────────────────────────────────────── */
   [data-theme="ocean"] {
+    color-scheme: dark;
     --color-background: #070e17;
     --color-surface: #0c1624;
     --color-surface-raised: #132034;
+    --color-surface-subtle: #09121f;
+    --color-surface-hover: #182840;
     --color-border: #1e2f47;
-    --color-border-subtle: #162438;
+    --color-border-subtle: #142236;
+    --color-border-strong: #2a4163;
     --color-foreground: #f0f6fc;
     --color-muted: #94a3b8;
+    --color-muted-foreground: #64748b;
     --color-accent: #38bdf8;
     --color-accent-hover: #0ea5e9;
-    --color-accent-muted: rgba(56, 189, 248, 0.14);
+    --color-accent-muted: rgba(56, 189, 248, 0.12);
+    --color-focus-ring: rgba(56, 189, 248, 0.35);
+    --color-success: #22c55e;
+    --color-success-muted: rgba(34, 197, 94, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-muted: rgba(245, 158, 11, 0.12);
+    --color-danger: #f43f5e;
+    --color-danger-muted: rgba(244, 63, 94, 0.12);
+    --color-ai-accent: #818cf8;
+    --color-ai-muted: rgba(129, 140, 248, 0.12);
   }
 
+  /* ─── 4. Nordic Forest (Dark) ──────────────────────────────────── */
   [data-theme="emerald"] {
+    color-scheme: dark;
     --color-background: #06120d;
     --color-surface: #0b1c15;
     --color-surface-raised: #12281e;
+    --color-surface-subtle: #081710;
+    --color-surface-hover: #173326;
     --color-border: #1d3c2e;
-    --color-border-subtle: #142e22;
+    --color-border-subtle: #132a20;
+    --color-border-strong: #2a5542;
     --color-foreground: #f2fbf6;
     --color-muted: #93a99e;
+    --color-muted-foreground: #60756a;
     --color-accent: #10b981;
     --color-accent-hover: #059669;
-    --color-accent-muted: rgba(16, 185, 129, 0.14);
+    --color-accent-muted: rgba(16, 185, 129, 0.12);
+    --color-focus-ring: rgba(16, 185, 129, 0.35);
+    --color-success: #22c55e;
+    --color-success-muted: rgba(34, 197, 94, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-muted: rgba(245, 158, 11, 0.12);
+    --color-danger: #f43f5e;
+    --color-danger-muted: rgba(244, 63, 94, 0.12);
+    --color-ai-accent: #34d399;
+    --color-ai-muted: rgba(52, 211, 153, 0.12);
   }
 
+  /* ─── 5. Obsidian Amethyst (Dark) ──────────────────────────────── */
   [data-theme="amethyst"] {
+    color-scheme: dark;
     --color-background: #0c0914;
     --color-surface: #140f21;
     --color-surface-raised: #1d1630;
+    --color-surface-subtle: #0f0c19;
+    --color-surface-hover: #261c3f;
     --color-border: #2e234c;
-    --color-border-subtle: #231a3b;
+    --color-border-subtle: #211937;
+    --color-border-strong: #403268;
     --color-foreground: #f8f6fc;
     --color-muted: #a69bb8;
+    --color-muted-foreground: #736985;
     --color-accent: #a855f7;
     --color-accent-hover: #9333ea;
-    --color-accent-muted: rgba(168, 85, 247, 0.14);
+    --color-accent-muted: rgba(168, 85, 247, 0.12);
+    --color-focus-ring: rgba(168, 85, 247, 0.35);
+    --color-success: #22c55e;
+    --color-success-muted: rgba(34, 197, 94, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-muted: rgba(245, 158, 11, 0.12);
+    --color-danger: #f43f5e;
+    --color-danger-muted: rgba(244, 63, 94, 0.12);
+    --color-ai-accent: #c084fc;
+    --color-ai-muted: rgba(192, 132, 252, 0.12);
   }
 
+  /* ─── 6. Warm Espresso (Dark) ──────────────────────────────────── */
   [data-theme="espresso"] {
+    color-scheme: dark;
     --color-background: #110d0b;
     --color-surface: #191410;
     --color-surface-raised: #231c17;
+    --color-surface-subtle: #140f0d;
+    --color-surface-hover: #2d241e;
     --color-border: #362c24;
-    --color-border-subtle: #2b221b;
+    --color-border-subtle: #261f19;
+    --color-border-strong: #4a3d32;
     --color-foreground: #faf6f0;
     --color-muted: #b5a494;
+    --color-muted-foreground: #807061;
     --color-accent: #f59e0b;
     --color-accent-hover: #d97706;
-    --color-accent-muted: rgba(245, 158, 11, 0.14);
+    --color-accent-muted: rgba(245, 158, 11, 0.12);
+    --color-focus-ring: rgba(245, 158, 11, 0.35);
+    --color-success: #22c55e;
+    --color-success-muted: rgba(34, 197, 94, 0.12);
+    --color-warning: #f59e0b;
+    --color-warning-muted: rgba(245, 158, 11, 0.12);
+    --color-danger: #f43f5e;
+    --color-danger-muted: rgba(244, 63, 94, 0.12);
+    --color-ai-accent: #fbbf24;
+    --color-ai-muted: rgba(251, 191, 36, 0.12);
   }
 
   body {
@@ -109,6 +216,22 @@
 
   #root {
     min-height: 100svh;
+  }
+
+  /* Custom subtle scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-strong);
   }
 
   /* Respect reduced motion — disable all transitions and animations */
