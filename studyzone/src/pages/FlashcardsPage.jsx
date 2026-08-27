@@ -26,6 +26,7 @@ import {
   createFlashcard,
   createBulkFlashcards,
   submitCardReview,
+  createSampleDeck,
 } from '../services/flashcardsService'
 import { sendMessage } from '../services/aiService'
 
@@ -220,6 +221,15 @@ export default function FlashcardsPage() {
     setNewDeckSubjectId('')
     setNewDeckDesc('')
     refreshData()
+  }
+
+  // ─── Create Starter / Sample Deck ──────────────────────────────
+  async function handleCreateSampleDeck() {
+    if (!user?.id) return
+    setLoading(true)
+    await createSampleDeck(user.id, subjects[0]?.id || null)
+    await refreshData()
+    setLoading(false)
   }
 
   // ─── Create Manual Card ────────────────────────────────────────
@@ -538,7 +548,17 @@ Format your response as a strict JSON array of objects with "front" (concise que
           <p className="text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
             Create your first deck manually or let the AI Assistant instantly generate a study deck from your lecture notes or topics.
           </p>
-          <div className="pt-2 flex justify-center gap-3">
+          <div className="pt-2 flex flex-wrap justify-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleCreateSampleDeck}
+              className="gap-1.5 cursor-pointer font-semibold"
+            >
+              <Brain className="h-3.5 w-3.5 text-accent" />
+              <span>Try Sample Deck</span>
+            </Button>
             <Button
               type="button"
               variant="outline"
