@@ -24,7 +24,7 @@ export function GlobalAudioBar() {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="rounded-2xl border border-purple-500/30 bg-surface-raised/95 backdrop-blur-md p-2.5 shadow-2xl ring-1 ring-purple-500/20 text-foreground"
+          className="rounded-2xl border border-border bg-surface/95 backdrop-blur-md p-2.5 shadow-xl text-foreground"
         >
           <div className="flex items-center gap-3">
             {/* Play/Pause Button */}
@@ -32,7 +32,7 @@ export function GlobalAudioBar() {
               type="button"
               onClick={togglePlay}
               title={isPlaying ? 'Pause ambient audio' : 'Resume ambient audio'}
-              className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 transition-colors cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent-muted text-accent hover:bg-accent/20 transition-colors cursor-pointer"
             >
               {isPlaying ? (
                 <Pause className="h-4 w-4 fill-current" />
@@ -49,8 +49,8 @@ export function GlobalAudioBar() {
                 className="text-left group cursor-pointer block truncate"
               >
                 <div className="flex items-center gap-1.5">
-                  <Headphones className="h-3 w-3 text-purple-400 shrink-0" />
-                  <span className="text-xs font-bold text-foreground group-hover:text-purple-300 transition-colors truncate">
+                  <Headphones className="h-3 w-3 text-accent shrink-0" />
+                  <span className="text-xs font-bold text-foreground group-hover:text-accent transition-colors truncate">
                     {currentPresetObj.name}
                   </span>
                 </div>
@@ -61,7 +61,7 @@ export function GlobalAudioBar() {
             </div>
 
             {/* Quick Volume Slider */}
-            <div className="hidden sm:flex items-center gap-1.5 pl-1 border-l border-border/60">
+            <div className="hidden sm:flex items-center gap-1.5 pl-1 border-l border-border">
               <button
                 type="button"
                 onClick={() => setVolume(ambientVolume === 0 ? 0.4 : 0)}
@@ -80,7 +80,7 @@ export function GlobalAudioBar() {
                 step="0.05"
                 value={ambientVolume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-16 accent-purple-400 cursor-pointer h-1.5 bg-surface rounded-lg"
+                className="w-16 accent-accent cursor-pointer h-1.5 bg-surface-raised rounded-lg"
               />
               <span className="text-[10px] font-mono text-muted w-7 text-right">
                 {Math.round(ambientVolume * 100)}%
@@ -92,7 +92,7 @@ export function GlobalAudioBar() {
               type="button"
               onClick={stop}
               title="Stop ambient audio"
-              className="rounded-lg p-1 text-muted hover:bg-surface hover:text-foreground transition-colors cursor-pointer"
+              className="rounded-lg p-1 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -104,11 +104,11 @@ export function GlobalAudioBar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-3 pt-3 border-t border-border/60 space-y-2"
+              className="mt-3 pt-3 border-t border-border space-y-2"
             >
               <div className="flex items-center justify-between text-[11px] text-muted">
                 <span className="font-semibold flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-purple-400" />
+                  <Sparkles className="h-3 w-3 text-accent" />
                   Select Soundscape
                 </span>
                 <span className="text-[10px]">10 offline synthesizers</span>
@@ -127,8 +127,8 @@ export function GlobalAudioBar() {
                       className={cn(
                         'rounded-lg px-2 py-1.5 text-left text-[11px] font-medium border transition-colors cursor-pointer truncate',
                         isCurrent && p.id !== 'off'
-                          ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                          : 'bg-surface/50 border-border/60 hover:bg-surface text-muted hover:text-foreground',
+                          ? 'bg-accent-muted border-accent/40 text-accent font-semibold'
+                          : 'bg-surface border-border hover:bg-surface-raised text-muted hover:text-foreground',
                       )}
                     >
                       {p.name}

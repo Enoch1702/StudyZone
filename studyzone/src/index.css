@@ -34,8 +34,36 @@
     box-sizing: border-box;
   }
 
-  /* ─── 1. Default Dark (Midnight Slate) ────────────────────────── */
+  /* ─── 1. Default Light (StudyZone Light) ────────────────────────── */
   :root,
+  [data-theme="light"] {
+    color-scheme: light;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-raised: #f1f5f9;
+    --color-surface-subtle: #f8fafc;
+    --color-surface-hover: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-border-subtle: #f1f5f9;
+    --color-border-strong: #cbd5e1;
+    --color-foreground: #0f172a;
+    --color-muted: #64748b;
+    --color-muted-foreground: #94a3b8;
+    --color-accent: #2563eb;
+    --color-accent-hover: #1d4ed8;
+    --color-accent-muted: rgba(37, 99, 235, 0.08);
+    --color-focus-ring: rgba(37, 99, 235, 0.25);
+    --color-success: #16a34a;
+    --color-success-muted: rgba(22, 163, 74, 0.1);
+    --color-warning: #d97706;
+    --color-warning-muted: rgba(217, 119, 6, 0.1);
+    --color-danger: #e11d48;
+    --color-danger-muted: rgba(225, 29, 72, 0.1);
+    --color-ai-accent: #7c3aed;
+    --color-ai-muted: rgba(124, 58, 237, 0.08);
+  }
+
+  /* ─── 2. Midnight Slate (Dark) ─────────────────────────────────── */
   [data-theme="midnight"] {
     color-scheme: dark;
     --color-background: #09090b;
@@ -61,34 +89,6 @@
     --color-danger-muted: rgba(244, 63, 94, 0.12);
     --color-ai-accent: #8b5cf6;
     --color-ai-muted: rgba(139, 92, 246, 0.12);
-  }
-
-  /* ─── 2. First-Class StudyZone Light Theme ─────────────────────── */
-  [data-theme="light"] {
-    color-scheme: light;
-    --color-background: #f8fafc;
-    --color-surface: #ffffff;
-    --color-surface-raised: #f1f5f9;
-    --color-surface-subtle: #f8fafc;
-    --color-surface-hover: #eef2f6;
-    --color-border: #e2e8f0;
-    --color-border-subtle: #edf2f7;
-    --color-border-strong: #cbd5e1;
-    --color-foreground: #0f172a;
-    --color-muted: #64748b;
-    --color-muted-foreground: #94a3b8;
-    --color-accent: #2563eb;
-    --color-accent-hover: #1d4ed8;
-    --color-accent-muted: rgba(37, 99, 235, 0.08);
-    --color-focus-ring: rgba(37, 99, 235, 0.25);
-    --color-success: #16a34a;
-    --color-success-muted: rgba(22, 163, 74, 0.1);
-    --color-warning: #d97706;
-    --color-warning-muted: rgba(217, 119, 6, 0.1);
-    --color-danger: #e11d48;
-    --color-danger-muted: rgba(225, 29, 72, 0.1);
-    --color-ai-accent: #7c3aed;
-    --color-ai-muted: rgba(124, 58, 237, 0.08);
   }
 
   /* ─── 3. Deep Ocean (Dark) ─────────────────────────────────────── */

@@ -13,7 +13,7 @@ export function ThemeProvider({ children }) {
     } catch {
       // ignore
     }
-    return 'midnight'
+    return 'light'
   })
 
   useEffect(() => {

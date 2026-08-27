@@ -254,7 +254,7 @@ export default function LandingPage() {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="mx-auto max-w-2xl text-sm leading-relaxed text-muted sm:text-base"
             >
-              StudyZone brings course planning, focus sessions, study analytics, AI coaching, and SuperMemo SM-2 spaced repetition into one personal, dark-first workspace.
+              StudyZone brings course planning, focus sessions, study analytics, AI coaching, and SuperMemo SM-2 spaced repetition into one calm, personal learning workspace.
             </motion.p>
 
             {/* Hero CTAs */}
@@ -265,7 +265,7 @@ export default function LandingPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2"
             >
               <Link to={user ? '/dashboard' : '/signup'} className="w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto gap-2 text-sm font-bold shadow-md shadow-accent/30 cursor-pointer">
+                <Button size="lg" className="w-full sm:w-auto gap-2 text-sm font-bold shadow-md shadow-accent/25 cursor-pointer">
                   <span>{user ? 'Go to Dashboard' : 'Get Started Free'}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -284,15 +284,15 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="pt-8 sm:pt-12"
             >
-              <div className="relative mx-auto max-w-5xl rounded-2xl border border-border bg-surface shadow-2xl shadow-black/80 overflow-hidden ring-1 ring-white/5">
+              <div className="relative mx-auto max-w-5xl rounded-2xl border border-border bg-surface shadow-xl overflow-hidden">
                 {/* Browser top chrome bar */}
-                <div className="flex h-9 items-center justify-between border-b border-border/80 bg-surface-raised/80 px-4">
+                <div className="flex h-9 items-center justify-between border-b border-border bg-surface-raised px-4">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-full bg-red-500/80" />
                     <div className="h-2.5 w-2.5 rounded-full bg-amber-500/80" />
                     <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
                   </div>
-                  <div className="flex items-center gap-2 rounded-md bg-surface px-3 py-0.5 text-[10px] font-mono text-muted border border-border/60">
+                  <div className="flex items-center gap-2 rounded-md bg-surface px-3 py-0.5 text-[10px] font-mono text-muted border border-border">
                     <Lock className="h-2.5 w-2.5 text-accent" />
                     <span>studyzone.app/dashboard</span>
                   </div>
@@ -300,16 +300,16 @@ export default function LandingPage() {
                 </div>
 
                 {/* Hero Dashboard Preview UI Representation */}
-                <div className="p-4 sm:p-6 space-y-4 bg-background/60 text-left">
+                <div className="p-4 sm:p-6 space-y-4 bg-background text-left">
                   {/* Top Bar Representation */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                     <div>
                       <span className="text-[10px] uppercase tracking-wider text-muted font-bold">Good morning</span>
                       <h2 className="text-base sm:text-lg font-bold text-foreground">Alex Chen · Computer Science</h2>
                       <p className="text-xs text-muted">2 tasks remaining today · 2 deadlines on your radar this week</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="rounded-xl border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] font-bold text-accent flex items-center gap-1.5">
+                      <span className="rounded-xl border border-accent/25 bg-accent-muted px-2.5 py-1 text-[11px] font-bold text-accent flex items-center gap-1.5">
                         <Sparkles className="h-3 w-3" />
                         <span>Ask AI Coach</span>
                       </span>
@@ -317,10 +317,10 @@ export default function LandingPage() {
                   </div>
 
                   {/* Best Next Action Banner */}
-                  <div className="rounded-xl border border-accent/30 bg-accent/10 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="rounded-xl border border-border border-l-4 border-l-accent bg-surface p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[9px] font-bold text-rose-400 uppercase tracking-wider border border-rose-500/30">
+                        <span className="rounded-full bg-danger-muted px-2 py-0.5 text-[9px] font-bold text-danger uppercase tracking-wider border border-danger/25">
                           Urgent Overdue
                         </span>
                         <span className="text-xs font-bold text-foreground">Complete High-Priority Java Module</span>
@@ -337,22 +337,22 @@ export default function LandingPage() {
 
                   {/* 4 Stat Cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1">
+                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
                       <p className="text-[10px] text-muted uppercase font-semibold">Total Tasks</p>
                       <p className="text-lg font-extrabold text-foreground">5</p>
                       <p className="text-[10px] text-muted-foreground">across all subjects</p>
                     </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1">
+                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
                       <p className="text-[10px] text-muted uppercase font-semibold">Completed</p>
-                      <p className="text-lg font-extrabold text-emerald-400">2 <span className="text-xs font-normal text-muted">(40%)</span></p>
+                      <p className="text-lg font-extrabold text-success">2 <span className="text-xs font-normal text-muted">(40%)</span></p>
                       <p className="text-[10px] text-muted-foreground">tasks finished</p>
                     </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1">
+                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
                       <p className="text-[10px] text-muted uppercase font-semibold">Upcoming Due</p>
-                      <p className="text-lg font-extrabold text-amber-400">1</p>
+                      <p className="text-lg font-extrabold text-warning">1</p>
                       <p className="text-[10px] text-muted-foreground">in the next 7 days</p>
                     </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1">
+                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
                       <p className="text-[10px] text-muted uppercase font-semibold">Progress</p>
                       <p className="text-lg font-extrabold text-accent">40%</p>
                       <div className="h-1.5 w-full rounded-full bg-surface-raised overflow-hidden">

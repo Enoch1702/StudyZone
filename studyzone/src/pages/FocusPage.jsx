@@ -527,7 +527,7 @@ export default function FocusPage() {
           {isWakeLockActive && (
             <span
               title="Screen WakeLock Active — Display will not sleep during focus"
-              className="inline-flex items-center gap-1 rounded-xl bg-amber-500/15 border border-amber-500/30 px-2.5 py-1.5 text-xs font-semibold text-amber-400"
+              className="inline-flex items-center gap-1 rounded-xl bg-warning-muted border border-warning/30 px-2.5 py-1.5 text-xs font-semibold text-warning"
             >
               <Eye className="h-3.5 w-3.5" />
               <span className="hidden md:inline">Awake</span>
@@ -547,19 +547,19 @@ export default function FocusPage() {
 
           {/* Phase Badge */}
           {sessionPhase === 'focus' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-muted border border-success/30 px-3 py-1 text-xs font-bold text-success">
+              <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
               Focusing
             </span>
           )}
           {sessionPhase === 'short_break' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 border border-sky-500/30 px-3 py-1 text-xs font-bold text-sky-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-muted border border-accent/30 px-3 py-1 text-xs font-bold text-accent">
               <CoffeeCupIcon className="h-3.5 w-3.5" />
               Short Break
             </span>
           )}
           {sessionPhase === 'long_break' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 border border-purple-500/30 px-3 py-1 text-xs font-bold text-purple-400">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ai-muted border border-ai-accent/30 px-3 py-1 text-xs font-bold text-ai-accent">
               <Sparkles className="h-3.5 w-3.5" />
               Long Break
             </span>

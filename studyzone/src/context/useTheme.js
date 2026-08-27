@@ -53,7 +53,7 @@ export const THEMES = [
 ]
 
 export const ThemeContext = createContext({
-  theme: 'midnight',
+  theme: 'light',
   setTheme: () => {},
   themes: THEMES,
 })
