@@ -213,16 +213,20 @@ export function LogSessionCard({ subjects, tasks, onSessionLogged }) {
 
           {/* Submit */}
           <div className="mt-auto pt-2">
-            <Button type="submit" className="w-full gap-2" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full gap-2 font-bold shadow-sm shadow-accent/25 bg-gradient-to-r from-blue-600 to-indigo-600 text-white cursor-pointer hover:opacity-95"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span>Logging...</span>
+                  <span>Logging session...</span>
                 </>
               ) : (
                 <>
                   <BookOpen className="h-4 w-4" />
-                  <span>Log Session</span>
+                  <span>Log Study Session</span>
                 </>
               )}
             </Button>

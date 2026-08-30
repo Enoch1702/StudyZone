@@ -89,7 +89,7 @@ export default function DashboardPage() {
   }, [dashData])
 
   const neglectedAreas = useMemo(() => {
-    return calculateNeglectedAreas(dashData?.subjects || [], dashData?.sessions || [])
+    return calculateNeglectedAreas(dashData?.sessions || [], dashData?.subjects || [])
   }, [dashData])
 
   const taskCompletion = useMemo(() => {
@@ -110,7 +110,8 @@ export default function DashboardPage() {
   }, [dashData])
 
   return (
-    <PageContainer width="wide" className="space-y-5">
+    <PageContainer width="wide" className="space-y-5 pb-12">
+      {/* ─── 1. Welcome Greeting & Personalized Status ───────────── */}
       <WelcomeSection
         loading={loading}
         stats={dashData?.stats ?? null}
@@ -118,24 +119,17 @@ export default function DashboardPage() {
         deadlines={dashData?.deadlines ?? []}
       />
 
-      {/* Smart Next Action Hero Recommendation */}
+      {/* ─── 2. Smart Next Action Priority Hero Recommendation ────── */}
       {!loading && smartNextAction && (
         <SmartNextActionCard action={smartNextAction} />
       )}
 
+      {/* ─── 3. Key Productivity & Progress Metrics Strip ─────────── */}
       <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
 
-      {/* Focus, Deadlines, Plans & Learning Insights Grid */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <div>
-          <ActiveLearningPlans
-            loading={loading}
-            plans={dashData?.plans ?? []}
-            milestones={dashData?.milestones ?? []}
-            tasks={dashData?.tasks ?? []}
-          />
-        </div>
-        <div>
+      {/* ─── 4. Core Daily Workspace Hub (4 Equal-Height Columns) ──── */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4 items-stretch">
+        <div className="h-full">
           <TodaysFocus
             loading={loading}
             tasks={dashData?.focusTasks ?? []}
@@ -143,14 +137,22 @@ export default function DashboardPage() {
             onTaskToggled={loadData}
           />
         </div>
-        <div>
+        <div className="h-full">
           <UpcomingDeadlinesList
             loading={loading}
             deadlines={dashData?.deadlines ?? []}
             subjects={dashData?.subjects ?? []}
           />
         </div>
-        <div>
+        <div className="h-full">
+          <ActiveLearningPlans
+            loading={loading}
+            plans={dashData?.plans ?? []}
+            milestones={dashData?.milestones ?? []}
+            tasks={dashData?.tasks ?? []}
+          />
+        </div>
+        <div className="h-full">
           <LearningInsightsPreview
             loading={loading}
             currentStreak={consistency.currentStreak}
@@ -161,9 +163,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Daily Wrap-Up, Productivity Sessions & Recent Notes Grid */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-        <div className="lg:col-span-3 space-y-5">
+      {/* ─── 5. Analytics, Reflection & Action Center (Balanced 2-Col Grid) ── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
+        {/* Left Column: Weekly Productivity & Daily Reflection */}
+        <div className="space-y-5">
           <ProductivityChart
             loading={loading}
             weeklyActivity={dashData?.weeklyActivity ?? null}
@@ -174,16 +177,18 @@ export default function DashboardPage() {
             currentStreak={consistency.currentStreak}
           />
         </div>
-        <div className="lg:col-span-2 space-y-5">
-          <LogSessionCard
-            subjects={dashData?.subjects ?? []}
-            tasks={(dashData?.tasks ?? []).filter((t) => t.status !== 'completed')}
-            onSessionLogged={handleSessionLogged}
-          />
+
+        {/* Right Column: Recent Notes Knowledge Preview & Log Session */}
+        <div className="space-y-5">
           <RecentNotesCard
             loading={loading}
             notes={dashData?.notes ?? []}
             subjects={dashData?.subjects ?? []}
+          />
+          <LogSessionCard
+            subjects={dashData?.subjects ?? []}
+            tasks={(dashData?.tasks ?? []).filter((t) => t.status !== 'completed')}
+            onSessionLogged={handleSessionLogged}
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { motion } from 'motion/react'
 import { ArrowRight, Flame, TrendingUp } from 'lucide-react'
-import { fadeUp } from '../../lib/motion'
+import { Card } from '../ui/Card'
+import { SectionHeader } from '../layout/PageContainer'
 
 /**
  * Compact Dashboard card displaying up to 3 useful real deterministic signals
@@ -21,94 +21,83 @@ export function LearningInsightsPreview({
   completionRate = 0,
   loading = false,
 }) {
-  const topNeglected = neglectedAreas[0] || null
+  const topNeglected = (Array.isArray(neglectedAreas) && neglectedAreas[0]) || null
+  const subjectLabel = topNeglected?.subjectName || topNeglected?.name || null
 
   return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      animate="visible"
-      className="rounded-2xl border border-border bg-surface p-5 shadow-xs transition-all duration-200"
-    >
+    <Card className="flex h-full flex-col p-0">
       {/* Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-border/60 mb-3.5">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/15 text-accent border border-accent/20">
-            <TrendingUp className="h-3.5 w-3.5" />
-          </div>
-          <h2 className="text-sm font-semibold tracking-tight text-foreground">
-            Learning Insights
-          </h2>
-        </div>
-
+      <div className="border-b border-border-subtle px-4 py-4 sm:px-5 flex items-center justify-between">
+        <SectionHeader
+          title="Learning Insights"
+          description={loading ? 'Analyzing…' : 'Consistency & attention'}
+        />
         <Link
           to="/analytics"
-          className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors"
+          className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 shrink-0"
         >
-          <span>View Insights</span>
+          <span>View all</span>
           <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
 
       {/* Content */}
-      {loading ? (
-        <div className="space-y-2 py-1">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse h-8 rounded-lg bg-surface-raised/50" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {/* Signal 1: Study Streak */}
-          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface-raised/40 px-3 py-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <Flame className="h-3.5 w-3.5 text-accent shrink-0" />
-              <span className="text-foreground truncate font-medium">
-                {currentStreak > 0
-                  ? `${currentStreak}-day study streak`
-                  : 'No active streak today'}
+      <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between">
+        {loading ? (
+          <div className="space-y-2 py-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse h-9 rounded-xl bg-surface-raised/50" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {/* Signal 1: Study Streak */}
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-surface px-3 py-2.5 text-xs shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Flame className="h-4 w-4 text-amber-500 shrink-0" />
+                <span className="text-foreground truncate font-medium">
+                  {currentStreak > 0
+                    ? `${currentStreak}-day study streak`
+                    : 'No active streak today'}
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-accent shrink-0">
+                {currentStreak > 0 ? 'Active' : 'Log focus'}
               </span>
             </div>
-            <span className="text-[11px] font-semibold text-accent shrink-0">
-              {currentStreak > 0 ? 'Active' : 'Log focus'}
-            </span>
-          </div>
 
-          {/* Signal 2: Weekly Active Days */}
-          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface-raised/40 px-3 py-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs shrink-0">📚</span>
-              <span className="text-foreground truncate font-medium">
-                {activeDays7d > 0
-                  ? `${activeDays7d} of 7 active days this week`
-                  : '0 active days this week'}
+            {/* Signal 2: Weekly Active Days */}
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-surface px-3 py-2.5 text-xs shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span className="text-foreground truncate font-medium">
+                  {activeDays7d > 0
+                    ? `${activeDays7d} of 7 active days this week`
+                    : '0 active days this week'}
+                </span>
+              </div>
+              <span className="text-[11px] font-medium text-muted shrink-0">
+                Last 7d
               </span>
             </div>
-            <span className="text-[11px] font-medium text-muted shrink-0">
-              Last 7d
-            </span>
-          </div>
 
-          {/* Signal 3: Attention Alert or Task Rate */}
-          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface-raised/40 px-3 py-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs shrink-0">{topNeglected ? '⚠️' : '🎯'}</span>
-              <span className="text-foreground truncate font-medium">
-                {topNeglected
-                  ? `${topNeglected.subjectName} needs attention`
-                  : `${completionRate}% task completion rate`}
+            {/* Signal 3: Attention Alert or Task Rate */}
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-surface px-3 py-2.5 text-xs shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xs shrink-0">{subjectLabel ? '⚠️' : '🎯'}</span>
+                <span className="text-foreground truncate font-medium">
+                  {subjectLabel
+                    ? `${subjectLabel} needs attention`
+                    : `${completionRate}% task completion rate`}
+                </span>
+              </div>
+              <span className="text-[11px] font-medium text-muted shrink-0">
+                {subjectLabel ? 'Neglected' : 'Tasks'}
               </span>
             </div>
-            <span className="text-[11px] font-medium text-muted shrink-0">
-              {topNeglected
-                ? topNeglected.daysSinceLastStudy === null
-                  ? 'Never studied'
-                  : `${topNeglected.daysSinceLastStudy}d inactive`
-                : '30d rate'}
-            </span>
           </div>
-        </div>
-      )}
-    </motion.div>
+        )}
+      </div>
+    </Card>
   )
 }

@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
+import { ArrowRight } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 import { EmptyState } from '../ui/EmptyState'
@@ -34,7 +36,7 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
 
   return (
     <Card className="flex h-full flex-col p-0">
-      <div className="border-b border-border-subtle px-4 py-4 sm:px-5">
+      <div className="border-b border-border-subtle px-4 py-4 sm:px-5 flex items-center justify-between">
         <SectionHeader
           title="Today's Focus"
           description={
@@ -43,6 +45,13 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
               : `${pendingCount} remaining · ${tasks.length} total`
           }
         />
+        <Link
+          to="/tasks"
+          className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 shrink-0"
+        >
+          <span>View all</span>
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
 
       <div className="flex-1 p-4 sm:p-5">

@@ -1,5 +1,6 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { CalendarDays } from 'lucide-react'
+import { ArrowRight, CalendarDays } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 import { DeadlineUrgency } from '../ui/DeadlineUrgency'
@@ -24,8 +25,22 @@ export function UpcomingDeadlinesList({ loading, deadlines, subjects }) {
 
   return (
     <Card className="flex h-full flex-col p-0">
-      <div className="border-b border-border-subtle px-4 py-4 sm:px-5">
-        <SectionHeader title="Upcoming Deadlines" description="Sorted by due date" />
+      <div className="border-b border-border-subtle px-4 py-4 sm:px-5 flex items-center justify-between">
+        <SectionHeader
+          title="Upcoming Deadlines"
+          description={
+            loading
+              ? 'Loading…'
+              : `${upcoming.length} upcoming deadline${upcoming.length === 1 ? '' : 's'}`
+          }
+        />
+        <Link
+          to="/deadlines"
+          className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 shrink-0"
+        >
+          <span>View all</span>
+          <ArrowRight className="h-3 w-3" />
+        </Link>
       </div>
 
       <div className="flex-1 p-4 sm:p-5">

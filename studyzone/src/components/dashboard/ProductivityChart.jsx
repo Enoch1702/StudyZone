@@ -69,6 +69,17 @@ export function ProductivityChart({ loading, weeklyActivity }) {
           role="img"
           aria-label={`Weekly study hours: ${activity.map((d) => `${d.day} ${d.hours} hours`).join(', ')}`}
         >
+          <defs>
+            <linearGradient id="chartBarGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.75" />
+              <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.35" />
+            </linearGradient>
+            <linearGradient id="todayBarGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="1" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.9" />
+            </linearGradient>
+          </defs>
+
           {/* Average reference line — only when there is activity */}
           {hasActivity && (
             <>
@@ -105,7 +116,7 @@ export function ProductivityChart({ loading, weeklyActivity }) {
 
           {activity.map((day, i) => {
             const x = CHART_PADDING.left + i * (barWidth + gap)
-            const targetBarHeight = Math.max((day.hours / maxHours) * innerHeight, 2)
+            const targetBarHeight = Math.max((day.hours / maxHours) * innerHeight, 3)
             const isToday = i === todayIndex
 
             return (
@@ -115,9 +126,8 @@ export function ProductivityChart({ loading, weeklyActivity }) {
                   y={CHART_PADDING.top + innerHeight - targetBarHeight}
                   width={barWidth}
                   height={loading ? 2 : targetBarHeight}
-                  rx={4}
-                  fill="var(--color-accent)"
-                  fillOpacity={loading ? 0.1 : isToday ? 1 : 0.55}
+                  rx={5}
+                  fill={isToday ? 'url(#todayBarGradient)' : 'url(#chartBarGradient)'}
                   initial={{ scaleY: 0, originY: 1 }}
                   animate={{ scaleY: 1 }}
                   transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: i * 0.05 }}

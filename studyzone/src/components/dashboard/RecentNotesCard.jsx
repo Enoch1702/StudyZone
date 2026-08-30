@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FileText, Pin } from 'lucide-react'
+import { ArrowRight, FileText, Pin } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { SectionHeader } from '../layout/PageContainer'
 import { EmptyState } from '../ui/EmptyState'
@@ -21,10 +21,10 @@ export function RecentNotesCard({ loading, notes = [], subjects = [] }) {
         />
         <Link
           to="/notes"
-          className="text-xs font-semibold text-accent hover:underline flex items-center gap-1"
+          className="text-xs font-semibold text-accent hover:underline flex items-center gap-1 shrink-0"
         >
           <span>View all</span>
-          <span>&rarr;</span>
+          <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
 

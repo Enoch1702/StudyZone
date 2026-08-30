@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { Flame, Moon, Sparkles } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription } from '../ui/Card'
+import { Flame, Sparkles } from 'lucide-react'
+import { Card } from '../ui/Card'
+import { SectionHeader } from '../layout/PageContainer'
 import { formatMinutesToHoursMinutes } from '../../lib/utils'
 
 export function DailyWrapUpCard({ tasks = [], sessions = [], currentStreak = 0 }) {
@@ -34,26 +35,21 @@ export function DailyWrapUpCard({ tasks = [], sessions = [], currentStreak = 0 }
   const hasActivityToday = todayFocusMinutes > 0 || todayCompletedTasks.length > 0
 
   return (
-    <Card className="border-border/90 bg-gradient-to-br from-surface via-surface to-surface-raised shadow-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Moon className="h-4 w-4 text-purple-400" />
-            <CardTitle className="text-sm font-bold">Daily Study Wrap-Up</CardTitle>
-          </div>
-          {currentStreak > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/15 border border-orange-500/30 px-2 py-0.5 text-[10px] font-bold text-orange-400">
-              <Flame className="h-3 w-3" />
-              {currentStreak}d streak
-            </span>
-          )}
-        </div>
-        <CardDescription className="text-xs">
-          Your daily reflection and learning momentum summary.
-        </CardDescription>
-      </CardHeader>
+    <Card className="flex h-full flex-col p-0">
+      <div className="border-b border-border-subtle px-4 py-4 sm:px-5 flex items-center justify-between">
+        <SectionHeader
+          title="Daily Study Wrap-Up"
+          description="Your daily reflection and learning momentum."
+        />
+        {currentStreak > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[11px] font-bold text-amber-500 shrink-0">
+            <Flame className="h-3 w-3" />
+            <span>{currentStreak}d streak</span>
+          </span>
+        )}
+      </div>
 
-      <div className="p-4 pt-0 space-y-3">
+      <div className="flex-1 p-4 sm:p-5">
         {hasActivityToday ? (
           <>
             <p className="text-xs text-foreground/90 leading-relaxed font-medium">
