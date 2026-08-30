@@ -20,19 +20,39 @@ import {
 import { useAuth } from '../../context/useAuth'
 import { cn, getInitials } from '../../lib/utils'
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/notes', label: 'Study Notes', shortLabel: 'Notes', icon: FileText },
-  { to: '/focus', label: 'Focus Mode', shortLabel: 'Focus', icon: Timer },
-  { to: '/calendar', label: 'Study Calendar', shortLabel: 'Cal', icon: CalendarDays },
-  { to: '/flashcards', label: 'Flashcards', shortLabel: 'Cards', icon: Brain },
-  { to: '/analytics', label: 'Learning Insights', shortLabel: 'Insights', icon: TrendingUp },
-  { to: '/plans', label: 'Learning Plans', shortLabel: 'Plans', icon: Compass },
-  { to: '/subjects', label: 'Subjects', shortLabel: 'Subjects', icon: BookOpen },
-  { to: '/tasks', label: 'Tasks', shortLabel: 'Tasks', icon: CheckSquare },
-  { to: '/deadlines', label: 'Deadlines', shortLabel: 'Due', icon: CalendarDays },
-  { to: '/ai-assistant', label: 'AI Assistant', shortLabel: 'AI', icon: Bot },
-  { to: '/settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
+const navSections = [
+  {
+    title: 'Workspace',
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/notes', label: 'Study Notes', icon: FileText },
+      { to: '/focus', label: 'Focus Mode', icon: Timer },
+      { to: '/calendar', label: 'Study Calendar', icon: CalendarDays },
+      { to: '/flashcards', label: 'Flashcards', icon: Brain },
+    ],
+  },
+  {
+    title: 'Curriculum & Plans',
+    items: [
+      { to: '/plans', label: 'Learning Plans', icon: Compass },
+      { to: '/subjects', label: 'Subjects', icon: BookOpen },
+      { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+      { to: '/deadlines', label: 'Deadlines', icon: CalendarDays },
+    ],
+  },
+  {
+    title: 'Insights & AI',
+    items: [
+      { to: '/analytics', label: 'Learning Insights', icon: TrendingUp },
+      { to: '/ai-assistant', label: 'AI Assistant', icon: Bot },
+    ],
+  },
+  {
+    title: 'Preferences',
+    items: [
+      { to: '/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ]
 
 export function Sidebar({ open, onClose }) {
@@ -70,7 +90,7 @@ export function Sidebar({ open, onClose }) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col border-r border-border bg-surface transition-transform duration-200 lg:static lg:shrink-0 lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 flex w-[230px] flex-col border-r border-border bg-surface/95 backdrop-blur-md transition-transform duration-200 lg:static lg:shrink-0 lg:translate-x-0 shadow-xs',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -81,7 +101,7 @@ export function Sidebar({ open, onClose }) {
             className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
             title="Go to Home Page"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-accent text-white shadow-sm shadow-blue-500/30">
               <GraduationCap className="h-4 w-4" />
             </div>
             <span className="text-base font-extrabold tracking-tight text-foreground">
@@ -98,34 +118,43 @@ export function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'relative flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-150',
-                  isActive
-                    ? 'bg-accent-muted text-accent font-bold border border-accent/25 shadow-xs'
-                    : 'text-muted hover:bg-surface-raised hover:text-foreground font-medium',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon
-                    className={cn(
-                      'relative z-10 h-4 w-4 shrink-0 transition-colors duration-150',
-                      isActive ? 'text-accent' : 'text-muted group-hover:text-foreground',
+        <nav className="flex-1 space-y-4 overflow-y-auto p-3 custom-scrollbar">
+          {navSections.map((section) => (
+            <div key={section.title} className="space-y-1">
+              <p className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {section.title}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map(({ to, label, icon: Icon, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      cn(
+                        'group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-150',
+                        isActive
+                          ? 'bg-gradient-to-r from-accent/15 via-accent/10 to-transparent text-accent font-bold border-l-2 border-accent shadow-2xs'
+                          : 'text-muted hover:bg-surface-raised/70 hover:text-foreground font-medium',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon
+                          className={cn(
+                            'h-4 w-4 shrink-0 transition-colors duration-150',
+                            isActive ? 'text-accent' : 'text-muted group-hover:text-foreground',
+                          )}
+                        />
+                        <span className="truncate">{label}</span>
+                      </>
                     )}
-                  />
-                  <span className="relative z-10">{label}</span>
-                </>
-              )}
-            </NavLink>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 

@@ -41,12 +41,15 @@ export function WelcomeSection({ loading, focusTasks, deadlines }) {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-gradient-to-r from-surface via-surface to-surface-raised/30 p-5 sm:p-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_1px_2px_0_rgba(0,0,0,0.02)] sm:flex-row sm:items-center sm:justify-between transition-all"
+      className="relative overflow-hidden flex flex-col gap-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-surface dark:from-blue-950/25 dark:via-surface dark:to-surface-raised/30 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(37,99,235,0.08)] sm:flex-row sm:items-center sm:justify-between transition-all"
     >
-      <div>
+      {/* Decorative ambient gradient corner */}
+      <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-400/10 blur-2xl" aria-hidden="true" />
+
+      <div className="relative z-10">
         <div className="flex items-center gap-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">{greeting}</p>
-          <span className="rounded-full bg-accent-muted border border-accent/25 px-2.5 py-0.5 text-[11px] font-bold text-accent">
+          <span className="rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[11px] font-bold text-accent shadow-2xs">
             {learnerBadge}
           </span>
         </div>

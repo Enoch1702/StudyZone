@@ -46,10 +46,17 @@ export function AppLayout() {
 
   return (
     <SearchProvider>
-      <div className="flex min-h-svh bg-background">
+      <div className="relative flex min-h-svh bg-background overflow-x-hidden">
+        {/* Ambient background mesh gradient blurs for light/dark depth */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+          <div className="absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-blue-400/12 via-indigo-400/8 to-transparent blur-3xl" />
+          <div className="absolute top-1/3 -left-32 h-[450px] w-[450px] rounded-full bg-gradient-to-tr from-sky-400/10 via-purple-400/6 to-transparent blur-3xl" />
+          <div className="absolute -bottom-32 right-1/4 h-[500px] w-[500px] rounded-full bg-gradient-to-tl from-indigo-400/8 via-blue-300/6 to-transparent blur-3xl" />
+        </div>
+
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-0">
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col lg:pl-0">
           <Header
             title={title}
             onMenuClick={() => setSidebarOpen(true)}

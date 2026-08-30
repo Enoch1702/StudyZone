@@ -219,9 +219,9 @@ export default function LandingPage() {
       <main className="space-y-24 sm:space-y-32 pb-24">
         {/* ─── 2. HERO SECTION ────────────────────────────────────────────── */}
         <section className="relative pt-12 sm:pt-20 lg:pt-24 px-4 sm:px-6 lg:px-8">
-          {/* Subtle Ambient Radial Glow */}
+          {/* Subtle Ambient Radial Mesh Glow */}
           <div
-            className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[500px] sm:h-[350px] sm:w-[600px] rounded-full bg-accent/8 blur-3xl sm:blur-[100px] transform-gpu"
+            className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[380px] w-[600px] sm:h-[480px] sm:w-[850px] rounded-full bg-gradient-to-br from-blue-400/20 via-indigo-400/15 to-purple-400/10 blur-3xl sm:blur-[120px] transform-gpu"
             aria-hidden="true"
           />
 

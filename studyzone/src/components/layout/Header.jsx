@@ -11,20 +11,23 @@ export function Header({ onMenuClick, title }) {
   const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/95 px-4 backdrop-blur-sm sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border/80 bg-surface/80 px-4 backdrop-blur-md sm:px-6 lg:px-8 shadow-2xs">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           aria-label="Open navigation"
-          className="rounded-md p-2 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden cursor-pointer"
+          className="rounded-lg p-2 text-muted hover:bg-surface-raised hover:text-foreground lg:hidden cursor-pointer"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </button>
         {title && (
-          <h1 className="truncate text-[15px] font-semibold text-foreground sm:text-base">
-            {title}
-          </h1>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-accent/80" aria-hidden="true" />
+            <h1 className="truncate text-[15px] font-bold text-foreground sm:text-base tracking-tight">
+              {title}
+            </h1>
+          </div>
         )}
       </div>
 

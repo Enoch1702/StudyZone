@@ -23,11 +23,19 @@ export function StatCard({
     accent: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
   }
 
+  const variantGradients = {
+    default: 'bg-gradient-to-br from-surface via-surface to-surface-raised/40 hover:border-border/90',
+    success: 'bg-gradient-to-br from-emerald-500/6 via-surface to-surface-raised/30 border-emerald-500/25 hover:border-emerald-500/40',
+    warning: 'bg-gradient-to-br from-amber-500/6 via-surface to-surface-raised/30 border-amber-500/25 hover:border-amber-500/40',
+    accent: 'bg-gradient-to-br from-blue-500/6 via-surface to-surface-raised/30 border-blue-500/25 hover:border-blue-500/40',
+  }
+
   return (
     <div
       className={cn(
-        'group rounded-2xl border border-border/80 bg-surface p-4 sm:p-5 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),0_1px_2px_0_rgba(0,0,0,0.02)]',
-        'transition-all duration-200 hover:border-accent/40 hover:bg-surface hover:-translate-y-0.5 hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.06)]',
+        'group relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.04),0_1px_3px_0_rgba(0,0,0,0.02)]',
+        'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.08)]',
+        variantGradients[variant] || variantGradients.default,
         className,
       )}
     >
