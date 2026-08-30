@@ -29,6 +29,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
       plansRes,
       milestonesRes,
       decksRes,
+      notesRes,
     ] = await Promise.all([
       supabase
         .from('subjects')
@@ -60,6 +61,12 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
         .from('flashcard_decks')
         .select('id, title, description, subject_id')
         .eq('user_id', userId),
+
+      supabase
+        .from('study_notes')
+        .select('id, title, content, summary, tags, is_pinned, is_archived, subject_id')
+        .eq('user_id', userId)
+        .eq('is_archived', false),
     ])
 
     const subjects = subjectsRes.data || []
@@ -68,6 +75,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
     const plans = plansRes.data || []
     const milestones = milestonesRes.data || []
     const decks = decksRes?.data || []
+    const notes = notesRes?.data || []
 
     // Build lookup maps for cross-referencing
     const subjectMap = new Map(subjects.map((s) => [s.id, s.name]))
@@ -304,6 +312,53 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
     if (matchedDecks.length > 0) {
       resultsByCategory['Flashcards'] = matchedDecks
       totalResults += matchedDecks.length
+    }
+
+    // 7. Filter Study Notes
+    const matchedNotes = notes
+      .filter((n) => {
+        const title = (n.title || '').toLowerCase()
+        const content = (n.content || '').toLowerCase()
+        const summary = (n.summary || '').toLowerCase()
+        const subName = (subjectMap.get(n.subject_id) || '').toLowerCase()
+        const tagsMatch = Array.isArray(n.tags) && n.tags.some((t) => t.toLowerCase().includes(normalizedQuery))
+        return (
+          title.includes(normalizedQuery) ||
+          content.includes(normalizedQuery) ||
+          summary.includes(normalizedQuery) ||
+          subName.includes(normalizedQuery) ||
+          tagsMatch
+        )
+      })
+      .slice(0, limitPerCategory)
+      .map((n) => {
+        const sub = subjectMap.get(n.subject_id)
+        const excerpt = (n.summary || n.content || '').replace(/[#*`_>]/g, '').slice(0, 60).trim()
+        const parts = [
+          sub ? `Subject: ${sub}` : null,
+          excerpt ? excerpt : 'Study Note',
+        ].filter(Boolean)
+
+        return {
+          id: `note-${n.id}`,
+          rawId: n.id,
+          type: 'note',
+          category: 'Study Notes',
+          title: n.title,
+          subtitle: parts.join(' · '),
+          route: `/notes?id=${n.id}`,
+          metadata: {
+            noteId: n.id,
+            subject: sub,
+            tags: n.tags,
+            isPinned: n.is_pinned,
+          },
+        }
+      })
+
+    if (matchedNotes.length > 0) {
+      resultsByCategory['Study Notes'] = matchedNotes
+      totalResults += matchedNotes.length
     }
 
     return { resultsByCategory, totalResults, error: null }

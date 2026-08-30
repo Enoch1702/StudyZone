@@ -204,7 +204,7 @@ export async function deleteFlashcardDeck(deckId, userId) {
     setCachedCards(userId, cachedCards.filter((c) => c.deck_id !== deckId))
 
     return { error: null }
-  } catch (err) {
+  } catch {
     const cached = getCachedDecks(userId)
     setCachedDecks(userId, cached.filter((d) => d.id !== deckId))
     return { error: null }
@@ -427,7 +427,7 @@ export async function deleteFlashcard(cardId, userId) {
     }
 
     return { error: null }
-  } catch (err) {
+  } catch {
     const cached = getCachedCards(userId)
     setCachedCards(userId, cached.filter((c) => c.id !== cardId))
     return { error: null }

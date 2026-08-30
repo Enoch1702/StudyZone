@@ -15,12 +15,14 @@ import {
   updateSubject,
   deleteSubject,
 } from '../services/subjectsService'
+import { getNotes } from '../services/notesService'
 import { bannerVariant, staggerContainer } from '../lib/motion'
 
 export default function SubjectsPage() {
   const { user } = useAuth()
 
   const [subjects, setSubjects] = useState([])
+  const [noteCountMap, setNoteCountMap] = useState(new Map())
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -45,15 +47,34 @@ export default function SubjectsPage() {
     async function loadData() {
       if (!user?.id) return
 
-      const { data, error } = await getSubjects(user.id)
-      if (!ignore) {
-        if (error) {
-          setFetchError(error.message || 'Unable to load subjects from database.')
-        } else {
-          setSubjects(data || [])
-          setFetchError('')
+      try {
+        const [subRes, notesRes] = await Promise.all([
+          getSubjects(user.id),
+          getNotes(user.id),
+        ])
+
+        if (!ignore) {
+          if (subRes.error) {
+            setFetchError(subRes.error.message || 'Unable to load subjects from database.')
+          } else {
+            setSubjects(subRes.data || [])
+            setFetchError('')
+          }
+
+          const countMap = new Map()
+          for (const n of notesRes?.data || []) {
+            if (n.subjectId) {
+              countMap.set(n.subjectId, (countMap.get(n.subjectId) || 0) + 1)
+            }
+          }
+          setNoteCountMap(countMap)
+          setLoading(false)
         }
-        setLoading(false)
+      } catch {
+        if (!ignore) {
+          setFetchError('Unable to load subjects.')
+          setLoading(false)
+        }
       }
     }
 
@@ -235,6 +256,7 @@ export default function SubjectsPage() {
             <SubjectCard
               key={subject.id}
               subject={subject}
+              noteCount={noteCountMap.get(subject.id) || 0}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
             />

@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckSquare,
   Compass,
+  FileText,
   Globe,
   GraduationCap,
   LayoutDashboard,
@@ -21,6 +22,7 @@ import { cn, getInitials } from '../../lib/utils'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/notes', label: 'Study Notes', shortLabel: 'Notes', icon: FileText },
   { to: '/focus', label: 'Focus Mode', shortLabel: 'Focus', icon: Timer },
   { to: '/calendar', label: 'Study Calendar', shortLabel: 'Cal', icon: CalendarDays },
   { to: '/flashcards', label: 'Flashcards', shortLabel: 'Cards', icon: Brain },

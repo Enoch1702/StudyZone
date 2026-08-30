@@ -247,6 +247,23 @@ CREATE TABLE IF NOT EXISTS public.flashcard_reviews (
   reviewed_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
+-- ------------------------------------------------------------------------------
+-- STUDY_NOTES: Subject-linked notes with markdown and AI assistance (Phase 17)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.study_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
+  title TEXT NOT NULL CHECK (char_length(trim(title)) > 0),
+  content TEXT NOT NULL DEFAULT '',
+  summary TEXT,
+  tags TEXT[] NOT NULL DEFAULT '{}'::text[],
+  is_pinned BOOLEAN NOT NULL DEFAULT false,
+  is_archived BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
 -- ==============================================================================
 -- 3. UPDATED_AT TRIGGERS
 -- ==============================================================================
@@ -260,6 +277,12 @@ CREATE TRIGGER set_profiles_updated_at
 DROP TRIGGER IF EXISTS set_subjects_updated_at ON public.subjects;
 CREATE TRIGGER set_subjects_updated_at
   BEFORE UPDATE ON public.subjects
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_study_notes_updated_at ON public.study_notes;
+CREATE TRIGGER set_study_notes_updated_at
+  BEFORE UPDATE ON public.study_notes
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
@@ -365,6 +388,10 @@ CREATE INDEX IF NOT EXISTS idx_flashcards_deck ON public.flashcards (deck_id);
 CREATE INDEX IF NOT EXISTS idx_flashcards_user_next_review ON public.flashcards (user_id, next_review_at ASC);
 CREATE INDEX IF NOT EXISTS idx_flashcard_reviews_user_reviewed ON public.flashcard_reviews (user_id, reviewed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_flashcard_reviews_card ON public.flashcard_reviews (flashcard_id);
+CREATE INDEX IF NOT EXISTS idx_study_notes_user ON public.study_notes (user_id);
+CREATE INDEX IF NOT EXISTS idx_study_notes_subject ON public.study_notes (subject_id);
+CREATE INDEX IF NOT EXISTS idx_study_notes_user_updated ON public.study_notes (user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_study_notes_user_pinned ON public.study_notes (user_id, is_pinned) WHERE is_pinned = true;
 
 -- ==============================================================================
 -- 6. ROW LEVEL SECURITY (RLS) POLICIES
@@ -380,6 +407,10 @@ ALTER TABLE public.learning_milestones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcard_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_notes ENABLE ROW LEVEL SECURITY;
 
 -- Profiles Policies
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
@@ -651,6 +682,27 @@ CREATE POLICY "Users can delete their own flashcard reviews"
   ON public.flashcard_reviews FOR DELETE
   USING (auth.uid() = user_id);
 
+-- Study Notes Policies
+DROP POLICY IF EXISTS "Users can view their own study notes" ON public.study_notes;
+CREATE POLICY "Users can view their own study notes"
+  ON public.study_notes FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own study notes" ON public.study_notes;
+CREATE POLICY "Users can insert their own study notes"
+  ON public.study_notes FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own study notes" ON public.study_notes;
+CREATE POLICY "Users can update their own study notes"
+  ON public.study_notes FOR UPDATE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own study notes" ON public.study_notes;
+CREATE POLICY "Users can delete their own study notes"
+  ON public.study_notes FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- ==============================================================================
 -- 7. GRANT TABLE PERMISSIONS TO AUTHENTICATED USERS
 -- ==============================================================================
@@ -668,3 +720,4 @@ GRANT ALL ON public.ai_messages TO authenticated, service_role;
 GRANT ALL ON public.flashcard_decks TO authenticated, service_role;
 GRANT ALL ON public.flashcards TO authenticated, service_role;
 GRANT ALL ON public.flashcard_reviews TO authenticated, service_role;
+GRANT ALL ON public.study_notes TO authenticated, service_role;

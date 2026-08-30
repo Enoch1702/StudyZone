@@ -11,6 +11,7 @@ import { LearningInsightsPreview } from '../components/dashboard/LearningInsight
 import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
 import { DailyWrapUpCard } from '../components/dashboard/DailyWrapUpCard'
+import { RecentNotesCard } from '../components/dashboard/RecentNotesCard'
 import {
   fetchDashboardData,
   computeTaskStats,
@@ -19,6 +20,7 @@ import {
   getWeekMondayLocal,
   getWeekSundayLocal,
 } from '../services/dashboardService'
+import { getNotes } from '../services/notesService'
 import {
   calculateStudyConsistency,
   calculateNeglectedAreas,
@@ -43,7 +45,10 @@ export default function DashboardPage() {
     const weekMon = getWeekMondayLocal()
     const weekSun = getWeekSundayLocal(weekMon)
 
-    const result = await fetchDashboardData(user.id)
+    const [result, notesResult] = await Promise.all([
+      fetchDashboardData(user.id),
+      getNotes(user.id, { sortBy: 'updated_desc' }),
+    ])
 
     if (result.error) {
       setFetchError(result.error?.message || 'Failed to load dashboard data.')
@@ -62,6 +67,7 @@ export default function DashboardPage() {
         sessions: result.sessions,
         plans: result.plans,
         milestones: result.milestones,
+        notes: notesResult?.data || [],
       })
     }
 
@@ -72,23 +78,23 @@ export default function DashboardPage() {
     ;(async () => { await loadData() })()
   }, [loadData, sessionRefreshKey])
 
-  /** Called by LogSessionCard after a session is saved to refresh the chart */
-  function handleSessionLogged() {
+  async function handleSessionLogged() {
+    await loadData()
     setSessionRefreshKey((k) => k + 1)
   }
 
   // Pure insights calculations for preview card
   const consistency = useMemo(() => {
     return calculateStudyConsistency(dashData?.sessions || [])
-  }, [dashData?.sessions])
+  }, [dashData])
 
   const neglectedAreas = useMemo(() => {
-    return calculateNeglectedAreas(dashData?.sessions || [], dashData?.subjects || [])
-  }, [dashData?.sessions, dashData?.subjects])
+    return calculateNeglectedAreas(dashData?.subjects || [], dashData?.sessions || [])
+  }, [dashData])
 
   const taskCompletion = useMemo(() => {
     return calculateTaskCompletion(dashData?.tasks || [])
-  }, [dashData?.tasks])
+  }, [dashData])
 
   // Deterministic Smart Next Action recommendation
   const smartNextAction = useMemo(() => {
@@ -155,7 +161,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Daily Wrap-Up and Productivity Sessions Grid */}
+      {/* Daily Wrap-Up, Productivity Sessions & Recent Notes Grid */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
         <div className="lg:col-span-3 space-y-5">
           <ProductivityChart
@@ -168,11 +174,16 @@ export default function DashboardPage() {
             currentStreak={consistency.currentStreak}
           />
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-5">
           <LogSessionCard
             subjects={dashData?.subjects ?? []}
             tasks={(dashData?.tasks ?? []).filter((t) => t.status !== 'completed')}
             onSessionLogged={handleSessionLogged}
+          />
+          <RecentNotesCard
+            loading={loading}
+            notes={dashData?.notes ?? []}
+            subjects={dashData?.subjects ?? []}
           />
         </div>
       </div>

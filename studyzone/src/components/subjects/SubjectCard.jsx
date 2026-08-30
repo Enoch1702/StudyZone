@@ -1,9 +1,10 @@
+import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { FileText, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { cardEntrance } from '../../lib/motion'
 
-export function SubjectCard({ subject, onEdit, onDelete }) {
+export function SubjectCard({ subject, noteCount = 0, onEdit, onDelete }) {
   return (
     <motion.article
       variants={cardEntrance}
@@ -73,7 +74,18 @@ export function SubjectCard({ subject, onEdit, onDelete }) {
             />
             <span className="text-[11px] text-muted-foreground">Subject</span>
           </span>
-          <span className="text-[11px] text-muted-foreground">No task data yet</span>
+
+          {/* Linked Study Notes Pill */}
+          <Link
+            to={`/notes?subjectId=${subject.id}`}
+            className="inline-flex items-center gap-1 text-[11px] text-muted hover:text-accent transition-colors"
+            title="View study notes for this subject"
+          >
+            <FileText className="h-3 w-3 text-accent" />
+            <span>
+              {noteCount} note{noteCount === 1 ? '' : 's'}
+            </span>
+          </Link>
         </div>
       </div>
     </motion.article>

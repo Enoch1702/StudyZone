@@ -13,6 +13,7 @@ import { pageEntrance } from '../../lib/motion'
 const pageTitles = {
   '/dashboard': 'Dashboard',
   '/': 'Dashboard',
+  '/notes': 'Study Notes',
   '/focus': 'Focus Mode',
   '/calendar': 'Study Calendar',
   '/flashcards': 'Flashcards',

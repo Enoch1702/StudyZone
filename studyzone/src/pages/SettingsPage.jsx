@@ -10,6 +10,7 @@ import {
   Download,
   FileJson,
   FileSpreadsheet,
+  FileText,
   LogOut,
   Palette,
   Sliders,
@@ -201,6 +202,7 @@ function DataExportSettingsCard() {
   const [exportingTasksCsv, setExportingTasksCsv] = useState(false)
   const [exportingSessionsCsv, setExportingSessionsCsv] = useState(false)
   const [exportingCardsCsv, setExportingCardsCsv] = useState(false)
+  const [exportingNotesCsv, setExportingNotesCsv] = useState(false)
   const [exportSuccess, setExportSuccess] = useState('')
 
   function triggerDownload(content, filename, mimeType) {
@@ -235,7 +237,7 @@ function DataExportSettingsCard() {
       const [
         profData, subData, taskData, deadData, sessData,
         planData, milData, notifData, convData, msgData,
-        deckData, cardData, revData,
+        deckData, cardData, revData, noteData,
       ] = await Promise.all([
         supabase
           .from('profiles')
@@ -256,10 +258,11 @@ function DataExportSettingsCard() {
         safeFetch(supabase.from('flashcard_decks').select('*').eq('user_id', user.id)),
         safeFetch(supabase.from('flashcards').select('*').eq('user_id', user.id)),
         safeFetch(supabase.from('flashcard_reviews').select('*').eq('user_id', user.id)),
+        safeFetch(supabase.from('study_notes').select('*').eq('user_id', user.id)),
       ])
 
       const backupData = {
-        studyzone_export_version: '1.2',
+        studyzone_export_version: '1.3',
         exported_at: new Date().toISOString(),
         user_id: user.id,
         user_email: user.email,
@@ -276,6 +279,7 @@ function DataExportSettingsCard() {
         flashcard_decks: deckData,
         flashcards: cardData,
         flashcard_reviews: revData,
+        study_notes: noteData,
       }
 
       const jsonStr = JSON.stringify(backupData, null, 2)
@@ -404,6 +408,46 @@ function DataExportSettingsCard() {
     }
   }
 
+  // ─── 5. Export Study Notes (CSV) ──────────────────────────────
+  async function handleExportNotesCsv() {
+    if (!user?.id) return
+    setExportingNotesCsv(true)
+    setExportSuccess('')
+
+    try {
+      const [noteRes, subRes] = await Promise.all([
+        supabase.from('study_notes').select('*').eq('user_id', user.id),
+        supabase.from('subjects').select('*').eq('user_id', user.id),
+      ])
+
+      const subMap = new Map((subRes.data || []).map((s) => [s.id, s.name]))
+      const notes = noteRes.data || []
+
+      const headers = ['ID', 'Title', 'Subject', 'Tags', 'Content', 'Summary', 'Is Pinned', 'Is Archived', 'Created At', 'Updated At']
+      const rows = notes.map((n) => [
+        escapeCsvField(n.id),
+        escapeCsvField(n.title),
+        escapeCsvField(subMap.get(n.subject_id) || ''),
+        escapeCsvField(Array.isArray(n.tags) ? n.tags.join('; ') : ''),
+        escapeCsvField(n.content || ''),
+        escapeCsvField(n.summary || ''),
+        escapeCsvField(n.is_pinned ? 'true' : 'false'),
+        escapeCsvField(n.is_archived ? 'true' : 'false'),
+        escapeCsvField(n.created_at),
+        escapeCsvField(n.updated_at),
+      ])
+
+      const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+      const ts = new Date().toISOString().slice(0, 10)
+      triggerDownload(csvContent, `studyzone_notes_${ts}.csv`, 'text/csv;charset=utf-8;')
+
+      setExportSuccess('Study Notes CSV downloaded.')
+      setTimeout(() => setExportSuccess(''), 4000)
+    } finally {
+      setExportingNotesCsv(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -412,7 +456,7 @@ function DataExportSettingsCard() {
           <CardTitle>Data Portability & Archives</CardTitle>
         </div>
         <CardDescription>
-          Export your complete learning history, flashcards, and AI chat archives anytime.
+          Export your complete learning history, notes, flashcards, and AI chat archives anytime.
         </CardDescription>
       </CardHeader>
 
@@ -424,7 +468,7 @@ function DataExportSettingsCard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
           {/* Full JSON Backup */}
           <button
             type="button"
@@ -435,6 +479,18 @@ function DataExportSettingsCard() {
             <FileJson className="h-5 w-5 text-accent mb-1.5 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-foreground">JSON Backup</span>
             <span className="text-[10px] text-muted mt-0.5">All tables & AI chats</span>
+          </button>
+
+          {/* Notes CSV */}
+          <button
+            type="button"
+            disabled={exportingNotesCsv}
+            onClick={handleExportNotesCsv}
+            className="flex flex-col items-center justify-center p-3.5 rounded-xl border border-border/80 bg-surface-raised/40 hover:bg-surface-raised transition-all text-center group cursor-pointer disabled:opacity-50"
+          >
+            <FileText className="h-5 w-5 text-amber-500 mb-1.5 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-bold text-foreground">Notes (CSV)</span>
+            <span className="text-[10px] text-muted mt-0.5">Knowledge base</span>
           </button>
 
           {/* Tasks CSV */}

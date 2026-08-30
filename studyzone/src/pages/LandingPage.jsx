@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   CheckSquare,
   Database,
+  FileText,
   GraduationCap,
   Headphones,
   Key,
@@ -48,6 +49,7 @@ export default function LandingPage() {
 
   const previewTabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'notes', label: 'Study Notes', icon: FileText },
     { id: 'focus', label: 'Focus & Soundscape', icon: Timer },
     { id: 'calendar', label: 'Timetable Calendar', icon: CalendarDays },
     { id: 'flashcards', label: 'SM-2 Flashcards', icon: Brain },
@@ -394,7 +396,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ─── 3. PRODUCT WORKFLOW (PLAN → FOCUS → TRACK → IMPROVE → REMEMBER) ─ */}
+        {/* ─── 3. PRODUCT WORKFLOW (PLAN → FOCUS → CAPTURE → TRACK → IMPROVE → REMEMBER) ─ */}
         <section id="workflow" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-3 mb-12">
             <span className="text-[11px] font-bold text-accent uppercase tracking-widest">
@@ -404,77 +406,91 @@ export default function LandingPage() {
               How StudyZone Works
             </h2>
             <p className="mx-auto max-w-xl text-xs sm:text-sm text-muted">
-              Move seamlessly through the 5 core stages of intentional learning without switching tools.
+              Move seamlessly through the 6 core stages of intentional learning without switching tools.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
             {/* Step 1: PLAN */}
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-3 flex flex-col justify-between hover:border-accent/40 transition-all group">
-              <div className="space-y-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:scale-105 transition-transform">
-                  <CheckSquare className="h-5 w-5" />
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 group-hover:scale-105 transition-transform">
+                  <CheckSquare className="h-4.5 w-4.5" />
                 </div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Step 1</div>
-                <h3 className="text-sm font-bold text-foreground">PLAN</h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Organize subjects, tasks, deadlines, and milestone-driven learning plans.
+                <h3 className="text-xs font-bold text-foreground">PLAN</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Organize subjects, tasks, deadlines, and milestone plans.
                 </p>
               </div>
             </div>
 
             {/* Step 2: FOCUS */}
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-3 flex flex-col justify-between hover:border-accent/40 transition-all group">
-              <div className="space-y-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 group-hover:scale-105 transition-transform">
-                  <Timer className="h-5 w-5" />
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 group-hover:scale-105 transition-transform">
+                  <Timer className="h-4.5 w-4.5" />
                 </div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-purple-400">Step 2</div>
-                <h3 className="text-sm font-bold text-foreground">FOCUS</h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Start structured Pomodoro sessions with synthesized Web Audio noise soundscapes.
+                <h3 className="text-xs font-bold text-foreground">FOCUS</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Start Pomodoro sessions with synthesized Web Audio soundscapes.
                 </p>
               </div>
             </div>
 
-            {/* Step 3: TRACK */}
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-3 flex flex-col justify-between hover:border-accent/40 transition-all group">
-              <div className="space-y-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">
-                  <TrendingUp className="h-5 w-5" />
+            {/* Step 3: CAPTURE */}
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-transform">
+                  <FileText className="h-4.5 w-4.5" />
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Step 3</div>
-                <h3 className="text-sm font-bold text-foreground">TRACK</h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Analyze daily study consistency, streaks, workload balance, and task completion.
+                <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Step 3</div>
+                <h3 className="text-xs font-bold text-foreground">CAPTURE</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Write markdown study notes and AI summaries linked to subjects.
                 </p>
               </div>
             </div>
 
-            {/* Step 4: IMPROVE */}
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-3 flex flex-col justify-between hover:border-accent/40 transition-all group">
-              <div className="space-y-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent border border-accent/20 group-hover:scale-105 transition-transform">
-                  <Bot className="h-5 w-5" />
+            {/* Step 4: TRACK */}
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-transform">
+                  <TrendingUp className="h-4.5 w-4.5" />
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-accent">Step 4</div>
-                <h3 className="text-sm font-bold text-foreground">IMPROVE</h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Receive personalized AI study coaching backed by your real verified metrics.
+                <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Step 4</div>
+                <h3 className="text-xs font-bold text-foreground">TRACK</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Analyze daily study streaks, balance, and task completion.
                 </p>
               </div>
             </div>
 
-            {/* Step 5: REMEMBER */}
-            <div className="rounded-2xl border border-border bg-surface p-5 space-y-3 flex flex-col justify-between hover:border-accent/40 transition-all group">
-              <div className="space-y-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 group-hover:scale-105 transition-transform">
-                  <Brain className="h-5 w-5" />
+            {/* Step 5: IMPROVE */}
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent border border-accent/20 group-hover:scale-105 transition-transform">
+                  <Bot className="h-4.5 w-4.5" />
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Step 5</div>
-                <h3 className="text-sm font-bold text-foreground">REMEMBER</h3>
-                <p className="text-xs text-muted leading-relaxed">
-                  Master long-term memory recall with SuperMemo SM-2 spaced repetition decks.
+                <div className="text-[10px] font-bold uppercase tracking-wider text-accent">Step 5</div>
+                <h3 className="text-xs font-bold text-foreground">IMPROVE</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Receive personalized AI study coaching backed by real metrics.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 6: REMEMBER */}
+            <div className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 flex flex-col justify-between hover:border-accent/40 transition-all group">
+              <div className="space-y-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 group-hover:scale-105 transition-transform">
+                  <Brain className="h-4.5 w-4.5" />
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Step 6</div>
+                <h3 className="text-xs font-bold text-foreground">REMEMBER</h3>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  Review SuperMemo SM-2 spaced repetition decks generated from notes.
                 </p>
               </div>
             </div>
@@ -739,7 +755,41 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* View 2: Focus Mode */}
+            {/* View 2: Study Notes */}
+            {activePreviewTab === 'notes' && (
+              <div className="space-y-4">
+                <div className="border-b border-border/60 pb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Study Notes & Knowledge Base</h3>
+                    <p className="text-xs text-muted">Focused markdown notes with live preview, AI summaries, and 1-click flashcard extraction.</p>
+                  </div>
+                  <span className="text-[11px] font-mono text-amber-400">Route: /notes</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs text-accent font-semibold">
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>🧠 Learning Science & Cognitive Load</span>
+                    </div>
+                    <p className="text-xs text-muted leading-relaxed">
+                      The testing effect demonstrates that retrieving memories actively strengthens synaptic connections significantly more than passive reading.
+                    </p>
+                    <div className="flex gap-1.5 pt-2">
+                      <span className="rounded bg-surface px-2 py-0.5 text-[10px] text-muted">#CognitiveScience</span>
+                      <span className="rounded bg-surface px-2 py-0.5 text-[10px] text-muted">#ActiveRecall</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-xs text-muted">
+                    <p className="font-bold text-foreground text-sm">Integrated Learning Flow</p>
+                    <p className="text-[11px] leading-relaxed">
+                      Link notes to subjects, trigger AI Feynman explanations, or convert your lecture points directly into SuperMemo SM-2 flashcard decks with zero manual retyping.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View 3: Focus Mode */}
             {activePreviewTab === 'focus' && (
               <div className="space-y-4">
                 <div className="border-b border-border/60 pb-3 flex items-center justify-between">

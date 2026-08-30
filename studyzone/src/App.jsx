@@ -13,6 +13,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const FocusPage = lazy(() => import('./pages/FocusPage'))
 const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'))
+const NotesPage = lazy(() => import('./pages/NotesPage'))
 const LearningAnalyticsPage = lazy(() => import('./pages/LearningAnalyticsPage'))
 const LearningPlansPage = lazy(() => import('./pages/LearningPlansPage'))
 const LearningPlanDetailPage = lazy(() => import('./pages/LearningPlanDetailPage'))
@@ -53,6 +54,7 @@ export default function App() {
                 <Route element={<AppLayout />}>
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="focus" element={<FocusPage />} />
+                  <Route path="notes" element={<NotesPage />} />
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="flashcards" element={<FlashcardsPage />} />
                   <Route path="analytics" element={<LearningAnalyticsPage />} />

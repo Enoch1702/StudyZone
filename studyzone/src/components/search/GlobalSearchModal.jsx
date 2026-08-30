@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CheckSquare,
   Compass,
+  FileText,
   History,
   LayoutDashboard,
   Milestone,
@@ -33,6 +34,15 @@ const QUICK_COMMANDS = [
     subtitle: 'Workspace overview and daily focus',
     icon: LayoutDashboard,
     route: '/dashboard',
+  },
+  {
+    id: 'cmd-notes',
+    type: 'command',
+    category: 'Quick Commands',
+    title: 'Go to Study Notes',
+    subtitle: 'Capture ideas, organize knowledge, and prepare for revision',
+    icon: FileText,
+    route: '/notes',
   },
   {
     id: 'cmd-focus',
@@ -130,6 +140,8 @@ function getCategoryIcon(type) {
   switch (type) {
     case 'subject':
       return BookOpen
+    case 'note':
+      return FileText
     case 'task':
       return CheckSquare
     case 'deadline':

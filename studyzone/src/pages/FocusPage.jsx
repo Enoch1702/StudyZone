@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Bell,
@@ -8,6 +8,7 @@ import {
   Clock,
   Eye,
   FastForward,
+  FileText,
   Flame,
   Headphones,
   Hourglass,
@@ -43,6 +44,7 @@ import { cn, formatDuration, formatSeconds } from '../lib/utils'
 export default function FocusPage() {
   const { user } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
   const {
     ambientPreset,
     ambientVolume,
@@ -1180,6 +1182,21 @@ export default function FocusPage() {
                     >
                       <Play className="h-3.5 w-3.5" />
                       <span>Start Next Focus Interval</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        handleReset()
+                        navigate(
+                          `/notes?subjectId=${completionData.subjectId || ''}&reflection=true`,
+                        )
+                      }}
+                      className="w-full gap-2 text-xs border-accent/40 text-accent hover:bg-accent/10 cursor-pointer"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>Write Study Reflection Note</span>
                     </Button>
 
                     <Button
