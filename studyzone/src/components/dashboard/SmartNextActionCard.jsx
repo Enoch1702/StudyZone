@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   ArrowRight,
+  Flame,
+  Plus,
   Sparkles,
   Timer,
   X,
@@ -15,16 +17,18 @@ export function SmartNextActionCard({ action, onDismiss }) {
   const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(false)
 
-  if (!action || dismissed) return null
+  if (dismissed) return null
 
   function handleStartFocus() {
-    if (action.action?.route) {
+    if (action?.action?.route) {
       navigate(action.action.route, { state: action.action.state })
+    } else {
+      navigate('/focus')
     }
   }
 
   function handleViewTask() {
-    if (action.type === 'deadline') {
+    if (action?.type === 'deadline') {
       navigate('/deadlines')
     } else {
       navigate('/tasks')
@@ -34,6 +38,61 @@ export function SmartNextActionCard({ action, onDismiss }) {
   function handleDismiss() {
     setDismissed(true)
     if (onDismiss) onDismiss()
+  }
+
+  // ─── If no action exists yet, render an inviting Get Started banner ───
+  if (!action) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full"
+      >
+        <div className="relative overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-r from-accent-muted/20 via-surface to-surface p-5 sm:p-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent flex items-center gap-1">
+                  Ready to Study?
+                </span>
+                <h3 className="text-base sm:text-lg font-extrabold text-foreground">
+                  Let&apos;s get your workspace in motion
+                </h3>
+                <p className="text-xs text-muted mt-1 leading-relaxed max-w-xl">
+                  Add your study tasks to activate automated priority ranking, or launch a quick focus session with ambient soundscapes right now.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
+              <Button
+                type="button"
+                size="md"
+                onClick={() => navigate('/tasks')}
+                className="gap-1.5 font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add a Task</span>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => navigate('/focus')}
+                className="gap-1.5 text-xs font-semibold cursor-pointer"
+              >
+                <Flame className="h-4 w-4 text-amber-500" />
+                <span>Quick Focus</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )
   }
 
   const badgeVariant =

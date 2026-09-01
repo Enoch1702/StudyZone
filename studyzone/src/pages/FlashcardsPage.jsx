@@ -468,7 +468,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
               Deck Review Complete!
             </h3>
             <p className="text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
-              You reviewed <strong className="text-foreground">{reviewedCount} flashcards</strong>. SuperMemo SM-2 has scheduled your next review intervals.
+              You reviewed <strong className="text-foreground">{reviewedCount} flashcard{reviewedCount === 1 ? '' : 's'}</strong>. Your next review dates have been automatically scheduled based on your recall accuracy.
             </p>
 
             <div className="pt-4 flex justify-center gap-3">

@@ -91,8 +91,8 @@ export function LogSessionCard({ subjects, tasks, onSessionLogged }) {
     <Card className="flex h-full flex-col p-0 border-border hover:border-border/80 transition-all duration-200">
       <div className="border-b border-border-subtle px-4 py-4 sm:px-5">
         <SectionHeader
-          title="Log Study Session"
-          description="Record your study time to track weekly progress."
+          title="Log External Study Session"
+          description="Studied offline or outside the app? Record past hours to keep weekly charts accurate."
         />
       </div>
 
@@ -226,7 +226,7 @@ export function LogSessionCard({ subjects, tasks, onSessionLogged }) {
               ) : (
                 <>
                   <BookOpen className="h-4 w-4" />
-                  <span>Log Study Session</span>
+                  <span>Log External Session</span>
                 </>
               )}
             </Button>

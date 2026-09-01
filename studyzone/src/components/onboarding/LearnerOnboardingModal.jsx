@@ -1,35 +1,25 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import {
-  BookOpen,
-  Briefcase,
-  Check,
-  Code,
-  GraduationCap,
-  School,
-  Sparkles,
-  Trophy,
-  ArrowRight,
   ArrowLeft,
+  ArrowRight,
+  Brain,
+  Check,
+  FileText,
+  Flame,
+  GraduationCap,
+  Sparkles,
   X,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { LEARNER_TYPES, PRIMARY_GOALS } from '../../lib/learnerProfile'
+import { createSubject } from '../../services/subjectsService'
+import { createTask } from '../../services/tasksService'
 import { updateLearnerProfile, skipLearnerOnboarding } from '../../services/learnerProfileService'
 import { useAuth } from '../../context/useAuth'
 import { cn } from '../../lib/utils'
-
-// Icon mapping for learner types
-const ICONS = {
-  GraduationCap,
-  School,
-  Briefcase,
-  Trophy,
-  Code,
-  BookOpen,
-}
 
 const overlayVariant = {
   hidden: { opacity: 0 },
@@ -54,67 +44,142 @@ const stepVariant = {
   exit: { opacity: 0, x: -16, transition: { duration: 0.15, ease: 'easeIn' } },
 }
 
-/**
- * Modern, focused 3-step onboarding modal for personalized learner setup.
- */
+// Suggested popular subjects for quick 1-click start
+const QUICK_SUBJECTS = [
+  { name: 'Data Structures & Algorithms', color: '#3b82f6', category: 'Computer Science' },
+  { name: 'Operating Systems & Networks', color: '#6366f1', category: 'Computer Science' },
+  { name: 'Mathematics & Calculus', color: '#10b981', category: 'Science' },
+  { name: 'Fullstack Web Development', color: '#f59e0b', category: 'Software' },
+]
+
 export function LearnerOnboardingModal({ isOpen, onClose }) {
   const { user, refreshProfile } = useAuth()
+  const navigate = useNavigate()
 
   const [step, setStep] = useState(1)
-  const [selectedType, setSelectedType] = useState('college')
-  const [selectedGoal, setSelectedGoal] = useState('exams')
-  const [focusInput, setFocusInput] = useState('')
+  const [selectedSubjectName, setSelectedSubjectName] = useState('')
+  const [selectedSubjectColor, setSelectedSubjectColor] = useState('#3b82f6')
+  const [customSubjectInput, setCustomSubjectInput] = useState('')
+  const [isCustomSubject, setIsCustomSubject] = useState(false)
+
+  const [taskTitle, setTaskTitle] = useState('')
+  const [taskDueDate, setTaskDueDate] = useState('')
+
+  const [createdSubjectId, setCreatedSubjectId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
   if (!isOpen) return null
 
-  // Auto-sync goal recommendations when learner type is selected
-  function handleSelectType(typeId) {
-    setSelectedType(typeId)
-    if (typeId === 'placement') setSelectedGoal('placements')
-    else if (typeId === 'competitive_exam') setSelectedGoal('competitive_exam')
-    else if (typeId === 'skill_dev') setSelectedGoal('skills')
-    else if (typeId === 'self_learning') setSelectedGoal('consistency')
-    else setSelectedGoal('exams')
+  function handleSelectQuickSubject(sub) {
+    setSelectedSubjectName(sub.name)
+    setSelectedSubjectColor(sub.color)
+    setIsCustomSubject(false)
+    setCustomSubjectInput('')
+    setErrorMsg('')
   }
 
-  async function handleComplete() {
+  function handleCustomSubjectSelect() {
+    setIsCustomSubject(true)
+    setSelectedSubjectName(customSubjectInput.trim())
+    setErrorMsg('')
+  }
+
+  // Progress to step 3 after validating or creating the subject
+  async function handleSubjectStepNext() {
+    const subjectName = isCustomSubject ? customSubjectInput.trim() : selectedSubjectName.trim()
+    if (!subjectName) {
+      setErrorMsg('Please select or enter a subject name to continue.')
+      return
+    }
+
+    setIsSaving(true)
+    setErrorMsg('')
+
+    try {
+      if (user?.id) {
+        const res = await createSubject({
+          userId: user.id,
+          name: subjectName,
+          color: selectedSubjectColor,
+          description: 'Created during initial setup',
+        })
+        if (res.data?.id) {
+          setCreatedSubjectId(res.data.id)
+        }
+      }
+      setStep(3)
+    } catch (err) {
+      console.warn('Subject creation note:', err)
+      setStep(3)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Progress to step 4 after creating task
+  async function handleTaskStepNext() {
+    setIsSaving(true)
+    setErrorMsg('')
+
+    try {
+      if (taskTitle.trim() && user?.id) {
+        await createTask({
+          userId: user.id,
+          subjectId: createdSubjectId || null,
+          title: taskTitle.trim(),
+          dueDate: taskDueDate ? new Date(taskDueDate).toISOString() : null,
+          priority: 'high',
+          status: 'pending',
+        })
+      }
+      setStep(4)
+    } catch (err) {
+      console.warn('Task creation note:', err)
+      setStep(4)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Complete onboarding and optionally navigate
+  async function handleFinish(destinationRoute = '/dashboard') {
     if (!user?.id) return
     setIsSaving(true)
     setErrorMsg('')
 
-    const result = await updateLearnerProfile({
-      userId: user.id,
-      learnerType: selectedType,
-      primaryGoal: selectedGoal,
-      learningFocus: focusInput.trim() || null,
-      onboardingCompleted: true,
-    })
-
-    if (result.error) {
-      setErrorMsg(result.error.message || 'Could not save your preferences. Please try again.')
-      setIsSaving(false)
-    } else {
+    try {
+      await updateLearnerProfile({
+        userId: user.id,
+        onboardingCompleted: true,
+      })
       await refreshProfile()
+    } catch (err) {
+      console.warn('Onboarding completion note:', err)
+    } finally {
       setIsSaving(false)
       onClose?.()
+      if (destinationRoute) {
+        navigate(destinationRoute)
+      }
     }
   }
 
   async function handleSkip() {
     if (!user?.id) return
     setIsSaving(true)
-    setErrorMsg('')
-
-    const result = await skipLearnerOnboarding({ userId: user.id })
-    if (result.error) {
-      console.warn('[StudyZone] Skip onboarding fallback:', result.error)
+    try {
+      await skipLearnerOnboarding({ userId: user.id })
+      await refreshProfile()
+    } catch (err) {
+      console.warn('[StudyZone] Skip onboarding fallback:', err)
+    } finally {
+      setIsSaving(false)
+      onClose?.()
     }
-    await refreshProfile()
-    setIsSaving(false)
-    onClose?.()
   }
+
+  const effectiveSubjectName = isCustomSubject ? customSubjectInput.trim() : selectedSubjectName
 
   return (
     <AnimatePresence>
@@ -140,21 +205,24 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
           className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl z-10"
         >
           {/* Header Banner */}
-          <div className="border-b border-border/80 bg-surface-raised/40 px-6 py-5 sm:px-8">
+          <div className="border-b border-border/80 bg-surface-raised/40 px-6 py-4 sm:px-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-accent border border-accent/25">
-                  <Sparkles className="h-4 w-4" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-sm shadow-blue-500/30">
+                  <GraduationCap className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-accent">
                     Welcome to StudyZone
                   </span>
                   <h2
                     id="onboarding-title"
-                    className="text-lg font-bold tracking-tight text-foreground"
+                    className="text-base sm:text-lg font-extrabold tracking-tight text-foreground"
                   >
-                    Personalize your workspace
+                    {step === 1 && 'Your Learning Operating System'}
+                    {step === 2 && 'What are you learning right now?'}
+                    {step === 3 && 'Add your first study task'}
+                    {step === 4 && 'You are ready to learn!'}
                   </h2>
                 </div>
               </div>
@@ -164,15 +232,16 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                 onClick={handleSkip}
                 disabled={isSaving}
                 aria-label="Skip onboarding"
-                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
+                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                title="Skip setup"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Step Progress Bar */}
-            <div className="mt-4 flex items-center gap-2">
-              {[1, 2, 3].map((s) => (
+            <div className="mt-3.5 flex items-center gap-2">
+              {[1, 2, 3, 4].map((s) => (
                 <div
                   key={s}
                   className={cn(
@@ -189,9 +258,9 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
           </div>
 
           {/* Body Content */}
-          <div className="p-6 sm:p-8 min-h-[340px] flex flex-col justify-between">
+          <div className="p-6 sm:p-8 min-h-[350px] flex flex-col justify-between">
             <AnimatePresence mode="wait">
-              {/* STEP 1 — Learner Category */}
+              {/* STEP 1 — Welcome & Workflow Overview */}
               {step === 1 && (
                 <motion.div
                   key="step-1"
@@ -201,61 +270,67 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                   exit="exit"
                   className="space-y-4"
                 >
-                  <div>
-                    <h3 className="text-base font-semibold text-foreground">
-                      What best describes your learning right now?
-                    </h3>
-                    <p className="mt-1 text-xs text-muted">
-                      Select your primary study focus so we can tailor your workspace.
-                    </p>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    StudyZone is built around one continuous learning workflow to keep you in flow:
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 mb-2 font-bold text-xs">
+                        1
+                      </div>
+                      <p className="text-xs font-bold text-foreground">PLAN</p>
+                      <p className="text-[11px] text-muted mt-0.5">Subjects & Tasks</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 mb-2 font-bold text-xs">
+                        2
+                      </div>
+                      <p className="text-xs font-bold text-foreground">FOCUS</p>
+                      <p className="text-[11px] text-muted mt-0.5">Timer & Audio</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 mb-2 font-bold text-xs">
+                        3
+                      </div>
+                      <p className="text-xs font-bold text-foreground">CAPTURE</p>
+                      <p className="text-[11px] text-muted mt-0.5">Study Notes</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 mb-2 font-bold text-xs">
+                        4
+                      </div>
+                      <p className="text-xs font-bold text-foreground">TRACK</p>
+                      <p className="text-[11px] text-muted mt-0.5">Daily Streaks</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500 mb-2 font-bold text-xs">
+                        5
+                      </div>
+                      <p className="text-xs font-bold text-foreground">IMPROVE</p>
+                      <p className="text-[11px] text-muted mt-0.5">AI Coaching</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500 mb-2 font-bold text-xs">
+                        6
+                      </div>
+                      <p className="text-xs font-bold text-foreground">REMEMBER</p>
+                      <p className="text-[11px] text-muted mt-0.5">SM-2 Flashcards</p>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {LEARNER_TYPES.map((type) => {
-                      const IconComp = ICONS[type.icon] || BookOpen
-                      const isSelected = selectedType === type.id
-
-                      return (
-                        <button
-                          key={type.id}
-                          type="button"
-                          onClick={() => handleSelectType(type.id)}
-                          className={cn(
-                            'group flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all duration-150',
-                            isSelected
-                              ? 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/40'
-                              : 'border-border bg-surface-raised/40 hover:border-border/80 hover:bg-surface-raised/70',
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors',
-                              isSelected
-                                ? 'border-accent/40 bg-accent text-white'
-                                : 'border-border/60 bg-surface-raised text-muted group-hover:text-foreground',
-                            )}
-                          >
-                            <IconComp className="h-4 w-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-semibold text-foreground">
-                                {type.label}
-                              </p>
-                              {isSelected && <Check className="h-3.5 w-3.5 text-accent" />}
-                            </div>
-                            <p className="mt-0.5 text-[11px] leading-tight text-muted line-clamp-2">
-                              {type.description}
-                            </p>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+                  <p className="text-xs text-muted">
+                    Let&apos;s set up your first subject and task in 30 seconds so your dashboard is immediately actionable.
+                  </p>
                 </motion.div>
               )}
 
-              {/* STEP 2 — Primary Goal */}
+              {/* STEP 2 — Create First Subject */}
               {step === 2 && (
                 <motion.div
                   key="step-2"
@@ -265,53 +340,79 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                   exit="exit"
                   className="space-y-4"
                 >
-                  <div>
-                    <h3 className="text-base font-semibold text-foreground">
-                      What is your main goal right now?
-                    </h3>
-                    <p className="mt-1 text-xs text-muted">
-                      We will adapt your task prioritization and AI study guidance.
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted">
+                    Subjects organize your tasks, notes, study logs, and flashcard decks. Select a quick topic or enter your own:
+                  </p>
 
-                  <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                    {PRIMARY_GOALS.map((goal) => {
-                      const isSelected = selectedGoal === goal.id
-
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {QUICK_SUBJECTS.map((sub) => {
+                      const isSelected = !isCustomSubject && selectedSubjectName === sub.name
                       return (
                         <button
-                          key={goal.id}
+                          key={sub.name}
                           type="button"
-                          onClick={() => setSelectedGoal(goal.id)}
+                          onClick={() => handleSelectQuickSubject(sub)}
                           className={cn(
-                            'flex w-full items-center justify-between rounded-xl border p-3 text-left transition-all duration-150',
+                            'flex items-center justify-between rounded-xl border p-3 text-left transition-all cursor-pointer',
                             isSelected
                               ? 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/40'
-                              : 'border-border bg-surface-raised/40 hover:border-border/80 hover:bg-surface-raised/70',
+                              : 'border-border bg-surface hover:border-accent/40 hover:bg-surface-raised/40',
                           )}
                         >
-                          <div className="min-w-0 flex-1 pr-3">
-                            <p className="text-xs font-semibold text-foreground">{goal.label}</p>
-                            <p className="mt-0.5 text-[11px] text-muted">{goal.description}</p>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span
+                              className="h-3 w-3 rounded-full shrink-0"
+                              style={{ backgroundColor: sub.color }}
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-foreground truncate">
+                                {sub.name}
+                              </p>
+                              <p className="text-[10px] text-muted">{sub.category}</p>
+                            </div>
                           </div>
-                          <div
-                            className={cn(
-                              'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all',
-                              isSelected
-                                ? 'border-accent bg-accent text-white'
-                                : 'border-border bg-surface',
-                            )}
-                          >
-                            {isSelected && <Check className="h-3 w-3" />}
-                          </div>
+                          {isSelected && <Check className="h-4 w-4 text-accent shrink-0" />}
                         </button>
                       )
                     })}
                   </div>
+
+                  {/* Custom Subject Input */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleCustomSubjectSelect}
+                      className={cn(
+                        'w-full text-left rounded-xl border p-3 transition-all cursor-pointer mb-2 text-xs font-bold',
+                        isCustomSubject
+                          ? 'border-accent bg-accent/10 text-accent'
+                          : 'border-border/80 bg-surface text-foreground hover:bg-surface-raised/40',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>+ Enter Custom Subject</span>
+                        {isCustomSubject && <Check className="h-4 w-4 text-accent" />}
+                      </div>
+                    </button>
+
+                    {isCustomSubject && (
+                      <div className="space-y-1.5 pt-1">
+                        <Input
+                          placeholder="e.g. Machine Learning, Biology, Economics..."
+                          value={customSubjectInput}
+                          onChange={(e) => setCustomSubjectInput(e.target.value)}
+                          autoFocus
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {errorMsg && <p className="text-xs text-danger font-medium">{errorMsg}</p>}
                 </motion.div>
               )}
 
-              {/* STEP 3 — Current Focus (Optional) */}
+              {/* STEP 3 — Add First Task */}
               {step === 3 && (
                 <motion.div
                   key="step-3"
@@ -321,105 +422,187 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                   exit="exit"
                   className="space-y-4"
                 >
+                  <p className="text-xs text-muted">
+                    What is one specific study goal or topic you want to complete first?
+                  </p>
+
+                  <div className="rounded-xl border border-border/80 bg-surface-raised/40 p-3.5 space-y-3">
+                    <div className="flex items-center gap-2 text-xs text-muted">
+                      <span>Linked Subject:</span>
+                      <span className="font-bold text-foreground px-2 py-0.5 rounded-md bg-surface border border-border">
+                        {effectiveSubjectName || 'General Studies'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="onboarding-task-title" className="block text-xs font-semibold text-foreground">
+                        Task Title <span className="text-accent">*</span>
+                      </label>
+                      <Input
+                        id="onboarding-task-title"
+                        placeholder="e.g. Review lecture notes & solve 3 practice problems"
+                        value={taskTitle}
+                        onChange={(e) => setTaskTitle(e.target.value)}
+                        autoFocus
+                        className="text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="onboarding-task-due" className="block text-xs font-semibold text-muted">
+                        Due Date (Optional)
+                      </label>
+                      <Input
+                        id="onboarding-task-due"
+                        type="date"
+                        value={taskDueDate}
+                        onChange={(e) => setTaskDueDate(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-muted">
+                    This task will appear directly on your Dashboard in <strong>Today&apos;s Focus</strong> and power your <strong>Best Next Action</strong>.
+                  </p>
+
+                  {errorMsg && <p className="text-xs text-danger font-medium">{errorMsg}</p>}
+                </motion.div>
+              )}
+
+              {/* STEP 4 — Ready to Learn! */}
+              {step === 4 && (
+                <motion.div
+                  key="step-4"
+                  variants={stepVariant}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="space-y-4 text-center py-2"
+                >
+                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 shadow-sm">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+
                   <div>
-                    <h3 className="text-base font-semibold text-foreground">
-                      What are you currently focused on?
+                    <h3 className="text-base font-extrabold text-foreground">
+                      Workspace Ready!
                     </h3>
-                    <p className="mt-1 text-xs text-muted">
-                      Optional — add key topics or courses to help the AI assistant give targeted advice.
+                    <p className="text-xs text-muted mt-1 max-w-sm mx-auto leading-relaxed">
+                      Subject <strong className="text-foreground">{effectiveSubjectName}</strong> and your first task have been saved. Where would you like to start?
                     </p>
                   </div>
 
-                  <div className="space-y-3 pt-2">
-                    <label
-                      htmlFor="onboarding-focus"
-                      className="block text-xs font-medium text-foreground"
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleFinish('/focus')}
+                      className="group flex flex-col items-center justify-center rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-accent hover:bg-accent hover:text-white transition-all cursor-pointer shadow-xs"
                     >
-                      Current focus topics or skills
-                    </label>
-                    <Input
-                      id="onboarding-focus"
-                      value={focusInput}
-                      onChange={(e) => setFocusInput(e.target.value)}
-                      placeholder="e.g. Java, NEET Biology, DSA, React, GATE..."
-                      className="h-11 text-sm"
-                      autoFocus
-                    />
-                    <div className="rounded-lg bg-surface-raised/60 p-3 border border-border/50">
-                      <p className="text-[11px] leading-relaxed text-muted">
-                        💡 <strong className="text-foreground font-medium">Tip:</strong> This context
-                        helps your AI assistant tailor study plans and recommendations. You can add or
-                        update your subjects anytime in the <strong className="text-foreground font-medium">Subjects</strong> tab.
-                      </p>
-                    </div>
+                      <Flame className="h-5 w-5 mb-1.5 group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold">Start Focus</span>
+                      <span className="text-[10px] opacity-80 mt-0.5">Pomodoro & Sound</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFinish('/notes')}
+                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3.5 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
+                    >
+                      <FileText className="h-5 w-5 mb-1.5 text-muted group-hover:text-accent transition-colors" />
+                      <span className="text-xs font-bold">Study Notes</span>
+                      <span className="text-[10px] text-muted mt-0.5">Markdown & AI</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFinish('/flashcards')}
+                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3.5 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
+                    >
+                      <Brain className="h-5 w-5 mb-1.5 text-muted group-hover:text-accent transition-colors" />
+                      <span className="text-xs font-bold">Flashcards</span>
+                      <span className="text-[10px] text-muted mt-0.5">SM-2 Spaced Recall</span>
+                    </button>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Error Message */}
-            {errorMsg && (
-              <p className="mt-3 text-xs text-danger font-medium">{errorMsg}</p>
-            )}
-
-            {/* Footer Navigation */}
-            <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4">
-              {step > 1 ? (
+            {/* Footer Navigation Buttons */}
+            <div className="mt-6 flex items-center justify-between border-t border-border/80 pt-4">
+              {step > 1 && step < 4 ? (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setStep((s) => s - 1)}
                   disabled={isSaving}
-                  className="gap-1.5 text-xs text-muted"
+                  className="gap-1.5 text-xs font-semibold cursor-pointer"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  <span>Back</span>
+                  Back
                 </Button>
               ) : (
                 <button
                   type="button"
                   onClick={handleSkip}
                   disabled={isSaving}
-                  className="text-xs font-medium text-muted hover:text-foreground transition-colors underline-offset-4 hover:underline"
+                  className="text-xs font-medium text-muted hover:text-foreground transition-colors cursor-pointer"
                 >
-                  Skip for now
+                  Skip setup
                 </button>
               )}
 
-              <div className="flex items-center gap-2">
-                {step < 3 ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setStep((s) => s + 1)}
-                    className="gap-1.5 text-xs"
-                  >
-                    <span>Continue</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleComplete}
-                    disabled={isSaving}
-                    className="gap-1.5 text-xs"
-                  >
-                    {isSaving ? (
-                      <>
-                        <LoadingSpinner size="sm" />
-                        <span>Saving...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Complete Setup</span>
-                        <Check className="h-3.5 w-3.5" />
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
+              {step === 1 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setStep(2)}
+                  className="gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  <span>Get Started</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {step === 2 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSubjectStepNext}
+                  disabled={isSaving || (!selectedSubjectName && !customSubjectInput.trim())}
+                  className="gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  {isSaving ? <LoadingSpinner size="sm" /> : <span>Continue</span>}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {step === 3 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleTaskStepNext}
+                  disabled={isSaving}
+                  className="gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  {isSaving ? <LoadingSpinner size="sm" /> : <span>Continue</span>}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {step === 4 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleFinish('/dashboard')}
+                  disabled={isSaving}
+                  className="gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  {isSaving ? <LoadingSpinner size="sm" /> : <span>Go to Dashboard</span>}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           </div>
         </motion.div>

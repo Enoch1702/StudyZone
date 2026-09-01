@@ -12,12 +12,14 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
+  Search,
   Settings,
   Timer,
   TrendingUp,
   X,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
+import { useSearch } from '../../context/useSearch'
 import { cn, getInitials } from '../../lib/utils'
 
 const navSections = [
@@ -25,19 +27,19 @@ const navSections = [
     title: 'Workspace',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/notes', label: 'Study Notes', icon: FileText },
       { to: '/focus', label: 'Focus Mode', icon: Timer },
-      { to: '/calendar', label: 'Study Calendar', icon: CalendarDays },
+      { to: '/notes', label: 'Study Notes', icon: FileText },
       { to: '/flashcards', label: 'Flashcards', icon: Brain },
+      { to: '/calendar', label: 'Study Calendar', icon: CalendarDays },
     ],
   },
   {
-    title: 'Curriculum & Plans',
+    title: 'Organize',
     items: [
-      { to: '/plans', label: 'Learning Plans', icon: Compass },
       { to: '/subjects', label: 'Subjects', icon: BookOpen },
       { to: '/tasks', label: 'Tasks', icon: CheckSquare },
       { to: '/deadlines', label: 'Deadlines', icon: CalendarDays },
+      { to: '/plans', label: 'Learning Plans', icon: Compass },
     ],
   },
   {
@@ -57,7 +59,10 @@ const navSections = [
 
 export function Sidebar({ open, onClose }) {
   const { profile, user, signOut } = useAuth()
+  const { openSearch } = useSearch()
   const navigate = useNavigate()
+  const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
+
   const displayName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
@@ -115,6 +120,26 @@ export function Sidebar({ open, onClose }) {
             onClick={onClose}
           >
             <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Quick Search in Sidebar */}
+        <div className="px-3 pt-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (onClose) onClose()
+              openSearch()
+            }}
+            className="group flex w-full items-center justify-between rounded-xl border border-border/70 bg-surface-raised/40 px-2.5 py-1.5 text-xs text-muted hover:border-accent/40 hover:bg-surface-raised hover:text-foreground transition-all cursor-pointer shadow-2xs"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Search className="h-3.5 w-3.5 text-muted group-hover:text-accent transition-colors shrink-0" />
+              <span className="truncate text-[11px]">Quick Search...</span>
+            </div>
+            <kbd className="rounded border border-border/80 bg-surface px-1.5 py-0.5 text-[9px] font-mono text-muted group-hover:text-foreground shrink-0">
+              {isMac ? '⌘K' : 'Ctrl K'}
+            </kbd>
           </button>
         </div>
 
@@ -187,7 +212,7 @@ export function Sidebar({ open, onClose }) {
               onClick={handleSignOut}
               aria-label="Sign out"
               title="Sign out"
-              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95"
+              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95 cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
             </button>

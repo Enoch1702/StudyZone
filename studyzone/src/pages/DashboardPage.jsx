@@ -10,7 +10,6 @@ import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans
 import { LearningInsightsPreview } from '../components/dashboard/LearningInsightsPreview'
 import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
-import { DailyWrapUpCard } from '../components/dashboard/DailyWrapUpCard'
 import { RecentNotesCard } from '../components/dashboard/RecentNotesCard'
 import {
   fetchDashboardData,
@@ -119,8 +118,8 @@ export default function DashboardPage() {
         deadlines={dashData?.deadlines ?? []}
       />
 
-      {/* ─── 2. Smart Next Action Priority Hero Recommendation ────── */}
-      {!loading && smartNextAction && (
+      {/* ─── 2. Smart Next Action Priority Hero / Get Started Banner ─ */}
+      {!loading && (
         <SmartNextActionCard action={smartNextAction} />
       )}
 
@@ -163,22 +162,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ─── 5. Analytics, Reflection & Action Center (Balanced 2-Col Grid) ── */}
+      {/* ─── 5. Analytics & Action Center (Balanced 2-Col Grid) ────── */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
-        {/* Left Column: Weekly Productivity & Daily Reflection */}
+        {/* Left Column: Weekly Activity & Goals */}
         <div className="space-y-5">
           <ProductivityChart
             loading={loading}
             weeklyActivity={dashData?.weeklyActivity ?? null}
           />
-          <DailyWrapUpCard
-            tasks={dashData?.tasks ?? []}
-            sessions={dashData?.sessions ?? []}
-            currentStreak={consistency.currentStreak}
-          />
         </div>
 
-        {/* Right Column: Recent Notes Knowledge Preview & Log Session */}
+        {/* Right Column: Recent Notes Knowledge Preview & External Logger */}
         <div className="space-y-5">
           <RecentNotesCard
             loading={loading}
