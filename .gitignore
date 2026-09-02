@@ -16,3 +16,10 @@ Thumbs.db
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea
+
+# Local Developer & Recruitment Notes (Only for local use)
+ARCHITECTURE_EXPLAINED.md
+ARCHITECTURE_VISUAL_GUIDE.html
+*INTERVIEW*
+*RECRUITMENT*
+*.local.md

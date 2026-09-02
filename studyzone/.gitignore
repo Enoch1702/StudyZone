@@ -27,3 +27,10 @@ dist
 *.njsproj
 *.sln
 *.sw?
+
+# Local Developer & Recruitment Notes (Only for local use)
+ARCHITECTURE_EXPLAINED.md
+ARCHITECTURE_VISUAL_GUIDE.html
+*INTERVIEW*
+*RECRUITMENT*
+*.local.md
