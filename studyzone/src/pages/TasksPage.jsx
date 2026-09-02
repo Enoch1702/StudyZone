@@ -178,7 +178,11 @@ export default function TasksPage() {
       ),
     )
 
-    const result = await toggleTaskComplete(task.id, isCompleted, user.id)
+    const result = await toggleTaskComplete({
+      id: task.id,
+      userId: user.id,
+      isCompleted,
+    })
 
     if (result.error) {
       setTasks((prev) =>
@@ -194,21 +198,30 @@ export default function TasksPage() {
     setBannerError('')
 
     const payload = {
+      userId: user.id,
       user_id: user.id,
       title: formData.title,
       description: formData.description,
+      subjectId: formData.subject_id,
       subject_id: formData.subject_id,
+      planId: formData.plan_id,
       plan_id: formData.plan_id,
+      milestoneId: formData.milestone_id,
       milestone_id: formData.milestone_id,
       priority: formData.priority,
       status: formData.status,
+      dueDate: formData.due_date,
       due_date: formData.due_date,
+      estimatedMinutes: formData.estimated_minutes,
       estimated_minutes: formData.estimated_minutes,
     }
 
     let result
     if (modalState.task) {
-      result = await updateTask(modalState.task.id, payload, user.id)
+      result = await updateTask({
+        id: modalState.task.id,
+        ...payload,
+      })
     } else {
       result = await createTask(payload)
     }
@@ -230,7 +243,7 @@ export default function TasksPage() {
     setActionLoading(true)
     setBannerError('')
 
-    const result = await deleteTask(taskId, user.id)
+    const result = await deleteTask({ id: taskId, userId: user.id })
     setActionLoading(false)
 
     if (result.error) {

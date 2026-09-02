@@ -122,19 +122,29 @@ export async function createTask(params = {}) {
 
 /**
  * Update an existing task owned by the authenticated user.
+ * Supports both object syntax { id, userId, ... } and positional syntax (id, payload, userId).
  */
-export async function updateTask(params = {}) {
-  const id = params.id
-  const userId = params.userId || params.user_id
-  const subjectId = params.subjectId !== undefined ? params.subjectId : params.subject_id
-  const planId = params.planId !== undefined ? params.planId : params.plan_id
-  const milestoneId = params.milestoneId !== undefined ? params.milestoneId : params.milestone_id
-  const title = params.title
-  const description = params.description
-  const priority = params.priority
-  const status = params.status
-  const dueDate = params.dueDate !== undefined ? params.dueDate : params.due_date
-  const estimatedMinutes = params.estimatedMinutes !== undefined ? params.estimatedMinutes : params.estimated_minutes
+export async function updateTask(arg1 = {}, arg2, arg3) {
+  let id, userId, payload
+  if (typeof arg1 === 'string') {
+    id = arg1
+    payload = arg2 || {}
+    userId = arg3 || payload.userId || payload.user_id
+  } else {
+    id = arg1.id
+    userId = arg1.userId || arg1.user_id
+    payload = arg1
+  }
+
+  const subjectId = payload.subjectId !== undefined ? payload.subjectId : payload.subject_id
+  const planId = payload.planId !== undefined ? payload.planId : payload.plan_id
+  const milestoneId = payload.milestoneId !== undefined ? payload.milestoneId : payload.milestone_id
+  const title = payload.title
+  const description = payload.description
+  const priority = payload.priority
+  const status = payload.status
+  const dueDate = payload.dueDate !== undefined ? payload.dueDate : payload.due_date
+  const estimatedMinutes = payload.estimatedMinutes !== undefined ? payload.estimatedMinutes : payload.estimated_minutes
 
   if (!id || !userId) {
     return { data: null, error: new Error('Task ID and user ID are required.') }
@@ -203,17 +213,19 @@ export async function updateTask(params = {}) {
  * Toggle task completion state.
  * Completed → sets status='completed' and completed_at=now()
  * Uncompleted → sets status='pending' and completed_at=null
- *
- * @param {Object} params
- * @param {string} params.id - Task UUID
- * @param {string} params.userId - Authenticated user UUID
- * @param {boolean} params.isCompleted - Current completed state (true = currently completed)
- * @returns {Promise<{ data: Object|null, error: Error|null }>}
+ * Supports both object syntax { id, userId, isCompleted } and positional (id, isCompleted, userId).
  */
-export async function toggleTaskComplete(params = {}) {
-  const id = params.id
-  const userId = params.userId || params.user_id
-  const isCompleted = params.isCompleted !== undefined ? params.isCompleted : params.is_completed
+export async function toggleTaskComplete(arg1 = {}, arg2, arg3) {
+  let id, userId, isCompleted
+  if (typeof arg1 === 'string') {
+    id = arg1
+    isCompleted = typeof arg2 === 'boolean' ? arg2 : Boolean(arg2)
+    userId = arg3
+  } else {
+    id = arg1.id
+    userId = arg1.userId || arg1.user_id
+    isCompleted = arg1.isCompleted !== undefined ? arg1.isCompleted : arg1.is_completed
+  }
 
   if (!id || !userId) {
     return { data: null, error: new Error('Task ID and user ID are required.') }
@@ -250,10 +262,17 @@ export async function toggleTaskComplete(params = {}) {
 
 /**
  * Permanently delete a task belonging to the authenticated user.
+ * Supports both object syntax { id, userId } and positional (id, userId).
  */
-export async function deleteTask(params = {}) {
-  const id = typeof params === 'object' ? params.id : params
-  const userId = typeof params === 'object' ? (params.userId || params.user_id) : null
+export async function deleteTask(arg1 = {}, arg2) {
+  let id, userId
+  if (typeof arg1 === 'string') {
+    id = arg1
+    userId = arg2
+  } else {
+    id = arg1.id
+    userId = arg1.userId || arg1.user_id
+  }
 
   if (!id) {
     return { error: new Error('Task ID is required.') }
