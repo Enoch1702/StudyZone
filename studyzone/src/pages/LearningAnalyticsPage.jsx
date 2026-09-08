@@ -198,38 +198,45 @@ export default function LearningAnalyticsPage() {
             </span>
           </div>
 
-          {/* Building Baseline Notice if < 3 sessions */}
-          {analyticsRaw.sessions.length < 3 && (
-            <div className="rounded-2xl border border-accent/25 bg-accent/5 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                  <span>🌱 Building Your Learning Baseline</span>
-                  <span className="rounded bg-accent/15 px-2 py-0.5 text-[10px] font-extrabold text-accent">
-                    {analyticsRaw.sessions.length} / 3 sessions logged
-                  </span>
-                </h3>
-                <p className="text-xs text-muted max-w-xl leading-relaxed">
-                  StudyZone calculates your trends strictly from real study sessions. Complete at least 3 focus blocks to unlock deeper subject balance and time distribution analysis.
-                </p>
+          {/* Insufficient Data Guard: When < 3 sessions logged */}
+          {analyticsRaw.sessions.length < 3 ? (
+            <div className="rounded-2xl border border-border bg-surface p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4 shadow-sm my-6">
+              <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-accent/15 text-accent border border-accent/30">
+                <TrendingUp className="h-7 w-7" />
               </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => window.location.href = '/focus'}
-                className="shrink-0 text-xs font-bold"
-              >
-                Start a Focus Session
-              </Button>
+              <div className="space-y-2">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">
+                  📊 Your Learning Insights Are Building
+                </h3>
+                <p className="text-xs sm:text-sm text-muted leading-relaxed">
+                  Complete a few study sessions and tasks to start seeing patterns in your learning activity. Detailed consistency calendars, subject time distribution, and habits will unlock once you log 3 focus blocks.
+                </p>
+                <div className="pt-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-3 py-1 text-xs font-semibold text-accent">
+                    🌱 {analyticsRaw.sessions.length} of 3 sessions completed
+                  </span>
+                </div>
+              </div>
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  size="md"
+                  onClick={() => window.location.href = '/focus'}
+                  className="font-bold cursor-pointer"
+                >
+                  Start a Focus Session
+                </Button>
+              </div>
             </div>
-          )}
-
-          {/* Top Hero StatCards Grid */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
-          >
+          ) : (
+            <>
+              {/* Top Hero StatCards Grid */}
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
+              >
             <motion.div variants={staggerItem}>
               <StatCard
                 label="Study Streak"
@@ -335,8 +342,10 @@ export default function LearningAnalyticsPage() {
               </div>
             </motion.div>
           </div>
-        </div>
+        </>
       )}
-    </PageContainer>
+    </div>
+  )}
+</PageContainer>
   )
 }

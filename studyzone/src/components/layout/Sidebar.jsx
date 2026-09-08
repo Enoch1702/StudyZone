@@ -37,7 +37,7 @@ const navSections = [
     items: [
       { to: '/subjects', label: 'Subjects', icon: BookOpen },
       { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-      { to: '/calendar', label: 'Calendar & Deadlines', icon: CalendarDays },
+      { to: '/calendar', label: 'Calendar', icon: CalendarDays },
     ],
   },
   {
@@ -55,7 +55,7 @@ const navSections = [
   {
     title: 'AI',
     items: [
-      { to: '/ai-assistant', label: 'AI Study Tutor', icon: Bot },
+      { to: '/ai-assistant', label: 'Study Assistant', icon: Bot },
     ],
   },
   {

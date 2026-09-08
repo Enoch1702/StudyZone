@@ -2,29 +2,41 @@ import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useAuth } from '../context/useAuth'
 import { PageContainer } from '../components/layout/PageContainer'
 import { WelcomeSection } from '../components/dashboard/WelcomeSection'
-import { SmartNextActionCard } from '../components/dashboard/SmartNextActionCard'
 import { GettingStartedCard } from '../components/dashboard/GettingStartedCard'
-import { StatsGrid } from '../components/dashboard/StatsGrid'
+import { SmartNextActionCard } from '../components/dashboard/SmartNextActionCard'
 import { TodaysFocus } from '../components/dashboard/TodaysFocus'
-import { UpcomingDeadlinesList } from '../components/dashboard/UpcomingDeadlinesList'
-import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans'
-import { LogSessionCard } from '../components/dashboard/LogSessionCard'
+import { QuickFocusCard } from '../components/dashboard/QuickFocusCard'
 import { RecentNotesCard } from '../components/dashboard/RecentNotesCard'
+import { WeeklySummaryStrip } from '../components/dashboard/WeeklySummaryStrip'
 import {
   fetchDashboardData,
-  computeTaskStats,
   computeFocusTasks,
 } from '../services/dashboardService'
 import { getNotes } from '../services/notesService'
 import { computeSmartNextAction } from '../services/smartNextActionService'
 
+/**
+ * Dashboard Page — The Daily Action Hub.
+ *
+ * Core Question Answered: "What should I do now?"
+ *
+ * Contains EXACTLY six primary functional sections:
+ *   1. Welcome Section (simple greeting, no role badge, no unnecessary statistics)
+ *   2. Smart Next Action (deterministic, explainable recommendation with "Why this?")
+ *   3. Today's Focus (concise preview of tasks scheduled/due today with 1-click completion)
+ *   4. Quick Focus (immediate 1-click launcher for 25:00 distraction-free session)
+ *   5. Recent Notes (fast access to recently edited study notes)
+ *   6. Weekly Summary Strip (compact 1-line overview: Study Time, Active Days, Tasks Completed)
+ *
+ * Strictly NO duplicate analytics, NO Total Tasks / Completed / Upcoming / Progress cards,
+ * NO Productivity Chart, NO Upcoming Deadlines card, NO Active Learning Plans card.
+ */
 export default function DashboardPage() {
   const { user } = useAuth()
 
   const [dashData, setDashData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
-  const [sessionRefreshKey, setSessionRefreshKey] = useState(0)
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
@@ -40,11 +52,9 @@ export default function DashboardPage() {
     if (result.error) {
       setFetchError(result.error?.message || 'Failed to load dashboard data.')
     } else {
-      const stats = computeTaskStats(result.tasks)
       const focusTasks = computeFocusTasks(result.tasks)
 
       setDashData({
-        stats,
         focusTasks,
         deadlines: result.deadlines,
         subjects: result.subjects,
@@ -60,15 +70,12 @@ export default function DashboardPage() {
   }, [user])
 
   useEffect(() => {
-    ;(async () => { await loadData() })()
-  }, [loadData, sessionRefreshKey])
+    ;(async () => {
+      await loadData()
+    })()
+  }, [loadData])
 
-  async function handleSessionLogged() {
-    await loadData()
-    setSessionRefreshKey((k) => k + 1)
-  }
-
-  // Deterministic Smart Next Action recommendation
+  // Deterministic Smart Next Action recommendation (Transparent Rule-Based Heuristic)
   const smartNextAction = useMemo(() => {
     if (!dashData) return null
     return computeSmartNextAction({
@@ -81,35 +88,31 @@ export default function DashboardPage() {
     })
   }, [dashData])
 
-  const hasActivePlans = useMemo(() => {
-    return (dashData?.plans || []).some((p) => p.status === 'active')
-  }, [dashData])
-
   return (
-    <PageContainer width="wide" className="space-y-5 pb-12">
-      {/* ─── 1. Welcome Greeting & Status ───────────── */}
-      <WelcomeSection
-        loading={loading}
-        stats={dashData?.stats ?? null}
-        focusTasks={dashData?.focusTasks ?? []}
-        deadlines={dashData?.deadlines ?? []}
-      />
+    <PageContainer width="wide" className="space-y-6 pb-12">
+      {/* ─── 1. Welcome Section ─────────────────────────────── */}
+      <WelcomeSection />
 
-      {/* ─── 2. Getting Started Guide (Dismissible) ─────── */}
+      {/* ─── Dismissible Getting Started Guide (First-Time Only) ─── */}
       <GettingStartedCard />
 
-      {/* ─── 3. Deterministic Recommended Next Action ─── */}
+      {/* Error Alert if data fetch failed */}
+      {fetchError && (
+        <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-xs text-danger">
+          {fetchError}
+        </div>
+      )}
+
+      {/* ─── 2. Smart Next Action (Deterministic Heuristic) ─── */}
       {!loading && (
         <SmartNextActionCard action={smartNextAction} />
       )}
 
-      {/* ─── 4. Quick Metrics Strip ───────────────────── */}
-      <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
-
-      {/* ─── 5. Actionable Learning Workspace Hub ──────── */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
-        {/* Left Column: Immediate Action Focus */}
-        <div className="space-y-5">
+      {/* ─── Actionable Learning Workspace Hub (Sections 3, 4, 5) ─── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
+        {/* Left Column: Immediate Task Action & Notes */}
+        <div className="space-y-6">
+          {/* ─── 3. Today's Focus ─────────────────────────────── */}
           <TodaysFocus
             loading={loading}
             tasks={dashData?.focusTasks ?? []}
@@ -117,6 +120,7 @@ export default function DashboardPage() {
             onTaskToggled={loadData}
           />
 
+          {/* ─── 5. Recent Notes ──────────────────────────────── */}
           <RecentNotesCard
             loading={loading}
             notes={dashData?.notes ?? []}
@@ -124,30 +128,19 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Right Column: Deadlines, Sessions & Roadmaps */}
-        <div className="space-y-5">
-          <UpcomingDeadlinesList
-            loading={loading}
-            deadlines={dashData?.deadlines ?? []}
-            subjects={dashData?.subjects ?? []}
-          />
-
-          <LogSessionCard
-            subjects={dashData?.subjects ?? []}
-            tasks={(dashData?.tasks ?? []).filter((t) => t.status !== 'completed')}
-            onSessionLogged={handleSessionLogged}
-          />
-
-          {hasActivePlans && (
-            <ActiveLearningPlans
-              loading={loading}
-              plans={dashData?.plans ?? []}
-              milestones={dashData?.milestones ?? []}
-              tasks={dashData?.tasks ?? []}
-            />
-          )}
+        {/* Right Column: Quick Focus Timer Launcher */}
+        <div className="space-y-6">
+          {/* ─── 4. Quick Focus ───────────────────────────────── */}
+          <QuickFocusCard />
         </div>
       </div>
+
+      {/* ─── 6. Weekly Summary Strip ────────────────────────── */}
+      <WeeklySummaryStrip
+        loading={loading}
+        sessions={dashData?.sessions ?? []}
+        tasks={dashData?.tasks ?? []}
+      />
     </PageContainer>
   )
 }
