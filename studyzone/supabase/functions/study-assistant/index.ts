@@ -1,4 +1,5 @@
-// @ts-nocheck — This file runs on Deno (Supabase Edge Functions), not Node.js.
+// @ts-nocheck
+// This file runs on Deno (Supabase Edge Functions), not Node.js.
 // URL imports, Deno.* globals, and Deno-style TypeScript are intentional.
 /**
  * StudyZone AI Assistant — Supabase Edge Function
