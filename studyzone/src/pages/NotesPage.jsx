@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   AlertCircle,
@@ -10,8 +10,8 @@ import {
   Brain,
   Check,
   CheckCircle2,
-  Clock,
   Code,
+  Copy,
   FileText,
   Heading1,
   Heading2,
@@ -20,6 +20,7 @@ import {
   Layers,
   List,
   ListOrdered,
+  MessageSquare,
   Pin,
   PinOff,
   Plus,
@@ -31,9 +32,10 @@ import {
   X,
 } from 'lucide-react'
 import { PageContainer } from '../components/layout/PageContainer'
-import { Card, CardHeader, CardTitle } from '../components/ui/Card'
+import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth } from '../context/useAuth'
 import { getSubjects } from '../services/subjectsService'
 import {
@@ -51,6 +53,7 @@ import { cn, formatDate } from '../lib/utils'
 export default function NotesPage() {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   // ─── Data State ────────────────────────────────────────────────
   const [notes, setNotes] = useState([])
@@ -63,8 +66,6 @@ export default function NotesPage() {
   const [selectedSubjectId, setSelectedSubjectId] = useState(
     () => searchParams.get('subjectId') || '',
   )
-  const [selectedTag, setSelectedTag] = useState('')
-  const [sortBy, setSortBy] = useState('updated_desc')
   const [showArchived, setShowArchived] = useState(false)
 
   // ─── Active Note / Editor State ────────────────────────────────
@@ -76,21 +77,28 @@ export default function NotesPage() {
   const [editorTags, setEditorTags] = useState([])
   const [newTagInput, setNewTagInput] = useState('')
   const [isEditorPinned, setIsEditorPinned] = useState(false)
-  const [editorViewMode, setEditorViewMode] = useState('split') // 'edit', 'preview', 'split'
+  const [editorViewMode, setEditorViewMode] = useState('edit') // 'edit' or 'preview'
 
-  // ─── Save State Tracking ───────────────────────────────────────
-  const [saveStatus, setSaveStatus] = useState('saved') // 'saving', 'saved', 'unsaved', 'error'
+  // ─── Save & Draft State Tracking ───────────────────────────────
+  const [saveStatus, setSaveStatus] = useState('saved') // 'saving', 'saved', 'unsaved', 'offline', 'error'
   const [lastSavedTime, setLastSavedTime] = useState(null)
   const autoSaveTimerRef = useRef(null)
   const textareaRef = useRef(null)
 
+  // ─── Delete Confirmation Modal ─────────────────────────────────
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [noteToDelete, setNoteToDelete] = useState(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
   // ─── AI Modal & Proposal States ────────────────────────────────
+  const [aiMenuOpen, setAiMenuOpen] = useState(false)
   const [aiActionLoading, setAiActionLoading] = useState(false)
   const [aiProposalType, setAiProposalType] = useState(null) // 'summary', 'questions', 'explain', 'structure'
   const [aiProposalContent, setAiProposalContent] = useState('')
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
+  const [copiedProposal, setCopiedProposal] = useState(false)
 
-  // Flashcards proposal state
+  // ─── Flashcards from Note Generator State ──────────────────────
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false)
   const [proposedFlashcards, setProposedFlashcards] = useState([])
   const [flashcardDeckTitle, setFlashcardDeckTitle] = useState('')
@@ -100,28 +108,41 @@ export default function NotesPage() {
   // ─── Subject Map ───────────────────────────────────────────────
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
 
-  // ─── All Distinct Tags in User Notes ───────────────────────────
-  const allTags = useMemo(() => {
-    const tagSet = new Set()
-    notes.forEach((n) => {
-      if (Array.isArray(n.tags)) {
-        n.tags.forEach((t) => tagSet.add(t))
-      }
-    })
-    return Array.from(tagSet).sort()
-  }, [notes])
-
-  // Helper to load note details into editor
+  // Helper to load note details into editor with local draft recovery
   const loadNoteIntoEditor = useCallback((note) => {
     if (!note) return
     setActiveNoteId(note.id)
-    setEditorTitle(note.title || '')
-    setEditorContent(note.content || '')
-    setEditorSummary(note.summary || '')
+
+    // Check for offline unsaved draft in localStorage
+    let titleToSet = note.title || ''
+    let contentToSet = note.content || ''
+    let summaryToSet = note.summary || ''
+    let isDraftRestored = false
+
+    try {
+      const rawDraft = localStorage.getItem(`studyzone_draft_note_${note.id}`)
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft)
+        const noteUpdatedTs = new Date(note.updatedAt || note.createdAt || 0).getTime()
+        if (draft && draft.timestamp && draft.timestamp > noteUpdatedTs) {
+          titleToSet = draft.title ?? titleToSet
+          contentToSet = draft.content ?? contentToSet
+          summaryToSet = draft.summary ?? summaryToSet
+          isDraftRestored = true
+        }
+      }
+    } catch {
+      // ignore draft parse error
+    }
+
+    setEditorTitle(titleToSet)
+    setEditorContent(contentToSet)
+    setEditorSummary(summaryToSet)
     setEditorSubjectId(note.subjectId || '')
     setEditorTags(Array.isArray(note.tags) ? note.tags : [])
     setIsEditorPinned(Boolean(note.isPinned))
-    setSaveStatus('saved')
+    setEditorViewMode('edit')
+    setSaveStatus(isDraftRestored ? 'offline' : 'saved')
     setLastSavedTime(new Date(note.updatedAt || note.createdAt))
   }, [])
 
@@ -132,9 +153,8 @@ export default function NotesPage() {
       const [notesRes, subRes] = await Promise.all([
         getNotes(user.id, {
           subjectId: selectedSubjectId || null,
-          tag: selectedTag || null,
           searchQuery: searchQuery || '',
-          sortBy,
+          sortBy: 'updated_desc',
           includeArchived: showArchived,
         }),
         getSubjects(user.id),
@@ -148,25 +168,25 @@ export default function NotesPage() {
       }
       setFetchError('')
     } catch {
-      setFetchError('Unable to load notes.')
+      setFetchError('Unable to load notes. Please check your connection.')
     } finally {
       setLoading(false)
     }
-  }, [user, selectedSubjectId, selectedTag, searchQuery, sortBy, showArchived])
+  }, [user, selectedSubjectId, searchQuery, showArchived])
 
-  // Load initial data and sync URL param
+  // Initial load and URL param sync
   useEffect(() => {
     let ignore = false
 
     async function initialLoad() {
       if (!user?.id) return
+      setLoading(true)
       try {
         const [notesRes, subRes] = await Promise.all([
           getNotes(user.id, {
             subjectId: selectedSubjectId || null,
-            tag: selectedTag || null,
             searchQuery: searchQuery || '',
-            sortBy,
+            sortBy: 'updated_desc',
             includeArchived: showArchived,
           }),
           getSubjects(user.id),
@@ -175,16 +195,18 @@ export default function NotesPage() {
         if (!ignore) {
           const loadedNotes = notesRes.data || []
           setNotes(loadedNotes)
-          if (subRes.data) setSubjects(subRes.data)
-          setFetchError('')
+          setSubjects(subRes.data || [])
 
-          // If URL has note ID, select it
           const urlNoteId = searchParams.get('id')
           if (urlNoteId) {
             const found = loadedNotes.find((n) => n.id === urlNoteId)
             if (found) {
               loadNoteIntoEditor(found)
             }
+          } else if (loadedNotes.length > 0 && window.innerWidth >= 1024) {
+            // Auto-select first note on wide screens
+            loadNoteIntoEditor(loadedNotes[0])
+            setSearchParams({ id: loadedNotes[0].id }, { replace: true })
           }
         }
       } catch {
@@ -203,19 +225,37 @@ export default function NotesPage() {
     return () => {
       ignore = true
     }
-  }, [user, selectedSubjectId, selectedTag, searchQuery, sortBy, showArchived, searchParams, loadNoteIntoEditor])
+  }, [user, selectedSubjectId, searchQuery, showArchived, searchParams, loadNoteIntoEditor, setSearchParams])
 
   function handleSelectNote(note) {
     loadNoteIntoEditor(note)
     setSearchParams({ id: note.id })
   }
 
-  // ─── Auto-Save Debouncer ───────────────────────────────────────
+  // ─── Auto-Save Debouncer with Local Draft Protection ────────────
   const triggerAutoSave = useCallback(
     (updatedFields) => {
       if (!activeNoteId || !user?.id) return
 
       setSaveStatus('unsaved')
+
+      // Save draft immediately to localStorage for crash/refresh protection
+      try {
+        localStorage.setItem(
+          `studyzone_draft_note_${activeNoteId}`,
+          JSON.stringify({
+            title: updatedFields.title ?? editorTitle,
+            content: updatedFields.content ?? editorContent,
+            summary: updatedFields.summary ?? editorSummary,
+            subjectId: updatedFields.subjectId ?? editorSubjectId,
+            tags: updatedFields.tags ?? editorTags,
+            timestamp: Date.now(),
+          }),
+        )
+      } catch {
+        // ignore storage quota error
+      }
+
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)
       }
@@ -233,16 +273,26 @@ export default function NotesPage() {
           isPinned: updatedFields.isPinned ?? isEditorPinned,
         }
 
-        const res = await updateNote(payload)
-        if (res.error) {
-          setSaveStatus('error')
-        } else {
-          setSaveStatus('saved')
-          setLastSavedTime(new Date())
-          // Optimistically update notes list
-          setNotes((prev) =>
-            prev.map((n) => (n.id === activeNoteId ? { ...n, ...res.data } : n)),
-          )
+        try {
+          const res = await updateNote(payload)
+          if (res.error) {
+            setSaveStatus('offline')
+          } else {
+            setSaveStatus('saved')
+            setLastSavedTime(new Date())
+            // Clear saved draft from localStorage
+            try {
+              localStorage.removeItem(`studyzone_draft_note_${activeNoteId}`)
+            } catch {
+              // ignore
+            }
+            // Optimistically update notes list
+            setNotes((prev) =>
+              prev.map((n) => (n.id === activeNoteId ? { ...n, ...res.data } : n)),
+            )
+          }
+        } catch {
+          setSaveStatus('offline')
         }
       }, 1000)
     },
@@ -263,48 +313,71 @@ export default function NotesPage() {
     if (!user?.id) return
     setLoading(true)
 
-    const res = await createNote({
-      userId: user.id,
-      title: initialData.title || 'Untitled Note',
-      content: initialData.content || '',
-      summary: initialData.summary || null,
-      tags: initialData.tags || (selectedTag ? [selectedTag] : []),
-      subjectId: initialData.subjectId || selectedSubjectId || null,
-      isPinned: false,
-    })
+    try {
+      const res = await createNote({
+        userId: user.id,
+        title: initialData.title || 'Untitled Note',
+        content: initialData.content || '',
+        summary: initialData.summary || null,
+        tags: initialData.tags || [],
+        subjectId: initialData.subjectId || selectedSubjectId || null,
+        isPinned: false,
+      })
 
-    if (res.data) {
-      loadNoteIntoEditor(res.data)
-      setSearchParams({ id: res.data.id })
+      if (res.data) {
+        loadNoteIntoEditor(res.data)
+        setSearchParams({ id: res.data.id })
+      }
+      await refreshData()
+    } catch {
+      setFetchError('Failed to create note.')
+    } finally {
+      setLoading(false)
     }
-    await refreshData()
-    setLoading(false)
   }
 
   async function handleCreateSample() {
     if (!user?.id) return
     setLoading(true)
-    const res = await createSampleNote(user.id, subjects[0]?.id || null)
-    if (res.data) {
-      loadNoteIntoEditor(res.data)
-      setSearchParams({ id: res.data.id })
+    try {
+      const res = await createSampleNote(user.id, subjects[0]?.id || null)
+      if (res.data) {
+        loadNoteIntoEditor(res.data)
+        setSearchParams({ id: res.data.id })
+      }
+      await refreshData()
+    } catch {
+      setFetchError('Failed to create sample note.')
+    } finally {
+      setLoading(false)
     }
-    await refreshData()
-    setLoading(false)
   }
 
-  async function handleDeleteActiveNote() {
-    if (!activeNoteId || !user?.id) return
-    const noteToDelete = notes.find((n) => n.id === activeNoteId)
-    const confirm = window.confirm(
-      `Are you sure you want to delete "${noteToDelete?.title || 'this note'}"?`,
-    )
-    if (!confirm) return
+  function handleOpenDeleteDialog() {
+    if (!activeNoteId) return
+    const note = notes.find((n) => n.id === activeNoteId)
+    setNoteToDelete(note || { id: activeNoteId, title: editorTitle })
+    setDeleteConfirmOpen(true)
+  }
 
-    await deleteNote(activeNoteId, user.id)
-    setActiveNoteId(null)
-    setSearchParams({})
-    refreshData()
+  async function handleConfirmDelete() {
+    if (!noteToDelete?.id || !user?.id) return
+    setDeleteLoading(true)
+    try {
+      await deleteNote(noteToDelete.id, user.id)
+      try {
+        localStorage.removeItem(`studyzone_draft_note_${noteToDelete.id}`)
+      } catch {
+        // ignore
+      }
+      setActiveNoteId(null)
+      setSearchParams({})
+      await refreshData()
+    } finally {
+      setDeleteLoading(false)
+      setDeleteConfirmOpen(false)
+      setNoteToDelete(null)
+    }
   }
 
   async function handleTogglePinActiveNote() {
@@ -360,7 +433,6 @@ export default function NotesPage() {
     setEditorContent(nextContent)
     triggerAutoSave({ content: nextContent })
 
-    // Restore focus and selection
     setTimeout(() => {
       textarea.focus()
       textarea.setSelectionRange(
@@ -373,40 +445,47 @@ export default function NotesPage() {
   // ─── AI Assistance Actions ─────────────────────────────────────
   async function handleRunAiAction(actionType) {
     if (!editorContent.trim()) return
+    setAiMenuOpen(false)
     setAiActionLoading(true)
     setAiProposalType(actionType)
+    setAiProposalContent('')
     setIsAiModalOpen(true)
+    setCopiedProposal(false)
+
+    // Context limit check (~6,000 characters)
+    const trimmedContent = editorContent.trim().slice(0, 6000)
 
     let prompt = ''
     if (actionType === 'summary') {
-      prompt = `You are a learning science tutor. Summarize the following study note into 3-4 bullet points emphasizing key takeaways and cognitive models:\n\n${editorContent.trim()}`
+      prompt = `Summarize the following study note into 3-4 concise, high-impact bullet points focusing on key takeaways:\n\n${trimmedContent}`
     } else if (actionType === 'questions') {
-      prompt = `Generate 4 active recall practice questions with clear, accurate answers based strictly on this study note. Format each as:\nQ: [Question]\nA: [Answer]\n\nNote:\n${editorContent.trim()}`
+      prompt = `Generate 3 active recall practice questions with clear, concise answers based strictly on this study note. Format each as:\nQ: [Question]\nA: [Answer]\n\nNote:\n${trimmedContent}`
     } else if (actionType === 'explain') {
-      prompt = `Explain the core concepts in this study note in simple, intuitive terms using the Feynman technique and clear analogies:\n\n${editorContent.trim()}`
+      prompt = `Explain the core concepts in this study note simply and clearly using the Feynman technique with an intuitive real-world analogy:\n\n${trimmedContent}`
     } else if (actionType === 'structure') {
-      prompt = `Improve the structure of this study note. Organize it into clean sections, markdown headings (##), bold key terms, and bulleted takeaways without omitting any vital factual information:\n\n${editorContent.trim()}`
+      prompt = `Improve the clarity and structure of this study note. Organize it with clean section headings (##), bold key terms, and bullet points while preserving all original factual details:\n\n${trimmedContent}`
     }
 
     try {
       const res = await sendMessage({ message: prompt, history: [] })
-      setAiProposalContent(res.reply || 'No output generated.')
+      setAiProposalContent(res.reply || 'No response generated.')
     } catch {
-      setAiProposalContent('AI assistance temporarily unavailable. Please try again.')
+      setAiProposalContent('AI study partner temporarily unavailable. Please check your connection and try again.')
     } finally {
       setAiActionLoading(false)
     }
   }
 
   function handleApplyAiProposal() {
-    if (aiProposalType === 'summary') {
-      setEditorSummary(aiProposalContent)
-      triggerAutoSave({ summary: aiProposalContent })
-    } else if (aiProposalType === 'structure') {
+    if (aiProposalType === 'structure') {
       setEditorContent(aiProposalContent)
       triggerAutoSave({ content: aiProposalContent })
+    } else if (aiProposalType === 'summary') {
+      const updated = `> **Key Takeaways:**\n${aiProposalContent}\n\n---\n\n${editorContent}`
+      setEditorContent(updated)
+      triggerAutoSave({ content: updated })
     } else if (aiProposalType === 'questions' || aiProposalType === 'explain') {
-      const appended = `${editorContent}\n\n---\n### 🤖 AI Study Notes (${aiProposalType === 'questions' ? 'Practice Questions' : 'Feynman Explanation'})\n\n${aiProposalContent}`
+      const appended = `${editorContent}\n\n---\n### ✨ ${aiProposalType === 'questions' ? 'Practice Questions' : 'Feynman Explanation'}\n\n${aiProposalContent}`
       setEditorContent(appended)
       triggerAutoSave({ content: appended })
     }
@@ -414,19 +493,31 @@ export default function NotesPage() {
     setAiProposalContent('')
   }
 
+  async function handleCopyProposal() {
+    if (!aiProposalContent) return
+    try {
+      await navigator.clipboard.writeText(aiProposalContent)
+      setCopiedProposal(true)
+      setTimeout(() => setCopiedProposal(false), 2000)
+    } catch {
+      // ignore
+    }
+  }
+
   // ─── Flashcards from Note Generator ────────────────────────────
   async function handleLaunchFlashcardGenerator() {
     if (!editorContent.trim()) return
+    setAiMenuOpen(false)
     setAiActionLoading(true)
     setIsFlashcardModalOpen(true)
     setFlashcardSuccess(false)
     setFlashcardDeckTitle(editorTitle.trim() || 'Study Note Deck')
 
     const prompt = `Based on the following study note, generate 5 high-yield active recall flashcards.
-Format your response as a strict JSON array of objects with "front" (question/prompt) and "back" (answer/explanation) fields. Do not include markdown block ticks.
+Format your response as a strict JSON array of objects with "front" (concise question testing 1 atomic concept) and "back" (accurate, clear answer) fields. Do not include markdown code block syntax.
 
 Note Content:
-${editorContent.trim()}`
+${editorContent.trim().slice(0, 6000)}`
 
     try {
       const res = await sendMessage({ message: prompt, history: [] })
@@ -461,84 +552,66 @@ ${editorContent.trim()}`
     if (approved.length === 0) return
 
     setSavingCards(true)
-    const deckRes = await createFlashcardDeck({
-      userId: user.id,
-      title: flashcardDeckTitle.trim() || 'Note Study Deck',
-      subjectId: editorSubjectId || null,
-      description: `Generated from study note: ${editorTitle.trim()}`,
-    })
-
-    if (deckRes.data?.id) {
-      await createBulkFlashcards({
-        deckId: deckRes.data.id,
+    try {
+      const deckRes = await createFlashcardDeck({
         userId: user.id,
-        cards: approved,
+        title: flashcardDeckTitle.trim() || 'Note Study Deck',
+        subjectId: editorSubjectId || null,
+        description: `Generated from study note: ${editorTitle.trim()}`,
       })
-      setFlashcardSuccess(true)
-      setTimeout(() => {
-        setIsFlashcardModalOpen(false)
-        setProposedFlashcards([])
-      }, 1500)
+
+      if (deckRes.data?.id) {
+        await createBulkFlashcards({
+          deckId: deckRes.data.id,
+          userId: user.id,
+          cards: approved,
+        })
+        setFlashcardSuccess(true)
+        setTimeout(() => {
+          setIsFlashcardModalOpen(false)
+          setProposedFlashcards([])
+        }, 1200)
+      }
+    } finally {
+      setSavingCards(false)
     }
-    setSavingCards(false)
   }
 
-  // ─── Overview Stats ────────────────────────────────────────────
-  const overviewStats = useMemo(() => {
-    const total = notes.length
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-    const updatedThisWeek = notes.filter((n) => new Date(n.updatedAt) >= oneWeekAgo).length
-    const pinned = notes.filter((n) => n.isPinned).length
-    const linkedSubIds = new Set(notes.map((n) => n.subjectId).filter(Boolean))
-
-    return {
-      total,
-      updatedThisWeek,
-      pinned,
-      linkedSubjectsCount: linkedSubIds.size,
-    }
+  // Filtered notes list (pinned on top, then by updated_at)
+  const sortedNotes = useMemo(() => {
+    return [...notes].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1
+      if (!a.isPinned && b.isPinned) return 1
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+    })
   }, [notes])
 
+  const activeNote = useMemo(() => {
+    return notes.find((n) => n.id === activeNoteId) || null
+  }, [notes, activeNoteId])
+
   // ───────────────────────────────────────────────────────────────
-  // RENDER: Main View
+  // RENDER: Clean Single-Pane Writing Experience
   // ───────────────────────────────────────────────────────────────
   return (
-    <PageContainer width="wide" className="space-y-6 pb-12">
-      {/* ─── Header & Primary Actions ────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-4">
+    <PageContainer width="wide" className="space-y-4 pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/70 pb-3.5">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-md">
-            <FileText className="h-5 w-5" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
+            <FileText className="h-4 w-4" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
               Study Notes
             </h1>
-            <p className="text-xs sm:text-sm text-muted">
-              Capture ideas, organize knowledge, and prepare for revision.
+            <p className="text-xs text-muted">
+              Capture knowledge, write markdown, and understand with AI study tools.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {activeNoteId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setActiveNoteId(null)
-                setSearchParams({})
-              }}
-              className="gap-1.5 text-xs text-muted hover:text-foreground cursor-pointer"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span>All Notes</span>
-            </Button>
-          )}
-
+        <div className="flex items-center gap-2">
           <Button
             type="button"
             size="sm"
@@ -551,682 +624,583 @@ ${editorContent.trim()}`
         </div>
       </div>
 
-      {/* ─── Fetch Error Alert ───────────────────────────────────── */}
       {fetchError && (
-        <div className="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{fetchError}</span>
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{fetchError}</span>
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={refreshData} className="h-6 text-xs text-danger">
+            Retry
+          </Button>
         </div>
       )}
 
-      {/* ─── Overview Stats Strip ────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-          <div className="flex items-center gap-2 text-muted mb-1">
-            <FileText className="h-3.5 w-3.5 text-accent" />
-            <span className="text-[11px] font-medium uppercase tracking-wider">Total Notes</span>
-          </div>
-          <p className="text-lg sm:text-xl font-extrabold text-foreground">{overviewStats.total}</p>
-        </Card>
+      {/* Main 2-Column Responsive Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-[580px]">
+        {/* ─── Left Column: Notes Navigation List ─── */}
+        <div
+          className={cn(
+            'lg:col-span-4 space-y-3',
+            activeNoteId ? 'hidden lg:block' : 'block',
+          )}
+        >
+          {/* Search & Subject Filter Bar */}
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notes..."
+                className="w-full rounded-xl border border-border bg-surface pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-hidden"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2 text-muted hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
 
-        <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-          <div className="flex items-center gap-2 text-muted mb-1">
-            <Clock className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-[11px] font-medium uppercase tracking-wider">This Week</span>
-          </div>
-          <p className="text-lg sm:text-xl font-extrabold text-foreground">
-            {overviewStats.updatedThisWeek} updated
-          </p>
-        </Card>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedSubjectId}
+                onChange={(e) => {
+                  setSelectedSubjectId(e.target.value)
+                  setSearchParams(e.target.value ? { subjectId: e.target.value } : {})
+                }}
+                className="flex-1 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
+              >
+                <option value="">All Subjects</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
 
-        <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-          <div className="flex items-center gap-2 text-muted mb-1">
-            <Pin className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-[11px] font-medium uppercase tracking-wider">Pinned</span>
-          </div>
-          <p className="text-lg sm:text-xl font-extrabold text-foreground">{overviewStats.pinned}</p>
-        </Card>
-
-        <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-          <div className="flex items-center gap-2 text-muted mb-1">
-            <BookOpen className="h-3.5 w-3.5 text-purple-500" />
-            <span className="text-[11px] font-medium uppercase tracking-wider">Subjects</span>
-          </div>
-          <p className="text-lg sm:text-xl font-extrabold text-foreground">
-            {overviewStats.linkedSubjectsCount} linked
-          </p>
-        </Card>
-      </div>
-
-      {/* ─── Search, Filters & Controls Bar ──────────────────────── */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-surface-raised/40 p-3 rounded-2xl border border-border/80">
-        <div className="flex flex-1 items-center gap-2">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notes by title, content, or tags..."
-              className="w-full rounded-xl border border-border bg-surface pl-9 pr-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden"
-            />
-            {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+                onClick={() => setShowArchived((prev) => !prev)}
+                className={cn(
+                  'rounded-xl border px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer',
+                  showArchived
+                    ? 'border-accent/40 bg-accent/15 text-accent'
+                    : 'border-border bg-surface text-muted hover:text-foreground',
+                )}
+                title={showArchived ? 'Showing archived notes' : 'Show archived notes'}
               >
-                <X className="h-3 w-3" />
+                <Archive className="h-3 w-3" />
+                <span className="hidden sm:inline">{showArchived ? 'Archived' : 'Active'}</span>
               </button>
-            )}
+            </div>
           </div>
 
-          {/* Subject Filter */}
-          <select
-            value={selectedSubjectId}
-            onChange={(e) => {
-              setSelectedSubjectId(e.target.value)
-              if (e.target.value) {
-                setSearchParams({ subjectId: e.target.value })
-              } else {
-                setSearchParams({})
-              }
-            }}
-            className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-          >
-            <option value="">All Subjects</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          {/* Notes List Cards */}
+          <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1">
+            {loading ? (
+              <div className="flex min-h-[200px] items-center justify-center">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : sortedNotes.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted space-y-2">
+                <FileText className="h-6 w-6 mx-auto text-muted/60" />
+                <p className="text-xs font-semibold">No notes found</p>
+                <p className="text-[11px]">Create a note to start capturing your knowledge.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCreateNote()}
+                  className="mt-2 text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" /> New Note
+                </Button>
+              </div>
+            ) : (
+              sortedNotes.map((n) => {
+                const isSelected = n.id === activeNoteId
+                const sub = subjectMap.get(n.subjectId)
+                const excerpt = (n.content || '')
+                  .replace(/[#*`_>]/g, '')
+                  .slice(0, 80)
+                  .trim()
+
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => handleSelectNote(n)}
+                    className={cn(
+                      'p-3 rounded-xl border text-left transition-all cursor-pointer group',
+                      isSelected
+                        ? 'border-accent bg-accent/8 shadow-xs ring-1 ring-accent/30'
+                        : 'border-border/80 bg-surface hover:border-border hover:bg-surface-raised/40',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {n.isPinned && <Pin className="h-3 w-3 fill-amber-500 text-amber-500 shrink-0" />}
+                        <h4 className="text-xs font-bold text-foreground truncate group-hover:text-accent transition-colors">
+                          {n.title || 'Untitled Note'}
+                        </h4>
+                      </div>
+                      <span className="text-[10px] text-muted shrink-0">
+                        {formatDate(n.updatedAt || n.createdAt)}
+                      </span>
+                    </div>
+
+                    {excerpt && (
+                      <p className="text-[11px] text-muted line-clamp-2 leading-relaxed mb-2">
+                        {excerpt}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      {sub && (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                          style={{
+                            backgroundColor: `${sub.color}15`,
+                            color: sub.color,
+                            border: `1px solid ${sub.color}30`,
+                          }}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: sub.color }} />
+                          <span className="truncate max-w-[110px]">{sub.name}</span>
+                        </span>
+                      )}
+                      {n.isArchived && (
+                        <span className="text-[9px] rounded-md bg-muted/20 text-muted px-1.5 py-0.5">
+                          Archived
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Tag Filter */}
-          {allTags.length > 0 && (
-            <select
-              value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
-              className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-            >
-              <option value="">All Tags</option>
-              {allTags.map((t) => (
-                <option key={t} value={t}>
-                  #{t}
-                </option>
-              ))}
-            </select>
+        {/* ─── Right Column: Note Writing Canvas ─── */}
+        <div
+          className={cn(
+            'lg:col-span-8',
+            activeNoteId ? 'block' : 'hidden lg:block',
           )}
+        >
+          {activeNoteId ? (
+            <Card className="border-border/90 bg-surface shadow-md p-5 sm:p-6 space-y-4 min-h-[580px] flex flex-col justify-between">
+              <div className="space-y-3.5">
+                {/* Top Controls Strip */}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2">
+                    {/* Mobile Back Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNoteId(null)
+                        setSearchParams({})
+                      }}
+                      className="lg:hidden flex items-center gap-1 text-xs font-semibold text-muted hover:text-foreground mr-1"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back</span>
+                    </button>
 
-          {/* Sort Dropdown */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-          >
-            <option value="updated_desc">Recently Updated</option>
-            <option value="created_desc">Recently Created</option>
-            <option value="title_asc">Alphabetical (A-Z)</option>
-          </select>
+                    <button
+                      type="button"
+                      onClick={handleTogglePinActiveNote}
+                      className={cn(
+                        'p-1.5 rounded-lg border transition-colors cursor-pointer',
+                        isEditorPinned
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-500'
+                          : 'border-border text-muted hover:text-foreground',
+                      )}
+                      title={isEditorPinned ? 'Unpin Note' : 'Pin Note'}
+                    >
+                      {isEditorPinned ? <Pin className="h-3.5 w-3.5 fill-current" /> : <PinOff className="h-3.5 w-3.5" />}
+                    </button>
 
-          {/* Archive Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowArchived((prev) => !prev)}
-            className={cn(
-              'rounded-xl border px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer',
-              showArchived
-                ? 'border-accent/40 bg-accent/15 text-accent'
-                : 'border-border bg-surface text-muted hover:text-foreground',
-            )}
-          >
-            <Archive className="h-3 w-3" />
-            <span>{showArchived ? 'Archived Notes' : 'Active'}</span>
-          </button>
+                    {/* Auto-save & Offline Status */}
+                    <span className="text-[11px] text-muted flex items-center gap-1">
+                      {saveStatus === 'saving' && (
+                        <>
+                          <RefreshCw className="h-3 w-3 animate-spin text-accent" />
+                          <span>Saving...</span>
+                        </>
+                      )}
+                      {saveStatus === 'saved' && (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-500" />
+                          <span>
+                            Saved {lastSavedTime ? lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </>
+                      )}
+                      {saveStatus === 'unsaved' && <span className="text-warning">Unsaved changes</span>}
+                      {saveStatus === 'offline' && (
+                        <span className="text-emerald-500/90 font-medium">Offline — draft saved locally</span>
+                      )}
+                      {saveStatus === 'error' && (
+                        <button
+                          type="button"
+                          onClick={() => triggerAutoSave({})}
+                          className="text-danger hover:underline"
+                        >
+                          Sync failed — Retry
+                        </button>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* View Mode Tabs: Edit vs Preview */}
+                    <div className="flex items-center rounded-lg border border-border bg-surface-raised/60 p-0.5 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setEditorViewMode('edit')}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer',
+                          editorViewMode === 'edit' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
+                        )}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditorViewMode('preview')}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer',
+                          editorViewMode === 'preview' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
+                        )}
+                      >
+                        Preview
+                      </button>
+                    </div>
+
+                    {/* ✨ Study with AI Menu */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setAiMenuOpen((prev) => !prev)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent/20 transition-all cursor-pointer"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Study with AI</span>
+                      </button>
+
+                      {aiMenuOpen && (
+                        <div className="absolute right-0 mt-1.5 z-40 w-52 rounded-xl border border-border bg-surface shadow-xl p-1.5 space-y-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => handleRunAiAction('summary')}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-foreground transition-colors text-left cursor-pointer"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-accent" />
+                            <span>Summarize Note</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRunAiAction('explain')}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-foreground transition-colors text-left cursor-pointer"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5 text-emerald-500" />
+                            <span>Explain Simply</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRunAiAction('questions')}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-foreground transition-colors text-left cursor-pointer"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5 text-purple-500" />
+                            <span>Quiz Me (3 Questions)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRunAiAction('structure')}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-foreground transition-colors text-left cursor-pointer"
+                          >
+                            <Layers className="h-3.5 w-3.5 text-amber-500" />
+                            <span>Improve My Notes</span>
+                          </button>
+                          <div className="border-t border-border/60 my-1" />
+                          <button
+                            type="button"
+                            onClick={handleLaunchFlashcardGenerator}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-accent font-semibold transition-colors text-left cursor-pointer"
+                          >
+                            <Brain className="h-3.5 w-3.5" />
+                            <span>Generate Flashcards</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAiMenuOpen(false)
+                              navigate('/ai-assistant', {
+                                state: {
+                                  attachedContext: {
+                                    type: 'note',
+                                    id: activeNote?.id,
+                                    title: editorTitle || activeNote?.title,
+                                    content: editorContent,
+                                  },
+                                },
+                              })
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-raised text-foreground transition-colors text-left cursor-pointer"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-blue-500" />
+                            <span>Ask AI Study Tutor</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleArchiveActiveNote}
+                      className="p-1.5 rounded-lg border border-border text-muted hover:text-foreground transition-colors cursor-pointer"
+                      title={activeNote?.isArchived ? 'Unarchive Note' : 'Archive Note'}
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleOpenDeleteDialog}
+                      className="p-1.5 rounded-lg border border-border text-muted hover:text-danger transition-colors cursor-pointer"
+                      title="Delete Note"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Note Title Input */}
+                <div>
+                  <input
+                    type="text"
+                    value={editorTitle}
+                    onChange={(e) => {
+                      setEditorTitle(e.target.value)
+                      triggerAutoSave({ title: e.target.value })
+                    }}
+                    placeholder="Note Title..."
+                    className="w-full text-xl sm:text-2xl font-bold text-foreground bg-transparent border-0 focus:outline-hidden placeholder:text-muted/60"
+                  />
+                </div>
+
+                {/* Subject Association & Tag Row */}
+                <div className="flex flex-wrap items-center gap-2.5 pb-2 border-b border-border/40">
+                  <div className="flex items-center gap-1.5 text-xs text-muted">
+                    <BookOpen className="h-3.5 w-3.5 text-accent" />
+                    <select
+                      value={editorSubjectId}
+                      onChange={(e) => {
+                        setEditorSubjectId(e.target.value)
+                        triggerAutoSave({ subjectId: e.target.value })
+                      }}
+                      className="rounded-lg border border-border bg-surface px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
+                    >
+                      <option value="">No Linked Subject</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1">
+                    {editorTags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 rounded-md bg-accent/15 border border-accent/30 px-2 py-0.5 text-[11px] font-semibold text-accent"
+                      >
+                        <span>#{tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="text-accent hover:text-danger"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      onKeyDown={handleAddTag}
+                      placeholder="+ Tag (Enter)"
+                      className="w-24 rounded-md border border-dashed border-border bg-transparent px-2 py-0.5 text-[11px] text-foreground focus:border-accent focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Single Formatting Toolbar (Shown in Edit Mode) */}
+                {editorViewMode === 'edit' && (
+                  <div className="flex flex-wrap items-center gap-1 border-b border-border/60 pb-2 text-muted">
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('**', '**')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Bold"
+                    >
+                      <Bold className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('*', '*')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Italic"
+                    >
+                      <Italic className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('## ')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Heading 1"
+                    >
+                      <Heading1 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('### ')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Heading 2"
+                    >
+                      <Heading2 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('- ')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Bullet List"
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('1. ')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Numbered List"
+                    >
+                      <ListOrdered className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('```\n', '\n```')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Code Block"
+                    >
+                      <Code className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertMarkdown('> ')}
+                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      title="Quote"
+                    >
+                      <Quote className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Single Primary Content Surface */}
+                <div className="min-h-[420px]">
+                  {editorViewMode === 'edit' ? (
+                    <textarea
+                      ref={textareaRef}
+                      value={editorContent}
+                      onChange={(e) => {
+                        setEditorContent(e.target.value)
+                        triggerAutoSave({ content: e.target.value })
+                      }}
+                      placeholder="Start writing what you learned today..."
+                      className="w-full min-h-[420px] resize-y rounded-xl border border-border bg-surface-raised/40 p-4 font-mono text-sm text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
+                    />
+                  ) : (
+                    <div className="w-full min-h-[420px] rounded-xl border border-border bg-surface-raised/20 p-5 overflow-y-auto max-h-[600px]">
+                      <MarkdownPreview content={editorContent || '*No content yet. Switch to Edit to write your notes.*'} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom metadata footer */}
+              <div className="flex items-center justify-between text-[11px] text-muted pt-3 border-t border-border/50">
+                <span>{editorContent.trim() ? editorContent.trim().split(/\s+/).length : 0} words</span>
+                <span>
+                  Last modified {activeNote?.updatedAt ? formatDate(activeNote.updatedAt) : 'Just now'}
+                </span>
+              </div>
+            </Card>
+          ) : (
+            /* Empty Canvas Placeholder */
+            <div className="rounded-2xl border border-dashed border-border bg-surface-raised/30 p-12 text-center min-h-[580px] flex flex-col items-center justify-center space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+                <FileText className="h-6 w-6" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">Select a note to read or edit</h3>
+              <p className="text-xs text-muted max-w-sm">
+                Choose a note from the left list or create a new note to start capturing concepts and revision summaries.
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleCreateNote()}
+                  className="text-xs font-bold"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> New Note
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCreateSample}
+                  className="text-xs"
+                >
+                  Try Sample Note
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ─── Main Content Split or Grid ──────────────────────────── */}
-      {loading ? (
-        <div className="flex min-h-[300px] items-center justify-center">
-          <LoadingSpinner size="md" />
-        </div>
-      ) : activeNoteId ? (
-        /* ═══════════════════════════════════════════════════════════════
-           ACTIVE NOTE EDITOR VIEW
-           ═══════════════════════════════════════════════════════════════ */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Note Editor Column */}
-          <div className="lg:col-span-8 space-y-4">
-            <Card className="border-border/90 bg-surface shadow-md p-6 space-y-4">
-              {/* Top Controls Strip: Save Status & Actions */}
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleTogglePinActiveNote}
-                    className={cn(
-                      'p-1.5 rounded-lg border transition-colors cursor-pointer',
-                      isEditorPinned
-                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-500'
-                        : 'border-border text-muted hover:text-foreground',
-                    )}
-                    title={isEditorPinned ? 'Unpin Note' : 'Pin Note'}
-                  >
-                    {isEditorPinned ? <Pin className="h-3.5 w-3.5 fill-current" /> : <PinOff className="h-3.5 w-3.5" />}
-                  </button>
-
-                  {/* Auto-save Status Indicator */}
-                  <span className="text-[11px] text-muted flex items-center gap-1">
-                    {saveStatus === 'saving' && (
-                      <>
-                        <RefreshCw className="h-3 w-3 animate-spin text-accent" />
-                        <span>Saving...</span>
-                      </>
-                    )}
-                    {saveStatus === 'saved' && (
-                      <>
-                        <Check className="h-3 w-3 text-emerald-500" />
-                        <span>
-                          Saved {lastSavedTime ? lastSavedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </>
-                    )}
-                    {saveStatus === 'unsaved' && <span className="text-warning">Unsaved changes</span>}
-                    {saveStatus === 'error' && <span className="text-danger">Save error</span>}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* View Mode Toggle */}
-                  <div className="flex items-center rounded-lg border border-border bg-surface-raised/60 p-0.5 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setEditorViewMode('edit')}
-                      className={cn(
-                        'px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer',
-                        editorViewMode === 'edit' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
-                      )}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditorViewMode('split')}
-                      className={cn(
-                        'px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer hidden md:block',
-                        editorViewMode === 'split' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
-                      )}
-                    >
-                      Split
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditorViewMode('preview')}
-                      className={cn(
-                        'px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer',
-                        editorViewMode === 'preview' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
-                      )}
-                    >
-                      Preview
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleArchiveActiveNote}
-                    className="p-1.5 rounded-lg border border-border text-muted hover:text-foreground transition-colors cursor-pointer"
-                    title="Archive Note"
-                  >
-                    <Archive className="h-3.5 w-3.5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDeleteActiveNote}
-                    className="p-1.5 rounded-lg border border-border text-muted hover:text-danger transition-colors cursor-pointer"
-                    title="Delete Note"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Title Input */}
-              <div>
-                <input
-                  type="text"
-                  value={editorTitle}
-                  onChange={(e) => {
-                    setEditorTitle(e.target.value)
-                    triggerAutoSave({ title: e.target.value })
-                  }}
-                  placeholder="Note Title..."
-                  className="w-full text-xl sm:text-2xl font-bold text-foreground bg-transparent border-0 focus:outline-hidden placeholder:text-muted/60"
-                />
-              </div>
-
-              {/* Subject & Tags Row */}
-              <div className="flex flex-wrap items-center gap-3 pt-1 border-b border-border/40 pb-3">
-                {/* Linked Subject */}
-                <div className="flex items-center gap-1.5 text-xs text-muted">
-                  <BookOpen className="h-3.5 w-3.5 text-accent" />
-                  <select
-                    value={editorSubjectId}
-                    onChange={(e) => {
-                      setEditorSubjectId(e.target.value)
-                      triggerAutoSave({ subjectId: e.target.value })
-                    }}
-                    className="rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="">No Linked Subject</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Tag Chips */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {editorTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-md bg-accent/15 border border-accent/30 px-2 py-0.5 text-[11px] font-semibold text-accent"
-                    >
-                      <span>#{tag}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="text-accent hover:text-danger"
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  ))}
-                  <input
-                    type="text"
-                    value={newTagInput}
-                    onChange={(e) => setNewTagInput(e.target.value)}
-                    onKeyDown={handleAddTag}
-                    placeholder="+ Tag (press Enter)"
-                    className="w-28 rounded-md border border-dashed border-border bg-transparent px-2 py-0.5 text-[11px] text-foreground focus:border-accent focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              {/* Markdown Toolbar */}
-              {editorViewMode !== 'preview' && (
-                <div className="flex flex-wrap items-center gap-1 border-b border-border/60 pb-2 text-muted">
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('**', '**')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Bold (**text**)"
-                  >
-                    <Bold className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('*', '*')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Italic (*text*)"
-                  >
-                    <Italic className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('# ')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Heading 1"
-                  >
-                    <Heading1 className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('## ')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Heading 2"
-                  >
-                    <Heading2 className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('- ')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Bullet List"
-                  >
-                    <List className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('1. ')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Numbered List"
-                  >
-                    <ListOrdered className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('```\n', '\n```')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Code Block"
-                  >
-                    <Code className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => insertMarkdown('> ')}
-                    className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                    title="Blockquote"
-                  >
-                    <Quote className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
-
-              {/* Editor / Preview Area */}
-              <div
-                className={cn(
-                  'min-h-[360px] grid gap-4',
-                  editorViewMode === 'split' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1',
-                )}
-              >
-                {/* Textarea Input */}
-                {(editorViewMode === 'edit' || editorViewMode === 'split') && (
-                  <textarea
-                    ref={textareaRef}
-                    value={editorContent}
-                    onChange={(e) => {
-                      setEditorContent(e.target.value)
-                      triggerAutoSave({ content: e.target.value })
-                    }}
-                    placeholder="Write your study notes using Markdown formatting..."
-                    className="w-full min-h-[360px] resize-y rounded-xl border border-border bg-surface-raised/40 p-4 font-mono text-xs text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
-                  />
-                )}
-
-                {/* Rendered Preview */}
-                {(editorViewMode === 'preview' || editorViewMode === 'split') && (
-                  <div className="w-full min-h-[360px] rounded-xl border border-border bg-surface-raised/20 p-4 overflow-y-auto max-h-[500px]">
-                    <MarkdownPreview content={editorContent} />
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Note Summary Card */}
-            <Card className="border-border/90 bg-surface shadow-xs p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-accent" />
-                  Note Summary & Takeaways
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRunAiAction('summary')}
-                  className="text-xs text-accent hover:bg-accent/10 h-7"
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI Summary
-                </Button>
-              </div>
-              <textarea
-                rows={2}
-                value={editorSummary}
-                onChange={(e) => {
-                  setEditorSummary(e.target.value)
-                  triggerAutoSave({ summary: e.target.value })
-                }}
-                placeholder="Brief summary of key concepts for quick revision..."
-                className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden resize-none"
-              />
-            </Card>
-          </div>
-
-          {/* AI Tools & Learning Workflow Sidebar */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* AI Study Actions Panel */}
-            <Card className="border-border/90 bg-surface shadow-md p-5 space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground border-b border-border/60 pb-2.5">
-                <Sparkles className="h-4 w-4 text-accent" />
-                <span>AI Study Partner</span>
-              </div>
-
-              <div className="space-y-2">
-                {/* Generate Flashcards */}
-                <button
-                  type="button"
-                  onClick={handleLaunchFlashcardGenerator}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-accent/30 bg-accent/10 hover:bg-accent/15 transition-all text-left group cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-accent text-white shadow-xs group-hover:scale-105 transition-transform">
-                    <Brain className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Generate Flashcards</p>
-                    <p className="text-[11px] text-muted mt-0.5">
-                      Extract active recall cards for SuperMemo SM-2 review.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Create Study Questions */}
-                <button
-                  type="button"
-                  onClick={() => handleRunAiAction('questions')}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-raised/40 hover:bg-surface-raised transition-all text-left group cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 group-hover:scale-105 transition-transform">
-                    <HelpCircle className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Self-Test Questions</p>
-                    <p className="text-[11px] text-muted mt-0.5">
-                      Generate practice recall questions from this note.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Explain Simply (Feynman) */}
-                <button
-                  type="button"
-                  onClick={() => handleRunAiAction('explain')}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-raised/40 hover:bg-surface-raised transition-all text-left group cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 group-hover:scale-105 transition-transform">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Explain Simply</p>
-                    <p className="text-[11px] text-muted mt-0.5">
-                      Feynman technique simplified explanation.
-                    </p>
-                  </div>
-                </button>
-
-                {/* Improve Structure */}
-                <button
-                  type="button"
-                  onClick={() => handleRunAiAction('structure')}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border border-border bg-surface-raised/40 hover:bg-surface-raised transition-all text-left group cursor-pointer"
-                >
-                  <div className="p-2 rounded-lg bg-amber-500/20 text-amber-500 border border-amber-500/30 group-hover:scale-105 transition-transform">
-                    <Layers className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Improve Structure</p>
-                    <p className="text-[11px] text-muted mt-0.5">
-                      Organize note into clean outline and headings.
-                    </p>
-                  </div>
-                </button>
-              </div>
-            </Card>
-
-            {/* Note Meta Details */}
-            <Card className="border-border/90 bg-surface shadow-xs p-4 space-y-2.5 text-xs">
-              <span className="font-bold text-foreground">Note Metadata</span>
-              <div className="space-y-1.5 text-muted">
-                <div className="flex justify-between">
-                  <span>Created:</span>
-                  <span className="font-mono text-foreground">
-                    {formatDate(notes.find((n) => n.id === activeNoteId)?.createdAt)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Last Modified:</span>
-                  <span className="font-mono text-foreground">
-                    {formatDate(notes.find((n) => n.id === activeNoteId)?.updatedAt)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Word Count:</span>
-                  <span className="font-mono text-foreground">
-                    {editorContent.trim() ? editorContent.trim().split(/\s+/).length : 0} words
-                  </span>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      ) : notes.length === 0 ? (
-        /* ═══════════════════════════════════════════════════════════════
-           EMPTY STATE VIEW
-           ═══════════════════════════════════════════════════════════════ */
-        <Card className="border-border/90 bg-surface p-12 text-center space-y-4 shadow-md">
-          <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-accent/15 text-accent border border-accent/30">
-            <FileText className="h-7 w-7" />
-          </div>
-          <h3 className="text-base font-bold text-foreground sm:text-lg">No Study Notes Yet</h3>
-          <p className="text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
-            Create your first study note to organize knowledge, summarize lectures, or prepare flashcards for active recall revision.
-          </p>
-          <div className="pt-2 flex flex-wrap justify-center gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleCreateSample}
-              className="gap-1.5 cursor-pointer font-semibold"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              <span>Try Sample Note</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => handleCreateNote()}
-              className="gap-1.5 font-bold cursor-pointer"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>New Note</span>
-            </Button>
-          </div>
-        </Card>
-      ) : (
-        /* ═══════════════════════════════════════════════════════════════
-           NOTES GRID VIEW
-           ═══════════════════════════════════════════════════════════════ */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {notes.map((note) => {
-            const sub = subjectMap.get(note.subjectId)
-            const excerpt = (note.summary || note.content || '')
-              .replace(/[#*`_>]/g, '')
-              .slice(0, 140)
-              .trim()
-
-            return (
-              <Card
-                key={note.id}
-                onClick={() => handleSelectNote(note)}
-                className={cn(
-                  'border-border/90 bg-surface hover:border-accent/50 transition-all duration-200 shadow-md flex flex-col justify-between cursor-pointer group',
-                  note.isPinned && 'ring-1 ring-amber-500/30 border-amber-500/40',
-                )}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      {sub && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent mb-1.5">
-                          <BookOpen className="h-3 w-3" />
-                          <span className="truncate">{sub.name}</span>
-                        </span>
-                      )}
-                      <CardTitle className="text-base font-bold text-foreground group-hover:text-accent transition-colors line-clamp-1">
-                        {note.title}
-                      </CardTitle>
-                    </div>
-
-                    {note.isPinned && (
-                      <span className="text-amber-500 shrink-0" title="Pinned Note">
-                        <Pin className="h-3.5 w-3.5 fill-current" />
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-muted leading-relaxed line-clamp-3 mt-1.5">
-                    {excerpt || <span className="italic">Empty note</span>}
-                  </p>
-                </CardHeader>
-
-                <div className="p-4 pt-0 border-t border-border/60 mt-auto flex items-center justify-between">
-                  {/* Tag preview */}
-                  <div className="flex items-center gap-1 overflow-hidden max-w-[60%]">
-                    {note.tags && note.tags.length > 0 ? (
-                      note.tags.slice(0, 2).map((t) => (
-                        <span
-                          key={t}
-                          className="rounded bg-surface-raised px-1.5 py-0.5 text-[10px] font-medium text-muted truncate"
-                        >
-                          #{t}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {formatDate(note.updatedAt)}
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-[11px] font-semibold text-accent group-hover:underline">
-                    Edit &rarr;
-                  </span>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-      )}
-
-      {/* ─── AI Assistance Proposal Modal (ZERO AUTONOMOUS WRITES) ─── */}
+      {/* ─── Non-Destructive AI Proposal Review Modal ─── */}
       <AnimatePresence>
         {isAiModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+              className="relative w-full max-w-lg rounded-2xl border border-border bg-surface shadow-2xl p-5 sm:p-6 space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-accent" />
                   <h3 className="text-sm font-bold text-foreground">
-                    AI Study Partner Proposal
+                    {aiProposalType === 'summary' && 'AI Note Summary'}
+                    {aiProposalType === 'explain' && 'Feynman Explanation'}
+                    {aiProposalType === 'questions' && 'Active Recall Practice Questions'}
+                    {aiProposalType === 'structure' && 'Proposed Note Improvement'}
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAiModalOpen(false)}
-                  className="rounded-lg p-1 text-muted hover:text-foreground cursor-pointer"
+                  className="rounded p-1 text-muted hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1235,34 +1209,47 @@ ${editorContent.trim()}`
               {aiActionLoading ? (
                 <div className="py-12 text-center space-y-3">
                   <LoadingSpinner size="md" />
-                  <p className="text-xs text-muted">Analyzing note concepts with AI...</p>
+                  <p className="text-xs text-muted">Generating AI study response...</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-border bg-surface-raised p-4 max-h-[300px] overflow-y-auto">
-                    <MarkdownPreview content={aiProposalContent} />
+                  <div className="rounded-xl border border-border bg-surface-raised/40 p-4 max-h-80 overflow-y-auto text-xs text-foreground leading-relaxed whitespace-pre-wrap font-sans">
+                    {aiProposalContent}
                   </div>
 
                   <p className="text-[11px] text-muted">
-                    Review the proposal above. Click <strong>Apply to Note</strong> to update your note or <strong>Dismiss</strong> to keep it unchanged.
+                    {aiProposalType === 'structure'
+                      ? 'Clicking Apply will update your note structure. You can also copy the text.'
+                      : 'You can insert this response into your note or copy it to your clipboard.'}
                   </p>
 
-                  <div className="flex items-center justify-end gap-2 pt-2">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsAiModalOpen(false)}
+                      onClick={handleCopyProposal}
+                      className="gap-1 text-xs"
                     >
-                      Dismiss
+                      {copiedProposal ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      <span>{copiedProposal ? 'Copied' : 'Copy'}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsAiModalOpen(false)}
+                      className="text-xs"
+                    >
+                      Cancel
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleApplyAiProposal}
-                      className="font-bold"
+                      className="text-xs font-bold"
                     >
-                      Apply to Note
+                      {aiProposalType === 'structure' ? 'Apply Changes' : 'Insert into Note'}
                     </Button>
                   </div>
                 </div>
@@ -1272,27 +1259,25 @@ ${editorContent.trim()}`
         )}
       </AnimatePresence>
 
-      {/* ─── Flashcards from Note Generator Modal ─────────────────── */}
+      {/* ─── Flashcards Generation Review Modal ─── */}
       <AnimatePresence>
         {isFlashcardModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+              className="relative w-full max-w-xl rounded-2xl border border-border bg-surface shadow-2xl p-5 sm:p-6 space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
+              <div className="flex items-center justify-between border-b border-border pb-3">
                 <div className="flex items-center gap-2">
                   <Brain className="h-4 w-4 text-accent" />
-                  <h3 className="text-sm font-bold text-foreground">
-                    Create Flashcards From Note
-                  </h3>
+                  <h3 className="text-sm font-bold text-foreground">Generated Flashcards</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsFlashcardModalOpen(false)}
-                  className="rounded-lg p-1 text-muted hover:text-foreground cursor-pointer"
+                  className="rounded p-1 text-muted hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1301,91 +1286,74 @@ ${editorContent.trim()}`
               {aiActionLoading ? (
                 <div className="py-12 text-center space-y-3">
                   <LoadingSpinner size="md" />
-                  <p className="text-xs text-muted">Extracting active recall flashcards...</p>
+                  <p className="text-xs text-muted">Extracting active recall cards from your note...</p>
                 </div>
               ) : flashcardSuccess ? (
                 <div className="py-8 text-center space-y-2">
-                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    <CheckCircle2 className="h-6 w-6" />
-                  </div>
-                  <h4 className="text-base font-bold text-foreground">Deck Created Successfully!</h4>
-                  <p className="text-xs text-muted">
-                    Your cards are ready for spaced repetition in the Flashcards tool.
-                  </p>
+                  <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto" />
+                  <p className="text-sm font-bold text-foreground">Flashcard Deck Saved!</p>
+                  <p className="text-xs text-muted">You can now practice them using SuperMemo SM-2 in Flashcards.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-semibold text-muted block mb-1">
-                      Deck Title
-                    </label>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-foreground">Deck Title</label>
                     <input
                       type="text"
                       value={flashcardDeckTitle}
                       onChange={(e) => setFlashcardDeckTitle(e.target.value)}
-                      placeholder="e.g. Operating Systems Chapter 4"
-                      className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                      className="w-full rounded-xl border border-border bg-surface px-3 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="text-xs font-semibold text-muted block">
-                      Proposed Cards ({proposedFlashcards.filter((c) => c.selected).length} selected)
-                    </span>
-                    <div className="space-y-2 max-h-[260px] overflow-y-auto">
-                      {proposedFlashcards.map((card, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded-xl border border-border bg-surface-raised/40 p-3 space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-foreground">
-                              <input
-                                type="checkbox"
-                                checked={card.selected}
-                                onChange={(e) => {
-                                  const checked = e.target.checked
-                                  setProposedFlashcards((prev) =>
-                                    prev.map((c, i) =>
-                                      i === idx ? { ...c, selected: checked } : c,
-                                    ),
-                                  )
-                                }}
-                                className="rounded border-border text-accent focus:ring-accent"
-                              />
-                              <span>Card #{idx + 1}</span>
-                            </label>
-                          </div>
-                          <input
-                            type="text"
-                            value={card.front}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setProposedFlashcards((prev) =>
-                                prev.map((c, i) => (i === idx ? { ...c, front: val } : c)),
-                              )
-                            }}
-                            placeholder="Question (Front)"
-                            className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden"
-                          />
-                          <textarea
-                            rows={2}
-                            value={card.back}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setProposedFlashcards((prev) =>
-                                prev.map((c, i) => (i === idx ? { ...c, back: val } : c)),
-                              )
-                            }}
-                            placeholder="Answer (Back)"
-                            className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden resize-none"
-                          />
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {proposedFlashcards.map((card, idx) => (
+                      <div key={idx} className="p-3 rounded-xl border border-border bg-surface-raised/40 space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-2 font-bold cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={card.selected}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                setProposedFlashcards((prev) =>
+                                  prev.map((c, i) => (i === idx ? { ...c, selected: checked } : c)),
+                                )
+                              }}
+                              className="rounded border-border text-accent focus:ring-accent"
+                            />
+                            <span>Card #{idx + 1}</span>
+                          </label>
                         </div>
-                      ))}
-                    </div>
+                        <input
+                          type="text"
+                          value={card.front}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setProposedFlashcards((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, front: val } : c)),
+                            )
+                          }}
+                          placeholder="Question (Front)"
+                          className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                        />
+                        <textarea
+                          rows={2}
+                          value={card.back}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setProposedFlashcards((prev) =>
+                              prev.map((c, i) => (i === idx ? { ...c, back: val } : c)),
+                            )
+                          }}
+                          placeholder="Answer (Back)"
+                          className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden resize-none"
+                        />
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/60">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                     <Button
                       type="button"
                       variant="ghost"
@@ -1397,14 +1365,11 @@ ${editorContent.trim()}`
                     <Button
                       type="button"
                       size="sm"
-                      disabled={
-                        savingCards ||
-                        proposedFlashcards.filter((c) => c.selected).length === 0
-                      }
+                      disabled={savingCards || proposedFlashcards.filter((c) => c.selected).length === 0}
                       onClick={handleSaveFlashcardsToDeck}
-                      className="font-bold"
+                      className="font-bold text-xs"
                     >
-                      {savingCards ? 'Saving Deck...' : 'Approve & Save Deck'}
+                      {savingCards ? 'Saving Deck...' : 'Add Selected Cards'}
                     </Button>
                   </div>
                 </div>
@@ -1413,6 +1378,18 @@ ${editorContent.trim()}`
           </div>
         )}
       </AnimatePresence>
+
+      {/* ─── Delete Confirmation Dialog ─── */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleteLoading}
+        title="Delete Study Note?"
+        description={`Are you sure you want to delete "${noteToDelete?.title || 'this note'}"? This action cannot be undone.`}
+        confirmText="Delete Note"
+        variant="danger"
+      />
     </PageContainer>
   )
 }
@@ -1457,85 +1434,55 @@ function MarkdownPreview({ content }) {
       continue
     }
 
-    // Headings
     if (line.startsWith('# ')) {
       elements.push(
-        <h1 key={keyIdx++} className="text-lg font-bold text-foreground mt-4 mb-2">
-          {renderFormattedText(line.replace('# ', ''))}
+        <h1 key={keyIdx++} className="text-xl font-bold text-foreground mt-4 mb-2">
+          {line.replace('# ', '')}
         </h1>,
       )
     } else if (line.startsWith('## ')) {
       elements.push(
-        <h2 key={keyIdx++} className="text-base font-bold text-foreground mt-3 mb-1.5">
-          {renderFormattedText(line.replace('## ', ''))}
+        <h2 key={keyIdx++} className="text-lg font-bold text-foreground mt-3 mb-1.5">
+          {line.replace('## ', '')}
         </h2>,
       )
     } else if (line.startsWith('### ')) {
       elements.push(
-        <h3 key={keyIdx++} className="text-sm font-semibold text-foreground mt-2 mb-1">
-          {renderFormattedText(line.replace('### ', ''))}
+        <h3 key={keyIdx++} className="text-sm font-bold text-foreground mt-2 mb-1">
+          {line.replace('### ', '')}
         </h3>,
+      )
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      elements.push(
+        <li key={keyIdx++} className="ml-4 list-disc text-xs text-foreground leading-relaxed">
+          {line.replace(/^[-*]\s+/, '')}
+        </li>,
+      )
+    } else if (/^\d+\.\s+/.test(line)) {
+      elements.push(
+        <li key={keyIdx++} className="ml-4 list-decimal text-xs text-foreground leading-relaxed">
+          {line.replace(/^\d+\.\s+/, '')}
+        </li>,
       )
     } else if (line.startsWith('> ')) {
       elements.push(
         <blockquote
           key={keyIdx++}
-          className="my-2 border-l-2 border-accent pl-3 italic text-xs text-muted leading-relaxed"
+          className="border-l-2 border-accent pl-3 py-1 my-2 text-xs italic text-muted bg-accent/5 rounded-r"
         >
-          {renderFormattedText(line.replace('> ', ''))}
+          {line.replace('> ', '')}
         </blockquote>,
       )
-    } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      elements.push(
-        <li key={keyIdx++} className="ml-4 list-disc text-xs text-foreground leading-relaxed my-0.5">
-          {renderFormattedText(line.replace(/^[-*]\s+/, ''))}
-        </li>,
-      )
-    } else if (/^\d+\.\s+/.test(line)) {
-      elements.push(
-        <li key={keyIdx++} className="ml-4 list-decimal text-xs text-foreground leading-relaxed my-0.5">
-          {renderFormattedText(line.replace(/^\d+\.\s+/, ''))}
-        </li>,
-      )
     } else if (line.trim() === '---') {
-      elements.push(<hr key={keyIdx++} className="my-3 border-border" />)
-    } else if (line.trim().length > 0) {
+      elements.push(<hr key={keyIdx++} className="border-border my-4" />)
+    } else if (line.trim()) {
       elements.push(
-        <p key={keyIdx++} className="text-xs text-foreground leading-relaxed my-1.5">
-          {renderFormattedText(line)}
+        <p key={keyIdx++} className="text-xs text-foreground leading-relaxed my-1">
+          {line}
         </p>,
       )
     }
   }
 
   return <div className="space-y-1">{elements}</div>
-}
-
-function renderFormattedText(text) {
-  // Simple inline parser for **bold** and *italic*
-  const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g)
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={index} className="font-bold text-foreground">
-          {part.slice(2, -2)}
-        </strong>
-      )
-    }
-    if (part.startsWith('*') && part.endsWith('*')) {
-      return (
-        <em key={index} className="italic text-foreground">
-          {part.slice(1, -1)}
-        </em>
-      )
-    }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code key={index} className="rounded bg-surface-raised px-1 py-0.5 font-mono text-[11px] text-accent">
-          {part.slice(1, -1)}
-        </code>
-      )
-    }
-    return part
-  })
 }

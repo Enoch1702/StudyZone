@@ -187,6 +187,42 @@ export default function LearningAnalyticsPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Data Provenance Header Badge */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 bg-surface-raised/40 px-4 py-2.5 text-xs">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span>📊 Your Data — Calculated strictly from your database records</span>
+            </div>
+            <span className="text-muted text-[11px]">
+              No fabricated productivity scores or artificial ratings
+            </span>
+          </div>
+
+          {/* Building Baseline Notice if < 3 sessions */}
+          {analyticsRaw.sessions.length < 3 && (
+            <div className="rounded-2xl border border-accent/25 bg-accent/5 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
+                  <span>🌱 Building Your Learning Baseline</span>
+                  <span className="rounded bg-accent/15 px-2 py-0.5 text-[10px] font-extrabold text-accent">
+                    {analyticsRaw.sessions.length} / 3 sessions logged
+                  </span>
+                </h3>
+                <p className="text-xs text-muted max-w-xl leading-relaxed">
+                  StudyZone calculates your trends strictly from real study sessions. Complete at least 3 focus blocks to unlock deeper subject balance and time distribution analysis.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => window.location.href = '/focus'}
+                className="shrink-0 text-xs font-bold"
+              >
+                Start a Focus Session
+              </Button>
+            </div>
+          )}
+
           {/* Top Hero StatCards Grid */}
           <motion.div
             variants={staggerContainer}
@@ -236,8 +272,16 @@ export default function LearningAnalyticsPage() {
             </motion.div>
           </motion.div>
 
-          {/* Phase 8B: AI Learning Coach Launchpad */}
-          <section aria-label="AI Learning Coach">
+          {/* AI Learning Coach Launchpad */}
+          <section aria-label="AI Learning Coach" className="space-y-2">
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
+                <span>✨</span> AI Learning Coach
+              </span>
+              <span className="text-[11px] text-muted">
+                — On-demand guidance; generated only when you choose a prompt
+              </span>
+            </div>
             <AIInsightsCard analyticsSummary={analyticsSummary} />
           </section>
 

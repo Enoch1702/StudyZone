@@ -306,7 +306,7 @@ function SearchDialog({ onClose }) {
                 setSelectedIndex(0)
               }
             }}
-            placeholder="Search subjects, tasks, deadlines, plans, commands..."
+            placeholder="Search StudyZone... (notes, subjects, tasks, flashcards, plans)"
             className="flex-1 bg-transparent text-sm sm:text-base text-foreground placeholder:text-muted focus:outline-hidden"
           />
           {query && (

@@ -19,7 +19,6 @@ const LearningPlansPage = lazy(() => import('./pages/LearningPlansPage'))
 const LearningPlanDetailPage = lazy(() => import('./pages/LearningPlanDetailPage'))
 const SubjectsPage = lazy(() => import('./pages/SubjectsPage'))
 const TasksPage = lazy(() => import('./pages/TasksPage'))
-const DeadlinesPage = lazy(() => import('./pages/DeadlinesPage'))
 const AIAssistantPage = lazy(() => import('./pages/AIAssistantPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -65,7 +64,7 @@ export default function App() {
                   <Route path="learning-plans/:planId" element={<Navigate to="/plans/:planId" replace />} />
                   <Route path="subjects" element={<SubjectsPage />} />
                   <Route path="tasks" element={<TasksPage />} />
-                  <Route path="deadlines" element={<DeadlinesPage />} />
+                  <Route path="deadlines" element={<CalendarPage initialTab="deadlines" />} />
                   <Route path="ai-assistant" element={<AIAssistantPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

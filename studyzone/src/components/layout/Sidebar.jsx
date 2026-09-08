@@ -27,10 +27,9 @@ const navSections = [
     title: 'Workspace',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/focus', label: 'Focus Mode', icon: Timer },
       { to: '/notes', label: 'Study Notes', icon: FileText },
+      { to: '/focus', label: 'Focus Mode', icon: Timer },
       { to: '/flashcards', label: 'Flashcards', icon: Brain },
-      { to: '/calendar', label: 'Study Calendar', icon: CalendarDays },
     ],
   },
   {
@@ -38,15 +37,25 @@ const navSections = [
     items: [
       { to: '/subjects', label: 'Subjects', icon: BookOpen },
       { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-      { to: '/deadlines', label: 'Deadlines', icon: CalendarDays },
+      { to: '/calendar', label: 'Calendar & Deadlines', icon: CalendarDays },
+    ],
+  },
+  {
+    title: 'Goals',
+    items: [
       { to: '/plans', label: 'Learning Plans', icon: Compass },
     ],
   },
   {
-    title: 'Insights & AI',
+    title: 'Progress',
     items: [
       { to: '/analytics', label: 'Learning Insights', icon: TrendingUp },
-      { to: '/ai-assistant', label: 'AI Assistant', icon: Bot },
+    ],
+  },
+  {
+    title: 'AI',
+    items: [
+      { to: '/ai-assistant', label: 'AI Study Tutor', icon: Bot },
     ],
   },
   {

@@ -65,10 +65,12 @@ export function DeleteSubjectModal({ isOpen, onClose, onConfirm, subject, loadin
               </button>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <p id="delete-subject-desc" className="text-sm leading-relaxed text-muted">
                 Are you sure you want to delete <span className="font-semibold text-foreground">{subject.name}</span>?
-                This subject will be permanently removed from your account.
+              </p>
+              <p className="text-xs leading-relaxed text-muted bg-surface-raised/60 p-3 rounded-lg border border-border/70">
+                ℹ️ <strong>Your study material is safe:</strong> Your notes, tasks, flashcards, and study sessions will <strong>not</strong> be deleted. They will remain in your workspace as unassigned items.
               </p>
             </div>
 

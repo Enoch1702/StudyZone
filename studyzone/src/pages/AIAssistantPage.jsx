@@ -8,6 +8,8 @@ import {
   Trash2,
   PanelLeftClose,
   PanelLeft,
+  FileText,
+  X,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -19,6 +21,7 @@ import {
   EmptyConversation,
 } from '../components/ai/AIStudyForm'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
+import { Button } from '../components/ui/Button'
 import { sendMessage } from '../services/aiService'
 import {
   getConversations,
@@ -33,6 +36,7 @@ import { getSubjects } from '../services/subjectsService'
 import { getTasks } from '../services/tasksService'
 import { getDeadlines } from '../services/deadlinesService'
 import { getLearningPlans } from '../services/learningPlansService'
+import { getNotes } from '../services/notesService'
 import { executeApprovedActions } from '../services/aiActionService'
 import {
   fetchLearningAnalyticsData,
@@ -53,7 +57,7 @@ import { staggerContainer, staggerItem } from '../lib/motion'
  * AI Assistant Page with Persistent Chat History & Adaptive Planning.
  */
 export default function AIAssistantPage() {
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const location = useLocation()
 
   // Conversation history list and active conversation
@@ -75,6 +79,13 @@ export default function AIAssistantPage() {
   const [, setExistingPlans] = useState([])
   const [analyticsSummary, setAnalyticsSummary] = useState(null)
 
+  // Explicit user-attached context (privacy-preserving model: only attached note is sent)
+  const [attachedContext, setAttachedContext] = useState(
+    () => location.state?.attachedContext || null,
+  )
+  const [availableNotes, setAvailableNotes] = useState([])
+  const [isAttachModalOpen, setIsAttachModalOpen] = useState(false)
+
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const initialPromptHandled = useRef(false)
@@ -87,13 +98,14 @@ export default function AIAssistantPage() {
 
     async function loadInitialData() {
       try {
-        const [subRes, taskRes, deadRes, planRes, analyticsRes, convRes] = await Promise.all([
+        const [subRes, taskRes, deadRes, planRes, analyticsRes, convRes, notesRes] = await Promise.all([
           getSubjects(user.id),
           getTasks(user.id),
           getDeadlines(user.id),
           getLearningPlans(user.id),
           fetchLearningAnalyticsData(user.id),
           getConversations(user.id),
+          getNotes(user.id, { sortBy: 'updated_desc' }),
         ])
 
         if (!isMounted) return
@@ -102,6 +114,7 @@ export default function AIAssistantPage() {
         if (taskRes.data) setExistingTasks(taskRes.data)
         if (deadRes.data) setExistingDeadlines(deadRes.data)
         if (planRes.data) setExistingPlans(planRes.data)
+        if (notesRes.data) setAvailableNotes(notesRes.data)
 
         if (analyticsRes && !analyticsRes.error) {
           const consistency = calculateStudyConsistency(analyticsRes.sessions || [])
@@ -251,11 +264,12 @@ export default function AIAssistantPage() {
         // 3. Build bounded history (last 10 messages) for Gemini context
         const boundedHistory = messages.slice(-10).map((m) => ({ role: m.role, content: m.content }))
 
-        // 4. Send request to Edge Function
+        // 4. Send request to Edge Function with explicitly attached context
         const { reply, actions } = await sendMessage({
           message: text,
           history: boundedHistory,
           analyticsSummary,
+          selectedContext: attachedContext,
         })
 
         const rawActions = Array.isArray(actions) ? actions : []
@@ -301,7 +315,7 @@ export default function AIAssistantPage() {
         setTimeout(() => textareaRef.current?.focus(), 100)
       }
     },
-    [activeConversationId, inputValue, isLoading, messages, user, analyticsSummary],
+    [activeConversationId, inputValue, isLoading, messages, user, analyticsSummary, attachedContext],
   )
 
   // Handle incoming prompt passed from Analytics or Dashboard navigation
@@ -436,10 +450,9 @@ export default function AIAssistantPage() {
           </button>
         </div>
 
-        {/* Adaptive Quick Prompts */}
+        {/* Universal Quick Prompts */}
         <motion.div variants={staggerItem} className="mt-2.5">
           <QuickPrompts
-            learnerType={profile?.learner_type}
             onSelect={(prompt) => {
               if (!isLoading) handleSend(prompt)
             }}
@@ -556,7 +569,7 @@ export default function AIAssistantPage() {
             )}
           </div>
 
-          {/* Input Composer */}
+          {/* Input Composer with Explicit Context Attachment */}
           <div className="shrink-0 border-t border-border bg-surface/95 p-3 backdrop-blur-xs sm:p-4">
             <ChatComposer
               textareaRef={textareaRef}
@@ -564,10 +577,82 @@ export default function AIAssistantPage() {
               onChange={setInputValue}
               onSend={() => handleSend(inputValue)}
               isLoading={isLoading}
+              attachedContext={attachedContext}
+              onRemoveContext={() => setAttachedContext(null)}
+              onAttachClick={() => setIsAttachModalOpen(true)}
             />
           </div>
         </div>
       </div>
+
+      {/* Explicit Note Context Selector Modal */}
+      {isAttachModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-accent" />
+                <h3 className="text-sm font-bold text-foreground">Attach Note as Explicit Context</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAttachModalOpen(false)}
+                className="rounded p-1 text-muted hover:text-foreground cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              Privacy First: Only the selected note content will be sent to the AI Tutor. No other notes or private data will be read.
+            </p>
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+              {availableNotes.length === 0 ? (
+                <p className="text-xs text-muted text-center py-6">No study notes found.</p>
+              ) : (
+                availableNotes.map((note) => (
+                  <button
+                    key={note.id}
+                    type="button"
+                    onClick={() => {
+                      setAttachedContext({
+                        type: 'note',
+                        id: note.id,
+                        title: note.title,
+                        content: note.content,
+                      })
+                      setIsAttachModalOpen(false)
+                    }}
+                    className="w-full text-left p-2.5 rounded-xl border border-border/70 hover:border-accent/40 hover:bg-surface-raised transition-colors flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate group-hover:text-accent">
+                        {note.title || 'Untitled Note'}
+                      </p>
+                      <p className="text-[10px] text-muted truncate mt-0.5">
+                        {note.content ? note.content.slice(0, 60) : 'Empty note'}...
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                      Attach
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsAttachModalOpen(false)}
+                className="text-xs cursor-pointer"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Conversation Confirmation Dialog */}
       <ConfirmDialog

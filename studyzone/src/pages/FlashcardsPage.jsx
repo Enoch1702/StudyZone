@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
+  AlertCircle,
   Brain,
   Check,
   CheckCircle2,
@@ -64,6 +65,7 @@ export default function FlashcardsPage() {
   const [aiCardCount, setAiCardCount] = useState(6)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiProposals, setAiProposals] = useState(null) // Array of { front, back, selected }
+  const [aiError, setAiError] = useState(null)
 
   const refreshData = useCallback(async () => {
     if (!user?.id) return
@@ -254,6 +256,7 @@ export default function FlashcardsPage() {
   async function handleGenerateWithAI() {
     if (!aiTopic.trim()) return
     setAiLoading(true)
+    setAiError(null)
 
     try {
       const prompt = `Generate exactly ${aiCardCount} study flashcards for the topic: "${aiTopic.trim()}".
@@ -264,7 +267,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
         history: [],
       })
 
-      // Parse JSON
+      // Clean markdown code fence markers if present
       let cleanText = response.reply.replace(/```json/g, '').replace(/```/g, '').trim()
       const jsonStart = cleanText.indexOf('[')
       const jsonEnd = cleanText.lastIndexOf(']')
@@ -272,18 +275,53 @@ Format your response as a strict JSON array of objects with "front" (concise que
         cleanText = cleanText.slice(jsonStart, jsonEnd + 1)
       }
 
-      const parsedCards = JSON.parse(cleanText)
+      let parsedCards = []
+      try {
+        parsedCards = JSON.parse(cleanText)
+      } catch (parseErr) {
+        console.warn('Malformed AI JSON output:', parseErr)
+        setAiError('Could not parse the AI response format. Please click Regenerate.')
+        return
+      }
+
       if (Array.isArray(parsedCards)) {
-        setAiProposals(
-          parsedCards.map((c) => ({
-            front: c.front || '',
-            back: c.back || '',
+        // Strict Validation & Deduplication
+        const seenQuestions = new Set()
+        const validatedCards = []
+
+        for (const card of parsedCards) {
+          const front = String(card?.front || card?.question || '').trim()
+          const back = String(card?.back || card?.answer || '').trim()
+
+          // Exclude invalid empty cards
+          if (!front || !back) continue
+
+          // Exclude duplicates
+          const normQ = front.toLowerCase()
+          if (seenQuestions.has(normQ)) continue
+          seenQuestions.add(normQ)
+
+          validatedCards.push({
+            front,
+            back,
             selected: true,
-          })),
-        )
+          })
+
+          // Respect requested maximum card count
+          if (validatedCards.length >= aiCardCount) break
+        }
+
+        if (validatedCards.length === 0) {
+          setAiError('No valid flashcards could be generated. Please try a more specific topic or regenerate.')
+        } else {
+          setAiProposals(validatedCards)
+        }
+      } else {
+        setAiError('AI returned an unexpected format. Please try again.')
       }
     } catch (err) {
       console.warn('AI Flashcard generation failed:', err)
+      setAiError(err instanceof Error ? err.message : 'AI generation failed. Please check your connection and retry.')
     } finally {
       setAiLoading(false)
     }
@@ -291,36 +329,42 @@ Format your response as a strict JSON array of objects with "front" (concise que
 
   // ─── Approve & Save AI Cards ───────────────────────────────────
   async function handleApproveAICards() {
-    if (!aiProposals || !user?.id) return
+    if (!aiProposals || !user?.id || aiLoading) return
     const approvedCards = aiProposals.filter((c) => c.selected && c.front.trim() && c.back.trim())
     if (approvedCards.length === 0) return
 
     setAiLoading(true)
 
-    // 1. Create new deck for AI cards
-    const deckRes = await createFlashcardDeck({
-      userId: user.id,
-      title: aiTopic.slice(0, 50).trim(),
-      subjectId: aiSubjectId || null,
-      description: `AI-generated flashcard deck for ${aiTopic.trim()}`,
-    })
-
-    const newDeck = deckRes.data
-    if (newDeck?.id) {
-      // 2. Bulk insert cards
-      await createBulkFlashcards({
-        deckId: newDeck.id,
+    try {
+      // 1. Create new deck for AI cards
+      const deckRes = await createFlashcardDeck({
         userId: user.id,
-        cards: approvedCards,
+        title: aiTopic.slice(0, 50).trim(),
+        subjectId: aiSubjectId || null,
+        description: `Flashcard deck for ${aiTopic.trim()}`,
       })
-    }
 
-    setAiLoading(false)
-    setIsAiModalOpen(false)
-    setAiProposals(null)
-    setAiTopic('')
-    setAiSubjectId('')
-    refreshData()
+      const newDeck = deckRes.data
+      if (newDeck?.id) {
+        // 2. Bulk insert cards
+        await createBulkFlashcards({
+          deckId: newDeck.id,
+          userId: user.id,
+          cards: approvedCards,
+        })
+      }
+
+      setIsAiModalOpen(false)
+      setAiProposals(null)
+      setAiTopic('')
+      setAiSubjectId('')
+      refreshData()
+    } catch (err) {
+      console.warn('Failed to save AI flashcard deck:', err)
+      setAiError('Failed to save flashcards to your deck. Please try again.')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   // ─── Delete Deck ───────────────────────────────────────────────
@@ -513,20 +557,20 @@ Format your response as a strict JSON array of objects with "front" (concise que
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={() => setIsAiModalOpen(true)}
-            className="gap-1.5 text-xs font-semibold text-accent border-accent/40 hover:bg-accent/10 cursor-pointer"
+            className="gap-1.5 text-xs font-bold cursor-pointer"
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Generate with AI</span>
+            <span>Generate Flashcards</span>
           </Button>
 
           <Button
             type="button"
+            variant="outline"
             size="sm"
             onClick={() => setIsCreateDeckOpen(true)}
-            className="gap-1.5 text-xs font-bold cursor-pointer"
+            className="gap-1.5 text-xs font-semibold cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>New Deck</span>
@@ -546,9 +590,18 @@ Format your response as a strict JSON array of objects with "front" (concise que
           </div>
           <h3 className="text-base font-bold text-foreground sm:text-lg">No Flashcard Decks Yet</h3>
           <p className="text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
-            Create your first deck manually or let the AI Assistant instantly generate a study deck from your lecture notes or topics.
+            Generate flashcards instantly from any subject topic or concept, or create custom question-answer cards manually.
           </p>
           <div className="pt-2 flex flex-wrap justify-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsAiModalOpen(true)}
+              className="gap-1.5 cursor-pointer font-bold"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Generate Flashcards</span>
+            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -563,20 +616,11 @@ Format your response as a strict JSON array of objects with "front" (concise que
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsAiModalOpen(true)}
-              className="gap-1.5 text-accent border-accent/40 cursor-pointer"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>AI Deck Generator</span>
-            </Button>
-            <Button
-              type="button"
-              size="sm"
               onClick={() => setIsCreateDeckOpen(true)}
-              className="gap-1.5 font-bold cursor-pointer"
+              className="gap-1.5 cursor-pointer font-semibold text-xs"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Create Deck</span>
+              <span>New Deck</span>
             </Button>
           </div>
         </Card>
@@ -898,10 +942,24 @@ Format your response as a strict JSON array of objects with "front" (concise que
                       <span>{aiLoading ? 'Generating...' : 'Generate Cards'}</span>
                     </Button>
                   </div>
+
+                  {aiError && (
+                    <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 p-3 text-xs text-danger">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{aiError}</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* AI Proposals Review & Approval List */
                 <div className="space-y-3">
+                  {aiError && (
+                    <div className="flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/10 p-3 text-xs text-danger">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{aiError}</span>
+                    </div>
+                  )}
+
                   <p className="text-xs text-muted leading-relaxed">
                     Review and edit the proposed cards below before creating the deck:
                   </p>
@@ -973,18 +1031,32 @@ Format your response as a strict JSON array of objects with "front" (concise que
                       &larr; Back
                     </Button>
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={aiLoading}
-                      onClick={handleApproveAICards}
-                      className="gap-1.5 font-bold cursor-pointer"
-                    >
-                      {aiLoading ? <LoadingSpinner size="xs" /> : <Check className="h-3.5 w-3.5" />}
-                      <span>
-                        Approve & Create ({aiProposals.filter((c) => c.selected).length} cards)
-                      </span>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={aiLoading}
+                        onClick={handleGenerateWithAI}
+                        className="text-xs gap-1.5 cursor-pointer"
+                      >
+                        <RotateCw className={`h-3.5 w-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+                        <span>Regenerate</span>
+                      </Button>
+
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={aiLoading || aiProposals.filter((c) => c.selected).length === 0}
+                        onClick={handleApproveAICards}
+                        className="gap-1.5 font-bold cursor-pointer"
+                      >
+                        {aiLoading ? <LoadingSpinner size="xs" /> : <Check className="h-3.5 w-3.5" />}
+                        <span>
+                          Approve & Create ({aiProposals.filter((c) => c.selected).length} cards)
+                        </span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

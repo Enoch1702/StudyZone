@@ -26,6 +26,7 @@ import {
   updateLearningPlan,
   deleteLearningPlan,
   calculatePlanProgress,
+  createMilestone,
 } from '../services/learningPlansService'
 import { getTasks } from '../services/tasksService'
 import { supabase } from '../lib/supabase'
@@ -63,6 +64,10 @@ export default function LearningPlansPage() {
   const [formDescription, setFormDescription] = useState('')
   const [formTargetDate, setFormTargetDate] = useState('')
   const [formStatus, setFormStatus] = useState('active')
+  const [formMilestones, setFormMilestones] = useState([
+    'Phase 1: Foundations',
+    'Phase 2: Practice & Projects',
+  ])
 
   // Delete modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -119,6 +124,7 @@ export default function LearningPlansPage() {
     setFormDescription('')
     setFormTargetDate('')
     setFormStatus('active')
+    setFormMilestones(['Phase 1: Foundations', 'Phase 2: Practice & Projects'])
     setPlanFormError('')
     setModalOpen(true)
   }
@@ -173,6 +179,26 @@ export default function LearningPlansPage() {
           status: formStatus,
         })
         if (res.error) throw res.error
+
+        // Create initial milestones if provided
+        if (res.data?.id) {
+          const validMilestones = formMilestones
+            .map((m) => m.trim())
+            .filter(Boolean)
+
+          if (validMilestones.length > 0) {
+            await Promise.all(
+              validMilestones.map((title, idx) =>
+                createMilestone({
+                  planId: res.data.id,
+                  userId: user.id,
+                  title,
+                  position: idx + 1,
+                }),
+              ),
+            )
+          }
+        }
       }
 
       setModalOpen(false)
@@ -217,10 +243,10 @@ export default function LearningPlansPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Learning Plans
+              Learning Plans & Roadmaps
             </h1>
             <p className="mt-0.5 text-xs text-muted sm:text-sm">
-              Turn big learning goals into clear milestones and steady progress.
+              Optional structured roadmaps for larger goals (e.g. Master React, Prepare for Finals). Break big objectives into sequential milestones.
             </p>
           </div>
         </div>
@@ -229,6 +255,19 @@ export default function LearningPlansPage() {
           <Plus className="h-4 w-4" />
           <span>Create Plan</span>
         </Button>
+      </div>
+
+      {/* Subject vs Plan distinction callout */}
+      <div className="flex items-start gap-3 rounded-xl border border-border/80 bg-surface-raised/40 p-3.5 text-xs text-muted">
+        <span className="text-base leading-none">💡</span>
+        <div className="space-y-0.5">
+          <p className="font-semibold text-foreground">
+            Subject vs. Learning Plan: What’s the difference?
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted">
+            A <strong>Subject</strong> is an ongoing knowledge folder for your daily notes, tasks, and flashcards. A <strong>Learning Plan</strong> is an optional chronological roadmap designed to track milestones toward a target completion date. You don&apos;t need a learning plan to take notes or study!
+          </p>
+        </div>
       </div>
 
       {/* Error alert */}
@@ -487,6 +526,60 @@ export default function LearningPlansPage() {
               </select>
             </div>
           </div>
+
+          {/* Initial Milestones Builder for New Plans */}
+          {!editingPlan && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-medium text-foreground">
+                  Milestones / Roadmap Steps (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setFormMilestones((prev) => [...prev, ''])}
+                  className="text-[11px] font-medium text-accent hover:underline cursor-pointer"
+                >
+                  + Add Step
+                </button>
+              </div>
+              <p className="text-[11px] text-muted">
+                Break your goal into sequential milestones (you can add tasks to them later).
+              </p>
+              <div className="space-y-2">
+                {formMilestones.map((milestone, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-xs text-muted w-4 font-mono">{idx + 1}.</span>
+                    <Input
+                      value={milestone}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setFormMilestones((prev) => {
+                          const next = [...prev]
+                          next[idx] = val
+                          return next
+                        })
+                      }}
+                      placeholder={`e.g. Milestone ${idx + 1}`}
+                      disabled={planFormLoading}
+                      className="flex-1 text-xs"
+                    />
+                    {formMilestones.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormMilestones((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        className="p-1 text-muted hover:text-danger rounded cursor-pointer"
+                        aria-label="Remove milestone"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
             <Button

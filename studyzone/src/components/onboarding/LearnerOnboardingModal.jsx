@@ -270,22 +270,22 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                   exit="exit"
                   className="space-y-4"
                 >
-                  <p className="text-sm text-foreground leading-relaxed">
-                    StudyZone is built around one continuous learning workflow to keep you in flow:
+                  <p className="text-xs sm:text-sm text-foreground leading-relaxed">
+                    Organize what you&apos;re learning, capture knowledge, stay focused, and practice what you learn:
                   </p>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 mb-2 font-bold text-xs">
-                        1
+                        📚
                       </div>
-                      <p className="text-xs font-bold text-foreground">PLAN</p>
+                      <p className="text-xs font-bold text-foreground">ORGANIZE</p>
                       <p className="text-[11px] text-muted mt-0.5">Subjects & Tasks</p>
                     </div>
 
                     <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 mb-2 font-bold text-xs">
-                        2
+                        🔥
                       </div>
                       <p className="text-xs font-bold text-foreground">FOCUS</p>
                       <p className="text-[11px] text-muted mt-0.5">Timer & Audio</p>
@@ -293,39 +293,39 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
 
                     <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 mb-2 font-bold text-xs">
-                        3
+                        📝
                       </div>
                       <p className="text-xs font-bold text-foreground">CAPTURE</p>
                       <p className="text-[11px] text-muted mt-0.5">Study Notes</p>
                     </div>
 
                     <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 mb-2 font-bold text-xs">
-                        4
-                      </div>
-                      <p className="text-xs font-bold text-foreground">TRACK</p>
-                      <p className="text-[11px] text-muted mt-0.5">Daily Streaks</p>
-                    </div>
-
-                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500 mb-2 font-bold text-xs">
-                        5
+                        ✨
                       </div>
-                      <p className="text-xs font-bold text-foreground">IMPROVE</p>
-                      <p className="text-[11px] text-muted mt-0.5">AI Coaching</p>
+                      <p className="text-xs font-bold text-foreground">UNDERSTAND</p>
+                      <p className="text-[11px] text-muted mt-0.5">AI Study Tutor</p>
                     </div>
 
                     <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500 mb-2 font-bold text-xs">
-                        6
+                        🧠
                       </div>
-                      <p className="text-xs font-bold text-foreground">REMEMBER</p>
-                      <p className="text-[11px] text-muted mt-0.5">SM-2 Flashcards</p>
+                      <p className="text-xs font-bold text-foreground">PRACTICE</p>
+                      <p className="text-[11px] text-muted mt-0.5">Active Flashcards</p>
+                    </div>
+
+                    <div className="rounded-xl border border-border bg-surface-raised/40 p-3 text-left">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 mb-2 font-bold text-xs">
+                        📊
+                      </div>
+                      <p className="text-xs font-bold text-foreground">REVIEW</p>
+                      <p className="text-[11px] text-muted mt-0.5">Learning Insights</p>
                     </div>
                   </div>
 
                   <p className="text-xs text-muted">
-                    Let&apos;s set up your first subject and task in 30 seconds so your dashboard is immediately actionable.
+                    Let&apos;s set up your first subject and learning goal in 30 seconds so your workspace is immediately actionable.
                   </p>
                 </motion.div>
               )}
@@ -493,35 +493,45 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
                     <button
                       type="button"
                       onClick={() => handleFinish('/focus')}
-                      className="group flex flex-col items-center justify-center rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-accent hover:bg-accent hover:text-white transition-all cursor-pointer shadow-xs"
+                      className="group flex flex-col items-center justify-center rounded-xl border border-accent/40 bg-accent/10 p-3 text-accent hover:bg-accent hover:text-white transition-all cursor-pointer shadow-xs"
                     >
                       <Flame className="h-5 w-5 mb-1.5 group-hover:scale-110 transition-transform" />
                       <span className="text-xs font-bold">Start Focus</span>
-                      <span className="text-[10px] opacity-80 mt-0.5">Pomodoro & Sound</span>
+                      <span className="text-[10px] opacity-80 mt-0.5">25m Timer</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleFinish('/notes')}
-                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3.5 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
+                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
                     >
                       <FileText className="h-5 w-5 mb-1.5 text-muted group-hover:text-accent transition-colors" />
                       <span className="text-xs font-bold">Study Notes</span>
-                      <span className="text-[10px] text-muted mt-0.5">Markdown & AI</span>
+                      <span className="text-[10px] text-muted mt-0.5">Capture</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleFinish('/flashcards')}
-                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3.5 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
+                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
                     >
                       <Brain className="h-5 w-5 mb-1.5 text-muted group-hover:text-accent transition-colors" />
                       <span className="text-xs font-bold">Flashcards</span>
-                      <span className="text-[10px] text-muted mt-0.5">SM-2 Spaced Recall</span>
+                      <span className="text-[10px] text-muted mt-0.5">Practice</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleFinish('/dashboard')}
+                      className="group flex flex-col items-center justify-center rounded-xl border border-border bg-surface p-3 text-foreground hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shadow-xs"
+                    >
+                      <GraduationCap className="h-5 w-5 mb-1.5 text-muted group-hover:text-accent transition-colors" />
+                      <span className="text-xs font-bold">Dashboard</span>
+                      <span className="text-[10px] text-muted mt-0.5">Overview</span>
                     </button>
                   </div>
                 </motion.div>

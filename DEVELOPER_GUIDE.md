@@ -1,12 +1,12 @@
 # StudyZone — Technical Architecture & Developer Interview Guide
 
-This document is a comprehensive technical reference for engineers, reviewers, and interviewers. It details the complete architecture, data flows, security design, database relations, and component implementations of **StudyZone**.
+This document is a comprehensive technical reference for engineers, reviewers, and interviewers. It details the complete architecture, data flows, security design, database relations, component implementations, and UX refactoring decisions of **StudyZone**.
 
 ---
 
 ## 🏛️ 1. Overall System Architecture
 
-StudyZone is built as a modular single-page application (SPA) backed by serverless PostgreSQL:
+StudyZone is built as a modular single-page application (SPA) backed by serverless PostgreSQL and Supabase Edge Functions:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -15,33 +15,58 @@ StudyZone is built as a modular single-page application (SPA) backed by serverle
 ├────────────────────────────────────────────────────────────────────────┤
 │                          Application State & Context                   │
 │  ├─ AuthContext (User session & profile hydration)                     │
-│  ├─ ThemeContext (7 Theme presets + persistence)                       │
+│  ├─ ThemeContext (6 Theme presets + localStorage persistence)          │
 │  ├─ AudioContext (Web Audio procedural soundscapes & persistent bar)   │
-│  └─ SearchContext (Global Cmd+K command palette)                       │
+│  └─ SearchContext (Global Cmd+K / Ctrl+K command palette)              │
 ├────────────────────────────────────────────────────────────────────────┤
 │                          Service Layer (Client SDK)                    │
 │  ├─ notesService.js            ├─ focusTimerService.js                 │
-│  ├─ flashcardsService.js       ├─ smartNextActionService.js            │
+│  ├─ flashcardsService.js       ├─ smartNextActionService.js (Heuristic)│
 │  ├─ tasksService.js            ├─ learningAnalyticsService.js          │
 │  ├─ subjectsService.js         ├─ learningPlansService.js              │
-│  └─ deadlinesService.js        └─ aiService.js                         │
+│  ├─ deadlinesService.js        └─ studySessionsService.js              │
 ├───────────────────────────────────┬────────────────────────────────────┤
-│ Supabase Backend (PostgreSQL)     │ Serverless AI Edge Engine          │
+│ Supabase Backend (PostgreSQL)     │ Serverless AI Edge Engine (Deno)   │
 │  ├─ Row Level Security (RLS)      │  ├─ Google Gemini 2.5 Flash API    │
-│  ├─ JWT Token Verification        │  ├─ Strict JSON schema validation  │
-│  └─ Real-time DB triggers         │  └─ Human-in-the-Loop review gate  │
+│  ├─ ON DELETE SET NULL cascades   │  ├─ Strict JSON schema validation  │
+│  └─ UTC TIMESTAMPTZ storage       │  └─ Explicit Context In/Out model  │
 └───────────────────────────────────┴────────────────────────────────────┘
 ```
 
-### Architectural Flow:
-1. **User Interaction**: UI components trigger actions through isolated context hooks or direct service calls.
-2. **Service Layer**: Pure asynchronous services encapsulate validation, query construction, and resilience caching (`localStorage` read-through/write-through).
-3. **Database Client**: `@supabase/supabase-js` dispatches authenticated HTTP/WebSocket requests with the user's JWT token attached in the `Authorization` header.
-4. **PostgreSQL RLS**: PostgreSQL evaluates user identity (`auth.uid() = user_id`) on every query before returning rows.
+---
+
+## 🔄 2. Core Learning Model & 1-Page, 1-Purpose Principle
+
+StudyZone organizes learning into six interconnected stages:
+
+$$\text{ORGANIZE} \longrightarrow \text{FOCUS} \longrightarrow \text{CAPTURE} \longrightarrow \text{UNDERSTAND} \longrightarrow \text{PRACTICE} \longrightarrow \text{REVIEW}$$
+
+### Flexible Non-Linear Entry Points
+Real students do not follow rigid application paths. StudyZone supports direct entry into any phase:
+- Writing notes without prior focus sessions.
+- Starting a 25:00 focus session without an assigned subject or task.
+- Asking the AI Study Tutor conceptual questions without creating a subject.
+- Generating flashcard decks directly from a topic.
+
+### One-Page, One-Primary-Purpose Rule
+
+| Page | Route | Primary User Question | Architectural Responsibility |
+| :--- | :--- | :--- | :--- |
+| **Dashboard** | `/dashboard` | *What should I do now?* | Daily action cockpit: next action heuristic, today's focus, 1-click focus launcher |
+| **Subjects** | `/subjects` | *What am I learning?* | Knowledge containers linking notes, tasks, cards, and study time |
+| **Tasks** | `/tasks` | *What do I need to complete?* | Track and check off actionable to-dos |
+| **Calendar** | `/calendar` | *When do I need to do it?* | Unified timeline: monthly event grid & upcoming deadlines tracker |
+| **Focus Mode** | `/focus` | *Help me concentrate.* | 1-click timer & 10 procedural Web Audio ambient soundscapes |
+| **Study Notes** | `/notes` | *What knowledge do I want to capture?* | Distraction-free single-column editor, local draft caching, contextual AI tools |
+| **AI Study Tutor** | `/ai-assistant` | *Help me understand this.* | Conversational tutor with explicit context attachment |
+| **Flashcards** | `/flashcards` | *Help me remember this.* | SM-2 spaced repetition, AI generation with inline review & editing |
+| **Learning Plans**| `/plans` | *How do I reach a larger goal?* | Optional multi-milestone structured roadmaps |
+| **Learning Insights**| `/analytics`| *How am I progressing?* | Retrospective study time, consistency calendar, subject distribution |
+| **Settings** | `/settings` | *How do I configure my workspace?* | Profile name, appearance themes, audio preferences |
 
 ---
 
-## 🔐 2. Authentication & Security Model
+## 🔐 3. Authentication & Security Model
 
 ### A. Authentication Flow
 ```
@@ -74,29 +99,44 @@ CREATE POLICY "Users can manage own study notes"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 ```
-Even if a malicious user attempts to query another user's UUID directly, PostgreSQL returns `0 rows`.
+Even if a user attempts to query another user's UUID directly, PostgreSQL returns `0 rows`.
 
 ---
 
-## 🤖 3. AI Architecture & Human-in-the-Loop Workflow
+## 🤖 4. AI Privacy Architecture & Human-in-the-Loop Workflow
 
-StudyZone enforces a strict **Human-in-the-Loop (HITL)** policy for all generative AI interactions:
+StudyZone enforces an explicit privacy and safety boundary for all generative AI interactions:
 
 ```
-User Prompt / Note Content / Topic
-  ──► `sendMessage()` in `aiService.js`
-  ──► Proxied through backend edge function / Google Gemini 2.5 Flash
-  ──► AI responds with structured JSON proposals
-  ──► React renders an interactive Approval & Review Modal
-  ──► User inspects, edits, or deselects individual proposal items
-  ──► ONLY upon explicit "Approve & Save" click are records written to Supabase
+[User Interface]
+  │
+  ├─ User attaches specific Note / Prompt
+  │  (Bounded at ~6,000 characters to prevent overflow)
+  ▼
+[Supabase Edge Function: study-assistant]
+  │
+  ├─ Validates JWT Auth Token (`auth.uid()`)
+  ├─ Injects strict Academic Tutor System Instruction
+  ├─ Forwards ONLY explicit attached context + minimal subject names
+  │  (Zero silent database scraping of tasks, notes, or sessions)
+  ▼
+[Google Gemini 2.5 Flash]
+  │
+  ├─ Generates Tutoring Response OR Structured Proposal JSON
+  ▼
+[Frontend Approval Gate]
+  │
+  ├─ Notes: Review Modal with [ Apply Changes ], [ Copy ], [ Cancel ]
+  ├─ Flashcards: Interactive Review with inline Q&A edit checkboxes
+  ├─ Tasks/Plans: Interactive Review Card before saving
+  ▼
+[Supabase PostgreSQL]
+  └─ Writes ONLY occur upon explicit student approval
 ```
-
-**Zero autonomous writes are permitted**. The AI cannot unilaterally delete, update, or create database records.
 
 ---
 
-## 🗄️ 4. Relational Database Schema & Entities
+## 🗄️ 5. Relational Database Schema & Data Integrity
 
 ```
 ┌─────────────────┐       1:1       ┌──────────────────┐
@@ -123,65 +163,97 @@ User Prompt / Note Content / Topic
 └─────────────────┘              └────────────────────┘          └──────────────────┘
 ```
 
-### Key Tables & Responsibilities:
-1. **`profiles`**: Extended user metadata (learner type, primary goal, display name, avatar, `onboarding_completed`).
-2. **`subjects`**: User's curriculum topics (name, color, description).
-3. **`tasks`**: Action items (title, priority `low|medium|high|urgent`, status `pending|in-progress|completed`, due date, subject FK, milestone FK).
-4. **`deadlines`**: High-stakes target dates (exams, assignments, project submissions).
-5. **`study_sessions`**: Focus duration records (duration minutes, started_at, subject FK, task FK).
-6. **`study_notes`**: Markdown notes (title, content, summary, tags array, pinned status, subject FK).
-7. **`flashcard_decks` & `flashcards`**: Spaced repetition items (front, back, `repetition_count`, `interval_days`, `easiness_factor`, `next_review_at`).
-8. **`learning_plans` & `learning_milestones`**: Hierarchical roadmap goals with progress recalculation.
+### Safe Non-Destructive Deletions (`ON DELETE SET NULL`)
+All child foreign keys referencing `subjects(id)` specify `ON DELETE SET NULL`:
+- Deleting a Subject in StudyZone **never deletes** student notes, tasks, flashcards, or study sessions.
+- Associated items remain safely preserved in the database with `subject_id = null` and display as unassigned items.
+- The UI confirmation dialog explicitly communicates this reassurance to learners.
 
 ---
 
-## 💡 5. Feature Deep Dives & Interview Reference
+## 💡 6. Feature Deep Dives & Engineering Decisions
 
-### A. Focus Mode & Pure Web Audio Synthesis
-- **Problem Solved**: Distraction and ambient noise during deep study blocks.
-- **Why Web Audio API over MP3 audio files?**
-  1. **Zero Bandwidth**: Sounds are generated mathematically via procedural algorithms in real-time. Zero streaming cost.
-  2. **Zero Latency**: Audio starts instantaneously on user click.
-  3. **Customization**: Sounds (Rain, Ocean Waves, Campfire, 528Hz Drone, Brownian Noise) use biquad filters and LFO oscillators parameterized in memory.
-  4. **Persistent Playback**: The global `AudioContext` resides in a root `<AudioProvider>`, allowing users to navigate between dashboard, notes, and calendar while sound continues seamlessly.
+### A. Focus Mode: 1-Click Start & Single-Log Guarantee
+- **Problem Solved**: Resistance to starting study sessions and duplicate session entries.
+- **Engineering Implementation**:
+  - Timer starts immediately with 1 click without requiring prior subject or task assignment (`subject_id = NULL`).
+  - `sessionLoggedRef` prevents concurrent or duplicate database writes when timer reaches 00:00.
+  - Completed sessions immediately clear from `localStorage` to eliminate duplicate writes on page refresh.
+  - Optional post-session reflection modal allows retroactive subject linking.
 
-### B. Mathematical Spaced Repetition (SuperMemo SM-2)
-- **Problem Solved**: The Ebbinghaus forgetting curve.
-- **Algorithm Implementation (`flashcardsService.js`)**:
+### B. Pure Web Audio Procedural Soundscapes
+- **Problem Solved**: High bandwidth costs, external streaming latency, and audio looping artifacts.
+- **Implementation**:
+  - 10 soundscapes (Gentle Rain, Ocean Waves, Forest Wind, Campfire, 528Hz Drone, 432Hz Harmonic, Brownian Noise, Pink Noise, White Noise, Mute) generated mathematically using Web Audio API nodes (`AudioBufferSourceNode`, `BiquadFilterNode`, `GainNode`, `StereoPannerNode`).
+  - Runs with 0kb network requests and infinite, non-repeating acoustic variation.
+  - Persistent playback across page navigation via root `<AudioProvider>`.
+
+### C. Mathematical Spaced Repetition (SuperMemo SM-2)
+- **Problem Solved**: Long-term memory decay and cramming.
+- **Algorithm (`flashcardsService.js`)**:
   - Quality score ($q \in [0..5]$): `Again` (1), `Hard` (3), `Good` (4), `Easy` (5).
   - Easiness Factor update: $EF' = EF + (0.1 - (5 - q) \times (0.08 + (5 - q) \times 0.02))$, with $EF \ge 1.3$.
-  - Interval calculation:
-    - $n = 1 \implies I = 1\text{ day}$
-    - $n = 2 \implies I = 6\text{ days}$
-    - $n > 2 \implies I = I_{n-1} \times EF$
-  - User Experience: Complex math notation is hidden behind intuitive labels (`Again`, `Hard`, `Good`, `Easy`) while exact intervals update in PostgreSQL.
+  - Intervals: $I(1) = 1$, $I(2) = 6$, $I(n) = I_{n-1} \times EF$.
+  - Atomic card quality: System prompts strictly enforce 1 concept per card with active recall framing.
 
-### C. Best Next Action Engine (`smartNextActionService.js`)
-- **Problem Solved**: Decision fatigue when opening the app.
-- **Deterministic Priority Hierarchy**:
-  1. Overdue High/Urgent Priority Tasks $\implies$ Immediate critical backlog.
-  2. Deadlines Due Today $\implies$ Final revision and submission.
-  3. Tasks Due Today $\implies$ Daily scheduled focus.
-  4. Neglected Subject Areas (no study session in $\ge 7$ days).
-  5. Active Learning Plan Milestone Tasks $\implies$ Roadmap momentum.
-  6. Next queue item fallback.
-  7. If empty $\implies$ Actionable "Get Started" onboarding card.
-
-### D. Study Notes & Knowledge Workflow (`/notes`)
-- **Problem Solved**: Disorganized learning notes and lack of review.
-- **Architecture**:
-  - Markdown editor with live preview toggle.
-  - Multi-tier resilience: In-memory state $\to$ debounced auto-save to Supabase $\to$ local storage fallback cache.
-  - Note-to-Flashcards pipeline: Extracts key concepts from notes and populates SM-2 decks with 1 click.
+### D. Deterministic "Smart Next Action" Engine
+- **Why Rule-Based instead of AI?**:
+  - Real-time zero-latency execution.
+  - Completely explainable and deterministic.
+  - Zero token cost and zero hallucination risk.
+- **Heuristic Order**:
+  1. Overdue tasks (chronological by due date).
+  2. Tasks due today.
+  3. High/urgent priority tasks.
+  4. Neglected subjects (> 7 days without study).
+  5. Continue recent study activity.
+  6. Empty state action card.
 
 ---
 
-## 🎯 6. Developer Interview Q&A Quick Sheet
+## 🧪 7. Post-Phase 18 Student Testing Protocol
+
+To validate usability improvements with real learners, conduct unassisted testing using these six core scenarios:
+
+### Task 1: Zero-Friction Focus Session
+- **Scenario**: *"You have 25 minutes to study right now. Start a focus session."*
+- **Observation Goal**: Verify student clicks "Start Focus" immediately without feeling blocked by subject/task dropdowns.
+- **Success Criteria**: Timer starts within 5 seconds.
+
+### Task 2: Distraction-Free Note Capture
+- **Scenario**: *"Write a note summarizing what you learned about Binary Search Trees."*
+- **Observation Goal**: Verify student writes in the single-column canvas, switches between Edit and Preview tabs, and triggers "Study with AI → Summarize Note".
+- **Success Criteria**: Note is created and saved; proposal review modal is understood and applied non-destructively.
+
+### Task 3: Automatic Flashcard Deck Creation
+- **Scenario**: *"Create a 5-card flashcard deck to study Python List Comprehensions."*
+- **Observation Goal**: Verify student uses `✨ Generate Flashcards`, inspects cards in the review modal, edits an answer inline, and saves the deck.
+- **Success Criteria**: Deck is created and reviewed using SM-2 buttons (`Again`, `Hard`, `Good`, `Easy`).
+
+### Task 4: Contextual AI Study Assistance
+- **Scenario**: *"Ask the AI Study Tutor to explain Recursion using the note you just wrote."*
+- **Observation Goal**: Verify student notices the visual context chip `[ 📄 Note: ... ✕ ]` and asks follow-up questions.
+- **Success Criteria**: Student confirms feeling that the AI acts as an interactive tutor rather than an autonomous generator.
+
+### Task 5: Daily Cockpit Action
+- **Scenario**: *"You just opened StudyZone on a Monday morning. What should you do first?"*
+- **Observation Goal**: Verify student reads the Smart Next Action card and checks off a task in "Today's Focus".
+- **Success Criteria**: Student understands the "Why this?" rationale and completes the task in 1 click.
+
+### Task 6: Organizing Big Goals vs. Subjects
+- **Scenario**: *"You want to prepare for your semester exams in 2 months. Set up your workspace."*
+- **Observation Goal**: Verify student creates a Subject for course materials and optionally creates a Learning Plan with milestones for the 2-month timeline.
+- **Success Criteria**: Student distinguishes between the knowledge container (Subject) and the milestone roadmap (Learning Plan).
+
+---
+
+## 🎯 8. Developer Interview Q&A Quick Sheet
 
 | Interview Question | Concise Technical Answer |
 | :--- | :--- |
-| **How is multi-tenancy handled?** | Multi-tenancy is enforced at the database level using PostgreSQL Row Level Security (RLS). Every table includes a `user_id` foreign key matching `auth.uid()`. Even if an API request attempts to access another user's ID, the query returns 0 rows. |
-| **How does AI prevent hallucinated data corruption?** | All AI operations use strict JSON output schemas and a Human-in-the-Loop review modal. The frontend presents proposed items for user inspection before calling Supabase write endpoints. |
-| **Why use Web Audio synthesis for background noise?** | Web Audio procedural generation creates infinite non-looping audio (Brownian noise, binaural drones, rain) directly on the client CPU, requiring 0kb of audio streaming and zero network requests. |
-| **How is date/time consistency preserved across timezones?** | All timestamps are stored in UTC in PostgreSQL (`TIMESTAMPTZ`). For calendar grouping and daily streak calculations, local dates are normalized using a custom `toLocalDateKey` utility to eliminate UTC boundary shift bugs. |
-| **How does the theme engine work?** | Built using CSS variable tokens in Tailwind CSS v4. Theme classes applied to `<html>` dynamically switch background meshes, surface elevations, and accent palettes with `localStorage` persistence. |
+| **How is multi-tenancy enforced?** | Multi-tenancy is enforced at the database layer using PostgreSQL Row Level Security (RLS). Every table contains a `user_id` foreign key matching `auth.uid()`. Malicious cross-tenant queries return 0 rows. |
+| **What is the AI Privacy boundary?** | StudyZone enforces `Explicit Context In → AI Processing → Response Out`. Gemini only receives explicitly attached note text or user prompts (capped at ~6,000 characters). Private tasks and sessions are never dumped silently into LLM prompts. |
+| **Why is Smart Next Action rule-based?** | To ensure instantaneous rendering, explainable rationale (`Why this?`), zero token cost, and absolute determinism without hallucination. |
+| **What happens when a Subject is deleted?** | PostgreSQL foreign keys enforce `ON DELETE SET NULL`. Notes, tasks, flashcards, and sessions remain safe in the database with `subject_id = null` as unassigned items. |
+| **How does offline resilience work?** | Active note drafts are continuously mirrored to browser `localStorage`. If network drops or an edit fails to sync to Supabase, the student sees *"Offline — saved locally"* and can retry with zero data loss. |
+| **How are focus sessions protected against duplicate logging?** | FocusPage utilizes `sessionLoggedRef` to guarantee focus sessions are recorded exactly once on timer completion, and immediately clears active timer state from `localStorage` upon completion. |

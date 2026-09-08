@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Bot, User, AlertCircle, Check, Copy, Square, CheckSquare } from 'lucide-react'
+import { Bot, User, AlertCircle, Check, Copy, Square, CheckSquare, Paperclip, FileText, X } from 'lucide-react'
 import { AIActionProposal } from './AIActionProposal'
 import { cn } from '../../lib/utils'
 import { fadeUp, staggerItem } from '../../lib/motion'
@@ -346,61 +346,25 @@ export function ThinkingIndicator() {
 /**
  * Returns contextual quick prompts based on learner category.
  */
-function getAdaptivePrompts(learnerType) {
-  const commonCoaching = [
-    { icon: '📊', label: 'Review my week & consistency', id: 'qp-review' },
-    { icon: '💡', label: 'What should I improve?', id: 'qp-improve' },
-    { icon: '⚖️', label: 'Analyze my upcoming workload', id: 'qp-workload' },
+function getAdaptivePrompts() {
+  return [
+    { icon: '📚', label: 'Explain a concept simply with examples', id: 'qp-explain' },
+    { icon: '🧠', label: 'Quiz me with 3 practice questions', id: 'qp-quiz' },
+    { icon: '⚡', label: 'Generate flashcards for my topic', id: 'qp-flashcards' },
+    { icon: '📝', label: 'Summarize key takeaways for quick review', id: 'qp-summarize' },
+    { icon: '📅', label: 'Help me plan and prioritize my study tasks', id: 'qp-plan' },
   ]
-
-  switch (learnerType) {
-    case 'placement':
-      return [
-        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
-        ...commonCoaching,
-        { icon: '💼', label: 'Plan my placement preparation', id: 'qp-placement' },
-        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '📋', label: 'Create a DSA & coding checklist', id: 'qp-checklist' },
-      ]
-    case 'competitive_exam':
-      return [
-        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
-        ...commonCoaching,
-        { icon: '🏆', label: 'Plan my exam syllabus schedule', id: 'qp-exam-plan' },
-        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '📋', label: 'Generate a high-yield checklist', id: 'qp-checklist' },
-      ]
-    case 'skill_dev':
-      return [
-        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
-        ...commonCoaching,
-        { icon: '💻', label: 'Build my skill learning roadmap', id: 'qp-skill-plan' },
-        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '📋', label: 'Create a project checklist', id: 'qp-checklist' },
-      ]
-    case 'college':
-    case 'school':
-    default:
-      return [
-        { icon: '✨', label: 'What should I study today?', id: 'qp-today' },
-        ...commonCoaching,
-        { icon: '📅', label: 'Create a study plan for this week', id: 'qp-plan' },
-        { icon: '🎯', label: 'Help me prioritize my tasks', id: 'qp-prioritize' },
-        { icon: '📋', label: 'Create a study checklist', id: 'qp-checklist' },
-      ]
-  }
 }
 
 /**
- * Row of quick-action prompt chips adapted to the learner category.
+ * Row of quick-action prompt chips for conversational study assistance.
  *
  * @param {Object} props
- * @param {string|null} [props.learnerType] - Learner category
  * @param {(message: string) => void} props.onSelect - Called with prompt text
  * @param {boolean} props.disabled - Disable during loading
  */
-export function QuickPrompts({ learnerType, onSelect, disabled }) {
-  const prompts = getAdaptivePrompts(learnerType)
+export function QuickPrompts({ onSelect, disabled }) {
+  const prompts = getAdaptivePrompts()
 
   return (
     <motion.div
@@ -437,7 +401,16 @@ export function QuickPrompts({ learnerType, onSelect, disabled }) {
 // ChatComposer
 // ---------------------------------------------------------------------------
 
-export function ChatComposer({ value, onChange, onSend, isLoading, textareaRef }) {
+export function ChatComposer({
+  value,
+  onChange,
+  onSend,
+  isLoading,
+  textareaRef,
+  attachedContext = null,
+  onRemoveContext = null,
+  onAttachClick = null,
+}) {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -450,43 +423,80 @@ export function ChatComposer({ value, onChange, onSend, isLoading, textareaRef }
   const canSend = !isLoading && value.trim().length > 0
 
   return (
-    <div className="flex items-end gap-2 rounded-xl border border-border bg-surface-raised p-2 transition-all duration-150 focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10">
-      <textarea
-        ref={textareaRef}
-        id="ai-message-input"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask anything about your study plans, tasks, or revision…"
-        disabled={isLoading}
-        rows={1}
-        aria-label="Message input"
-        className={cn(
-          'flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-foreground',
-          'placeholder:text-muted-foreground',
-          'focus-visible:outline-none',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'max-h-32 overflow-y-auto',
-        )}
-        style={{ fieldSizing: 'content' }}
-      />
+    <div className="space-y-1.5">
+      {/* Explicit Attached Context Chip */}
+      {attachedContext && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-accent/10 border border-accent/25 text-accent rounded-lg w-fit animate-in fade-in">
+          <FileText className="h-3.5 w-3.5" />
+          <span className="font-semibold truncate max-w-xs">{attachedContext.title}</span>
+          <span className="text-[10px] text-muted">({attachedContext.type || 'context'})</span>
+          {onRemoveContext && (
+            <button
+              type="button"
+              onClick={onRemoveContext}
+              aria-label="Remove attached context"
+              className="p-0.5 rounded hover:bg-accent/20 text-muted hover:text-foreground ml-1 cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
 
-      <button
-        id="ai-send-button"
-        onClick={onSend}
-        disabled={!canSend}
-        aria-label="Send message"
-        className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-          'transition-all duration-150',
-          canSend
-            ? 'bg-accent text-white hover:bg-accent-hover active:scale-[0.93]'
-            : 'bg-surface text-muted cursor-not-allowed',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+      <div className="flex items-end gap-2 rounded-xl border border-border bg-surface-raised p-2 transition-all duration-150 focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10">
+        {onAttachClick && (
+          <button
+            type="button"
+            onClick={onAttachClick}
+            title="Attach Note Context (Strict Privacy: Only this note will be sent)"
+            aria-label="Attach note context"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors cursor-pointer"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
         )}
-      >
-        <SendIcon className="h-3.5 w-3.5" />
-      </button>
+
+        <textarea
+          ref={textareaRef}
+          id="ai-message-input"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={
+            attachedContext
+              ? `Ask anything about "${attachedContext.title}"…`
+              : "Ask a concept, Feynman explanation, or study question…"
+          }
+          disabled={isLoading}
+          rows={1}
+          aria-label="Message input"
+          className={cn(
+            'flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-foreground',
+            'placeholder:text-muted-foreground',
+            'focus-visible:outline-none',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'max-h-32 overflow-y-auto',
+          )}
+          style={{ fieldSizing: 'content' }}
+        />
+
+        <button
+          id="ai-send-button"
+          onClick={onSend}
+          disabled={!canSend}
+          aria-label="Send message"
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+            'transition-all duration-150',
+            canSend
+              ? 'bg-accent text-white hover:bg-accent-hover active:scale-[0.93]'
+              : 'bg-surface text-muted cursor-not-allowed',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+          )}
+        >
+          <SendIcon className="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
   )
 }
@@ -520,9 +530,12 @@ export function EmptyConversation() {
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/20 bg-accent/8 mb-4">
         <Bot className="h-7 w-7 text-accent" />
       </div>
-      <p className="text-sm font-medium text-foreground">AI Study Planner & Coach</p>
+      <p className="text-base font-bold text-foreground">StudyZone AI Study Assistant</p>
       <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-muted">
-        I can analyze your learning profile, active tasks, upcoming deadlines, and study history to build daily study plans, revision queues, and checklists.
+        Ask conceptual questions, request simpler explanations, get code walkthroughs, or explore your study topics.
+      </p>
+      <p className="mt-4 text-[11px] text-muted/70 flex items-center gap-1">
+        <span>AI responses may be inaccurate. Verify important information.</span>
       </p>
     </motion.div>
   )

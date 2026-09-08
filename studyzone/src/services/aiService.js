@@ -31,7 +31,7 @@ import { supabase } from '../lib/supabase'
  * @returns {Promise<{ reply: string }>}
  * @throws {Error} Normalized, user-facing error message on any failure
  */
-export async function sendMessage({ message, history = [], analyticsSummary = null }) {
+export async function sendMessage({ message, history = [], analyticsSummary = null, selectedContext = null }) {
   const trimmedMessage = message?.trim()
   if (!trimmedMessage) {
     throw new Error('Please enter a message before sending.')
@@ -39,6 +39,17 @@ export async function sendMessage({ message, history = [], analyticsSummary = nu
 
   // Limit history to the 10 most recent turns on the client side as well
   const limitedHistory = history.slice(-10)
+
+  // Bound context size defensively
+  let safeSelectedContext = null
+  if (selectedContext) {
+    safeSelectedContext = {
+      type: selectedContext.type || 'note',
+      id: selectedContext.id || null,
+      title: selectedContext.title || '',
+      content: selectedContext.content ? String(selectedContext.content).slice(0, 6000) : '',
+    }
+  }
 
   let data
   let error
@@ -49,6 +60,7 @@ export async function sendMessage({ message, history = [], analyticsSummary = nu
         message: trimmedMessage,
         history: limitedHistory,
         analytics_summary: analyticsSummary,
+        selected_context: safeSelectedContext,
       },
     })
     data = result.data

@@ -3,28 +3,19 @@ import { useAuth } from '../context/useAuth'
 import { PageContainer } from '../components/layout/PageContainer'
 import { WelcomeSection } from '../components/dashboard/WelcomeSection'
 import { SmartNextActionCard } from '../components/dashboard/SmartNextActionCard'
+import { GettingStartedCard } from '../components/dashboard/GettingStartedCard'
 import { StatsGrid } from '../components/dashboard/StatsGrid'
 import { TodaysFocus } from '../components/dashboard/TodaysFocus'
 import { UpcomingDeadlinesList } from '../components/dashboard/UpcomingDeadlinesList'
 import { ActiveLearningPlans } from '../components/dashboard/ActiveLearningPlans'
-import { LearningInsightsPreview } from '../components/dashboard/LearningInsightsPreview'
-import { ProductivityChart } from '../components/dashboard/ProductivityChart'
 import { LogSessionCard } from '../components/dashboard/LogSessionCard'
 import { RecentNotesCard } from '../components/dashboard/RecentNotesCard'
 import {
   fetchDashboardData,
   computeTaskStats,
   computeFocusTasks,
-  computeWeeklyActivity,
-  getWeekMondayLocal,
-  getWeekSundayLocal,
 } from '../services/dashboardService'
 import { getNotes } from '../services/notesService'
-import {
-  calculateStudyConsistency,
-  calculateNeglectedAreas,
-  calculateTaskCompletion,
-} from '../services/learningAnalyticsService'
 import { computeSmartNextAction } from '../services/smartNextActionService'
 
 export default function DashboardPage() {
@@ -41,9 +32,6 @@ export default function DashboardPage() {
     setLoading(true)
     setFetchError(null)
 
-    const weekMon = getWeekMondayLocal()
-    const weekSun = getWeekSundayLocal(weekMon)
-
     const [result, notesResult] = await Promise.all([
       fetchDashboardData(user.id),
       getNotes(user.id, { sortBy: 'updated_desc' }),
@@ -54,12 +42,10 @@ export default function DashboardPage() {
     } else {
       const stats = computeTaskStats(result.tasks)
       const focusTasks = computeFocusTasks(result.tasks)
-      const weeklyActivity = computeWeeklyActivity(result.sessions, weekMon, weekSun)
 
       setDashData({
         stats,
         focusTasks,
-        weeklyActivity,
         deadlines: result.deadlines,
         subjects: result.subjects,
         tasks: result.tasks,
@@ -82,19 +68,6 @@ export default function DashboardPage() {
     setSessionRefreshKey((k) => k + 1)
   }
 
-  // Pure insights calculations for preview card
-  const consistency = useMemo(() => {
-    return calculateStudyConsistency(dashData?.sessions || [])
-  }, [dashData])
-
-  const neglectedAreas = useMemo(() => {
-    return calculateNeglectedAreas(dashData?.sessions || [], dashData?.subjects || [])
-  }, [dashData])
-
-  const taskCompletion = useMemo(() => {
-    return calculateTaskCompletion(dashData?.tasks || [])
-  }, [dashData])
-
   // Deterministic Smart Next Action recommendation
   const smartNextAction = useMemo(() => {
     if (!dashData) return null
@@ -108,9 +81,13 @@ export default function DashboardPage() {
     })
   }, [dashData])
 
+  const hasActivePlans = useMemo(() => {
+    return (dashData?.plans || []).some((p) => p.status === 'active')
+  }, [dashData])
+
   return (
     <PageContainer width="wide" className="space-y-5 pb-12">
-      {/* ─── 1. Welcome Greeting & Personalized Status ───────────── */}
+      {/* ─── 1. Welcome Greeting & Status ───────────── */}
       <WelcomeSection
         loading={loading}
         stats={dashData?.stats ?? null}
@@ -118,72 +95,57 @@ export default function DashboardPage() {
         deadlines={dashData?.deadlines ?? []}
       />
 
-      {/* ─── 2. Smart Next Action Priority Hero / Get Started Banner ─ */}
+      {/* ─── 2. Getting Started Guide (Dismissible) ─────── */}
+      <GettingStartedCard />
+
+      {/* ─── 3. Deterministic Recommended Next Action ─── */}
       {!loading && (
         <SmartNextActionCard action={smartNextAction} />
       )}
 
-      {/* ─── 3. Key Productivity & Progress Metrics Strip ─────────── */}
+      {/* ─── 4. Quick Metrics Strip ───────────────────── */}
       <StatsGrid loading={loading} stats={dashData?.stats ?? null} error={fetchError} />
 
-      {/* ─── 4. Core Daily Workspace Hub (4 Equal-Height Columns) ──── */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4 items-stretch">
-        <div className="h-full">
+      {/* ─── 5. Actionable Learning Workspace Hub ──────── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
+        {/* Left Column: Immediate Action Focus */}
+        <div className="space-y-5">
           <TodaysFocus
             loading={loading}
             tasks={dashData?.focusTasks ?? []}
             subjects={dashData?.subjects ?? []}
             onTaskToggled={loadData}
           />
-        </div>
-        <div className="h-full">
-          <UpcomingDeadlinesList
-            loading={loading}
-            deadlines={dashData?.deadlines ?? []}
-            subjects={dashData?.subjects ?? []}
-          />
-        </div>
-        <div className="h-full">
-          <ActiveLearningPlans
-            loading={loading}
-            plans={dashData?.plans ?? []}
-            milestones={dashData?.milestones ?? []}
-            tasks={dashData?.tasks ?? []}
-          />
-        </div>
-        <div className="h-full">
-          <LearningInsightsPreview
-            loading={loading}
-            currentStreak={consistency.currentStreak}
-            activeDays7d={consistency.activeDays7d}
-            neglectedAreas={neglectedAreas}
-            completionRate={taskCompletion.completionRate}
-          />
-        </div>
-      </div>
 
-      {/* ─── 5. Analytics & Action Center (Balanced 2-Col Grid) ────── */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-start">
-        {/* Left Column: Weekly Activity & Goals */}
-        <div className="space-y-5">
-          <ProductivityChart
-            loading={loading}
-            weeklyActivity={dashData?.weeklyActivity ?? null}
-          />
-        </div>
-
-        {/* Right Column: Recent Notes Knowledge Preview & External Logger */}
-        <div className="space-y-5">
           <RecentNotesCard
             loading={loading}
             notes={dashData?.notes ?? []}
             subjects={dashData?.subjects ?? []}
           />
+        </div>
+
+        {/* Right Column: Deadlines, Sessions & Roadmaps */}
+        <div className="space-y-5">
+          <UpcomingDeadlinesList
+            loading={loading}
+            deadlines={dashData?.deadlines ?? []}
+            subjects={dashData?.subjects ?? []}
+          />
+
           <LogSessionCard
             subjects={dashData?.subjects ?? []}
             tasks={(dashData?.tasks ?? []).filter((t) => t.status !== 'completed')}
             onSessionLogged={handleSessionLogged}
           />
+
+          {hasActivePlans && (
+            <ActiveLearningPlans
+              loading={loading}
+              plans={dashData?.plans ?? []}
+              milestones={dashData?.milestones ?? []}
+              tasks={dashData?.tasks ?? []}
+            />
+          )}
         </div>
       </div>
     </PageContainer>

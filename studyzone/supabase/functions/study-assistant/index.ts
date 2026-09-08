@@ -67,12 +67,18 @@ interface AnalyticsSummary {
     workload_level: string
     workload_reasons?: string[]
   }
+interface SelectedContext {
+  type?: string
+  id?: string
+  title?: string
+  content?: string
 }
 
 interface RequestBody {
   message: string
   history?: ConversationTurn[]
   analytics_summary?: AnalyticsSummary
+  selected_context?: SelectedContext
 }
 
 interface Subject {
@@ -154,30 +160,28 @@ function formatRelativeDate(dateStr: string, now: Date): string {
 function buildContext(
   profile: LearnerProfile | null,
   subjects: Subject[],
-  tasks: Task[],
-  deadlines: Deadline[],
-  sessions: StudySession[],
+  selectedContext: SelectedContext | null,
   analytics: AnalyticsSummary | null,
   now: Date,
 ): string {
-  // Build subject lookup map
-  const subjectMap = new Map<string, string>()
-  subjects.forEach((s) => subjectMap.set(s.id, s.name))
-
   const lines: string[] = []
   lines.push(`Current date: ${now.toDateString()}`)
 
-  // --- Learner Profile (if available) ---
-  if (profile && (profile.learner_type || profile.primary_goal || profile.learning_focus)) {
-    lines.push('\n=== LEARNER PROFILE ===')
-    if (profile.learner_type) lines.push(`Learning Category: ${profile.learner_type}`)
-    if (profile.primary_goal) lines.push(`Primary Goal: ${profile.primary_goal}`)
-    if (profile.learning_focus) lines.push(`Current Focus: ${profile.learning_focus}`)
+  // --- Explicit User-Attached Context (Note, Topic, etc.) ---
+  if (selectedContext && (selectedContext.title || selectedContext.content)) {
+    lines.push('\n=== EXPLICITLY ATTACHED CONTEXT (Attached by Student) ===')
+    if (selectedContext.type) lines.push(`Context Type: ${selectedContext.type}`)
+    if (selectedContext.title) lines.push(`Title: ${selectedContext.title}`)
+    if (selectedContext.content) {
+      // Respect ~6,000 char boundary
+      const safeContent = selectedContext.content.slice(0, 6000)
+      lines.push(`Content:\n${safeContent}`)
+    }
   }
 
-  // --- Deterministic Learning Analytics (Phase 8B) ---
+  // --- Learning Analytics (Only present if user explicitly requested coaching review) ---
   if (analytics) {
-    lines.push('\n=== LEARNING ANALYTICS & CONSISTENCY DATA ===')
+    lines.push('\n=== LEARNING ANALYTICS (Explicit Request) ===')
 
     if (analytics.consistency) {
       lines.push('CONSISTENCY:')
@@ -236,112 +240,12 @@ function buildContext(
     }
   }
 
-  // --- Subjects ---
-  lines.push('\n=== SUBJECTS ===')
-  if (subjects.length === 0) {
-    lines.push('No subjects added yet.')
-  } else {
+  // --- Available Subjects (Minimal reference for proposal linkage) ---
+  if (subjects.length > 0) {
+    lines.push('\n=== AVAILABLE SUBJECTS (for study planning) ===')
     subjects.forEach((s) => {
-      lines.push(`- ${s.name}${s.description ? ` (${s.description})` : ''}`)
+      lines.push(`- ${s.name}`)
     })
-  }
-
-  // --- Tasks ---
-  const pending = tasks.filter((t) => t.status === 'pending' || t.status === 'in-progress')
-  const completed = tasks.filter((t) => t.status === 'completed')
-  const overdue = pending.filter(
-    (t) => t.due_date && new Date(t.due_date).getTime() < now.getTime(),
-  )
-  const upcoming = pending.filter(
-    (t) => !t.due_date || new Date(t.due_date).getTime() >= now.getTime(),
-  )
-
-  lines.push('\n=== TASKS ===')
-
-  if (tasks.length === 0) {
-    lines.push('No tasks added yet.')
-  } else {
-    if (overdue.length > 0) {
-      lines.push('\nOVERDUE tasks (address these urgently):')
-      overdue.forEach((t) => {
-        const subject = t.subject_id ? subjectMap.get(t.subject_id) : null
-        lines.push(
-          `  [${t.priority.toUpperCase()}] ${t.title}${subject ? ` — ${subject}` : ''} — due ${formatRelativeDate(t.due_date!, now)}`,
-        )
-      })
-    }
-
-    if (upcoming.length > 0) {
-      lines.push('\nPending / In-progress tasks:')
-      upcoming.forEach((t) => {
-        const subject = t.subject_id ? subjectMap.get(t.subject_id) : null
-        const dueLabel = t.due_date ? ` — due ${formatRelativeDate(t.due_date, now)}` : ' — no due date'
-        const estLabel = t.estimated_minutes ? ` (~${t.estimated_minutes} min)` : ''
-        lines.push(
-          `  [${t.priority.toUpperCase()}] ${t.title}${subject ? ` — ${subject}` : ''}${dueLabel}${estLabel} [${t.status}]`,
-        )
-      })
-    }
-
-    lines.push(`\nCompleted tasks: ${completed.length}`)
-  }
-
-  // --- Deadlines ---
-  lines.push('\n=== UPCOMING DEADLINES ===')
-  const upcomingDeadlines = deadlines.filter(
-    (d) => new Date(d.due_date).getTime() >= now.getTime() - 24 * 60 * 60 * 1000, // include today/yesterday
-  )
-
-  if (upcomingDeadlines.length === 0) {
-    lines.push('No upcoming deadlines.')
-  } else {
-    upcomingDeadlines.forEach((d) => {
-      const subject = d.subject_id ? subjectMap.get(d.subject_id) : null
-      lines.push(
-        `  [${d.deadline_type.toUpperCase()}] ${d.title}${subject ? ` — ${subject}` : ''} — ${formatRelativeDate(d.due_date, now)}`,
-      )
-    })
-  }
-
-  // --- Recent Study Activity ---
-  if (!analytics) {
-    lines.push('\n=== RECENT STUDY ACTIVITY (last 14 days) ===')
-    if (sessions.length === 0) {
-      lines.push('No recent study sessions logged.')
-    } else {
-      // Aggregate by subject
-      const subjectMinutes = new Map<string, number>()
-      let unlinkedMinutes = 0
-
-      sessions.forEach((s) => {
-        if (s.subject_id && subjectMap.has(s.subject_id)) {
-          const name = subjectMap.get(s.subject_id)!
-          subjectMinutes.set(name, (subjectMinutes.get(name) || 0) + s.duration_minutes)
-        } else {
-          unlinkedMinutes += s.duration_minutes
-        }
-      })
-
-      const totalMinutes = sessions.reduce((sum, s) => sum + s.duration_minutes, 0)
-      lines.push(`Total study time logged: ${totalMinutes} minutes across ${sessions.length} sessions`)
-
-      if (subjectMinutes.size > 0) {
-        lines.push('Time by subject:')
-        subjectMinutes.forEach((mins, name) => {
-          lines.push(`  ${name}: ${mins} min`)
-        })
-      }
-      if (unlinkedMinutes > 0) {
-        lines.push(`  Unlinked sessions: ${unlinkedMinutes} min`)
-      }
-
-      // Note subjects with NO study time in last 14 days
-      const studiedSubjects = new Set(subjectMinutes.keys())
-      const neglected = subjects.filter((s) => !studiedSubjects.has(s.name))
-      if (neglected.length > 0) {
-        lines.push(`Subjects with no recent study time: ${neglected.map((s) => s.name).join(', ')}`)
-      }
-    }
   }
 
   return lines.join('\n')
@@ -414,6 +318,7 @@ Deno.serve(async (req: Request) => {
 
     const rawHistory: ConversationTurn[] = Array.isArray(body.history) ? body.history : []
     const analyticsSummary: AnalyticsSummary | null = body.analytics_summary || null
+    const selectedContext: SelectedContext | null = body.selected_context || null
 
     // -------------------------------------------------------------------------
     // Step 3: Authenticate — derive user securely from Authorization header JWT
@@ -444,14 +349,13 @@ Deno.serve(async (req: Request) => {
     const userId = user.id
 
     // -------------------------------------------------------------------------
-    // Step 4: Fetch user-scoped StudyZone context
+    // Step 4: Fetch user-scoped StudyZone context (Minimal & Privacy-Conscious)
+    // We only fetch subject names for proposal linkage. No silent dumping of user notes or tasks.
     // -------------------------------------------------------------------------
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
     const now = new Date()
-    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
 
-    const [profileResult, subjectsResult, tasksResult, deadlinesResult, sessionsResult] = await Promise.all([
+    const [profileResult, subjectsResult] = await Promise.all([
       supabaseAdmin
         .from('profiles')
         .select('learner_type, primary_goal, learning_focus')
@@ -463,42 +367,15 @@ Deno.serve(async (req: Request) => {
         .select('id, name, description')
         .eq('user_id', userId)
         .order('created_at', { ascending: true }),
-
-      supabaseAdmin
-        .from('tasks')
-        .select('id, title, description, priority, status, due_date, estimated_minutes, subject_id, completed_at')
-        .eq('user_id', userId)
-        .neq('status', 'archived')
-        .order('due_date', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true })
-        .limit(50),
-
-      supabaseAdmin
-        .from('deadlines')
-        .select('id, title, description, deadline_type, due_date, subject_id')
-        .eq('user_id', userId)
-        .order('due_date', { ascending: true })
-        .limit(20),
-
-      supabaseAdmin
-        .from('study_sessions')
-        .select('id, subject_id, task_id, started_at, duration_minutes, notes')
-        .eq('user_id', userId)
-        .gte('started_at', fourteenDaysAgo.toISOString())
-        .order('started_at', { ascending: false })
-        .limit(30),
     ])
 
     const profile: LearnerProfile | null = profileResult.data || null
     const subjects: Subject[] = subjectsResult.data || []
-    const tasks: Task[] = tasksResult.data || []
-    const deadlines: Deadline[] = deadlinesResult.data || []
-    const sessions: StudySession[] = sessionsResult.data || []
 
     // -------------------------------------------------------------------------
-    // Step 5: Build clean AI context
+    // Step 5: Build clean AI context (Strict Explicit Context In -> AI Out)
     // -------------------------------------------------------------------------
-    const contextBlock = buildContext(profile, subjects, tasks, deadlines, sessions, analyticsSummary, now)
+    const contextBlock = buildContext(profile, subjects, selectedContext, analyticsSummary, now)
 
     // -------------------------------------------------------------------------
     // Step 6: Assemble Gemini request
@@ -513,7 +390,9 @@ Deno.serve(async (req: Request) => {
       })
     })
 
-    const messageWithContext = `Student's StudyZone Profile & Workload Data:\n${contextBlock}\n\nStudent's Question:\n${message}`
+    const messageWithContext = contextBlock.trim()
+      ? `Study Context & Metadata:\n${contextBlock}\n\nStudent's Message:\n${message}`
+      : message
 
     geminiContents.push({
       role: 'user',

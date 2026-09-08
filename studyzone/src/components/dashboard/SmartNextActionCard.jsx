@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   ArrowRight,
+  Compass,
   Flame,
   Plus,
-  Sparkles,
   Timer,
   X,
   Zap,
@@ -52,7 +52,7 @@ export function SmartNextActionCard({ action, onDismiss }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4 min-w-0">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25">
-                <Sparkles className="h-5 w-5" />
+                <Compass className="h-5 w-5" />
               </div>
               <div>
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent flex items-center gap-1">
@@ -121,8 +121,8 @@ export function SmartNextActionCard({ action, onDismiss }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-accent flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Best Next Action
+                    <Zap className="h-3.5 w-3.5 text-accent" />
+                    Recommended Next Action
                   </span>
                   <span
                     className={cn(
@@ -136,6 +136,9 @@ export function SmartNextActionCard({ action, onDismiss }) {
                   >
                     {action.badge}
                   </span>
+                  <span className="text-[10px] font-semibold text-muted bg-surface-raised border border-border/70 rounded px-1.5 py-0.5">
+                    Rule-Based
+                  </span>
                 </div>
 
                 <h3 className="text-base sm:text-lg font-extrabold text-foreground truncate">
@@ -143,7 +146,7 @@ export function SmartNextActionCard({ action, onDismiss }) {
                 </h3>
 
                 <p className="text-xs text-muted mt-1 leading-relaxed">
-                  <span className="font-bold text-foreground">Reason: </span>
+                  <span className="font-bold text-foreground">Why this? </span>
                   {action.reason}
                 </p>
 

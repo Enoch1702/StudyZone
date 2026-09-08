@@ -15,9 +15,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
-import { getInitials } from '../../lib/utils'
-import { getLearnerTypeShortLabel } from '../../lib/learnerProfile'
-import { cn } from '../../lib/utils'
+import { getInitials, cn } from '../../lib/utils'
 
 export function HeaderUserMenu() {
   const { profile, user, signOut } = useAuth()
@@ -31,7 +29,6 @@ export function HeaderUserMenu() {
     user?.email?.split('@')[0] ||
     'Student'
   const email = profile?.email || user?.email || ''
-  const learnerBadge = getLearnerTypeShortLabel(profile?.learner_type)
 
   // Close on outside click
   useEffect(() => {
@@ -79,7 +76,6 @@ export function HeaderUserMenu() {
       >
         <div className="hidden text-right sm:block">
           <p className="text-xs font-medium text-foreground truncate max-w-[130px]">{displayName}</p>
-          <p className="text-[10px] text-muted-foreground font-medium">{learnerBadge}</p>
         </div>
         <div
           className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-raised text-[11px] font-semibold text-accent uppercase shadow-2xs"
@@ -103,9 +99,6 @@ export function HeaderUserMenu() {
             <div className="px-3.5 py-2.5 border-b border-border/60">
               <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
               <p className="text-[11px] text-muted truncate">{email}</p>
-              <span className="mt-1.5 inline-block rounded-full bg-accent/15 border border-accent/30 px-2 py-0.5 text-[9px] font-semibold text-accent uppercase tracking-wider">
-                {learnerBadge}
-              </span>
             </div>
 
             {/* Menu Links */}

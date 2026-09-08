@@ -37,6 +37,32 @@ export async function getStudySessionsForWeek(userId, startISO, endISO) {
 }
 
 /**
+ * Fetch all study sessions for the authenticated user.
+ * @param {string} userId
+ * @returns {Promise<{ data: Array|null, error: Error|null }>}
+ */
+export async function getStudySessions(userId) {
+  if (!userId) {
+    return { data: [], error: null }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .select('id, subject_id, duration_minutes, started_at')
+      .eq('user_id', userId)
+
+    if (error) return { data: [], error }
+    return { data: data || [], error: null }
+  } catch (err) {
+    return {
+      data: [],
+      error: err instanceof Error ? err : new Error('Failed to fetch study sessions.'),
+    }
+  }
+}
+
+/**
  * Create a new study session for the authenticated user.
  * started_at is set to (now - duration_minutes) and ended_at to now for manual logging.
  * @param {Object} params
@@ -89,6 +115,42 @@ export async function createStudySession(params = {}) {
     return {
       data: null,
       error: err instanceof Error ? err : new Error('Failed to create study session.'),
+    }
+  }
+}
+
+/**
+ * Update an existing study session (e.g. link subject, task, or add reflection after timer completion).
+ * @param {string} sessionId
+ * @param {string} userId
+ * @param {Object} updates
+ * @returns {Promise<{ data: Object|null, error: Error|null }>}
+ */
+export async function updateStudySession(sessionId, userId, updates = {}) {
+  if (!sessionId || !userId) {
+    return { data: null, error: new Error('Session ID and User ID are required.') }
+  }
+
+  const payload = {}
+  if (updates.subjectId !== undefined) payload.subject_id = updates.subjectId || null
+  if (updates.taskId !== undefined) payload.task_id = updates.taskId || null
+  if (updates.notes !== undefined) payload.notes = updates.notes ? updates.notes.trim() : null
+
+  try {
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .update(payload)
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .select()
+      .single()
+
+    if (error) return { data: null, error }
+    return { data, error: null }
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Failed to update study session.'),
     }
   }
 }

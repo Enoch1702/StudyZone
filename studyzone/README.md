@@ -1,4 +1,4 @@
-# StudyZone — Intelligent Personal Learning Operating System
+# StudyZone — Personal Learning Workspace & Operating System
 
 <div align="center">
 
@@ -14,8 +14,8 @@
 <br />
 
 > 🌐 **Live Production Application**: **[https://study-zone-v1.vercel.app](https://study-zone-v1.vercel.app)**  
-> 📖 **Developer & Interview Reference Guide**: **[DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md)**  
-> 💡 *A focused learning operating system featuring structured markdown study notes, SuperMemo SM-2 spaced repetition, real-time procedural audio soundscapes, interactive timetable calendars, and human-in-the-loop AI study coaching.*
+> 📖 **Developer & Technical Guide**: **[../DEVELOPER_GUIDE.md](../DEVELOPER_GUIDE.md)**  
+> 💡 *A focused, production-grade learning workspace engineered around human cognition: distraction-free single-column study notes, SuperMemo SM-2 spaced repetition, real-time procedural audio soundscapes, unified calendar and deadlines, and privacy-preserving AI tutoring.*
 
 </div>
 
@@ -23,177 +23,135 @@
 
 ## 📖 Overview
 
-**StudyZone** is a comprehensive personal learning operating system engineered for students, developers, and self-directed learners. It integrates curriculum roadmaps, Pomodoro focus cycles, markdown study notes, mathematical spaced repetition (SuperMemo SM-2), interactive timetable scheduling, and context-aware AI coaching into a cohesive, distraction-free environment.
+**StudyZone** is an intuitive personal learning workspace designed for students, developers, and self-directed learners. It eliminates cognitive friction by organizing the complete study cycle into clear, dedicated surfaces without feature overlap or forced artificial sequences.
 
-Built with a clean visual hierarchy, StudyZone features a radiant **StudyZone Light** theme with subtle ambient mesh gradients, alongside 5 specialized Dark palettes, accessible via a **1-click Sun/Moon theme toggle** across all pages.
-
----
-
-## 🔄 The 6-Stage Learning Workflow
-
-StudyZone unifies the complete learning lifecycle into a cohesive experience without tool fragmentation:
-
-```
-PLAN ────► FOCUS ────► CAPTURE ────► TRACK ────► IMPROVE ────► REMEMBER
- (Tasks)   (Pomodoro)   (Notes)    (Analytics)    (AI Coach)   (SM-2 Flashcards)
-```
-
-1. **PLAN**: Organize subject areas, actionable tasks, assignment deadlines, and milestone learning plans.
-2. **FOCUS**: Enter flow state with configurable Pomodoro timers and procedural synthesized Web Audio noise soundscapes.
-3. **CAPTURE**: Take markdown study notes, summarize key takeaways, and log post-session reflections.
-4. **TRACK**: Evaluate daily study consistency, 7-day study streaks, workload balance, and task completion.
-5. **IMPROVE**: Receive personalized AI study coaching backed by real verified metrics.
-6. **REMEMBER**: Retain knowledge long-term with SuperMemo SM-2 spaced repetition decks generated directly from your notes.
+Built with modern web standards (React 19, Vite 6, Tailwind CSS v4, Supabase PostgreSQL, and Google Gemini Flash), StudyZone delivers a crisp visual hierarchy, accessible keyboard navigation, and a 1-click theme engine featuring radiant **StudyZone Light** alongside 5 dark palettes.
 
 ---
 
-## 🌟 Key Capabilities & Modules
+## 🔄 The Core Learning Model
 
-### 1. 🚀 Actionable First-Time Onboarding
-- **4-Step Quick Setup**: Introduces the 6-stage workflow, creates the user's first real subject and task in Supabase, and presents immediate launch paths (Focus Mode, Study Notes, or Flashcards).
-- **Persistent State**: Saved to user profile to prevent repetitive popups while remaining easily skippable.
+StudyZone organizes learning into six interconnected stages:
 
-### 2. 📊 Structured Dashboard & "Best Next Action" Engine (`/dashboard`)
-- **Algorithmic Best Next Action**: Evaluates pending deadlines, task urgency scores, and backlog age to recommend the single highest-leverage action item.
-- **Empty State "Get Started" Banner**: Automatically guides new users to add their first task or start quick focus.
-- **Core Workspace Hub (4 Equal-Height Columns)**:
-  - **Today's Focus**: Prioritized tasks scheduled for today with 1-click completion checkboxes.
-  - **Upcoming Deadlines**: Target dates and assignment countdowns with urgency badges.
-  - **Active Learning Plans**: Roadmaps with milestone progress bars.
-  - **Learning Insights Preview**: Real-time study streak, 7-day active days, and neglected subject alerts.
-- **Balanced Analytics & Action Center (2 Equal Columns)**:
-  - **Weekly Activity Chart**: SVG bar chart with vertical gradients, daily averages, and goal tracking.
-  - **Recent Notes Preview**: Quick access to latest study notes with direct note editor links.
-  - **Log External Study**: Record study performed offline or in physical classrooms to keep weekly charts accurate.
+```
+ORGANIZE ────► FOCUS ────► CAPTURE ────► UNDERSTAND ────► PRACTICE ────► REVIEW
+(Subjects/Tasks) (Focus Mode) (Study Notes)  (AI Tutor)   (SM-2 Decks)  (Insights)
+```
 
-### 3. 📝 Study Notes & Knowledge Management (`/notes`)
-- **Focused Markdown Editor**: Practical study formatting including Headings (H1/H2), Bold, Italic, Bullet Lists, Numbered Lists, Code Blocks, Blockquotes, and live preview rendering.
-- **Subject-Linked Knowledge Base**: Link notes to specific subject areas with tag categorization and quick filtering.
-- **Verified Save State Tracker**: Clear auto-save indicator (`Saving...`, `Saved [time]`, `Unsaved changes`, Error state) with `localStorage` read-through caching resilience.
-- **AI Study Partner (Human-in-the-Loop)**:
-  - **Summarize Note**: Generates concise bullet-point takeaways.
-  - **Self-Test Questions**: Creates active recall practice questions directly from note content.
-  - **Explain Simply**: Simplifies difficult concepts using the Feynman technique.
-  - **Improve Structure**: Formats disorganized notes into structured sections.
-  - *All AI actions produce proposals requiring explicit user approval before saving.*
-- **1-Click Flashcard Extraction**: Converts key concepts in any note into a SuperMemo SM-2 flashcard deck with interactive review before database insertion.
-
-### 4. ⏱ Distraction-Free Focus Mode & Procedural Soundscapes (`/focus`)
-- **Configurable Interval Presets**: Classic Pomodoro (25m/5m), Deep Work (50m/10m), Extended Focus (90m/20m), Quick Focus (15m/5m), and Custom Intervals.
-- **Pure Web Audio Ambient Engine**: 10 procedural soundscapes generated in real-time with zero external audio assets, zero streaming bandwidth, and zero network latency:
-  - 🌧 **Gentle Rain**: Filtered pink noise with 1.4kHz lowpass sheen.
-  - 🌊 **Ocean Waves**: Rhythmic 0.12Hz LFO modulated rolling surf swells.
-  - 🍃 **Forest Wind**: Resonant sweeping bandpass (400Hz center, Q=2.5) with gentle breeze LFO.
-  - 🔥 **Warm Campfire**: Sub-rumble with randomized amplitude crackle impulses.
-  - ✨ **528Hz Clarity**: Pure transformation tone with sub-octave drone.
-  - 🔊 **432Hz Harmonic**: Triple-harmonic calm focus drone.
-  - 🟤 **Brown Noise**: Deep Brownian rumble for ADHD & coding flow.
-  - 🌸 **Pink Noise**: Balanced 1/f soothing frequency.
-  - ⚪ **White Noise**: Full-spectrum acoustic masking frequency.
-  - 🔇 **Mute**: Silent countdown timer.
-- **App-Wide Persistent Audio Bar**: Background soundscape continues seamlessly when navigating between pages via a root `<AudioProvider>`.
-- **Automatic Session & Task Completion**: Completed study blocks automatically log study minutes to PostgreSQL and prompt to mark linked tasks as complete or write a reflection note.
-- **Screen WakeLock API**: Prevents screen dimming during deep study sessions.
-
-### 5. 🧠 Spaced Repetition Flashcards with SuperMemo SM-2 (`/flashcards`)
-- **Mathematical SM-2 Algorithm**: Calculates exact repetition intervals ($I$), consecutive correct recall counts ($n$), and easiness factors ($EF \ge 1.3$) based on user recall ratings.
-- **Intuitive Recall Labels**: User-friendly grading buttons (`1. Again (<1d)`, `2. Hard (1d)`, `3. Good (3-6d)`, `4. Easy (>6d)`) hide internal algorithm complexity.
-- **Interactive 3D Card Viewer**: Smooth 3D flip animation with keyboard navigation (`Space` to flip, keys `1`–`4` for rating).
-- **AI Deck Generator**: Generate structured flashcard decks from any topic or note using Gemini AI, with an interactive review and approval modal before saving.
-- **1-Click Starter Deck**: Built-in verified sample deck covering active recall, cognitive load, and CS fundamentals for immediate practice.
-
-### 6. 📅 Unified Study Calendar & Timetable (`/calendar`)
-- **6-Week $\times$ 7-Day Timetable Grid**: Aggregates assignments, exam deadlines, scheduled tasks, and past study session history.
-- **Future Date Scheduling**: Schedule tasks or deadlines on any date with automatic month navigation.
-- **Timezone-Safe Date Processing**: Formatted with local `toLocalDateKey` to eliminate UTC boundary shifts.
-- **Interactive Day Inspector**: Side drawer detailing daily schedule with 1-click **"Start Focus"** launchers.
-
-### 7. 🤖 Contextual AI Study Assistant & Planner (`/ai-assistant`)
-- **Multi-Thread Chat History**: Manage, rename, and search past study conversations stored in PostgreSQL.
-- **Context-Aware Coaching**: Dynamically analyzes the learner's 7-day study consistency, pending deadlines, and neglected subjects.
-- **Human-in-the-Loop Action Proposals**: AI generates structured proposals (tasks, revision schedules, learning plans). **Zero autonomous writes are permitted**—every proposal requires explicit user confirmation before database insertion.
-
-### 8. 🧭 Structured Learning Plans & Roadmaps (`/plans`)
-- **Milestone Decomposition**: Organize long-term targets into sequential milestones and granular tasks.
-- **Deterministic Progress Tracking**: Progress automatically recalculates as linked tasks are completed.
-
-### 9. 📈 Learning Analytics & Habit Tracking (`/analytics`)
-- **7-Day Consistency Tracker**: Visual daily study streak counter with consecutive day tracking.
-- **Subject Time Distribution**: Breakdown of study investment across enrolled subjects.
-- **Workload Forecasting**: Daily load bar distribution over the upcoming 7 days to prevent burnout.
-
-### 10. 🎨 Adaptive Radiant Theme System
-- ☀️ **StudyZone Light** *(Default)*: Clean daylight workspace enhanced with subtle ambient mesh gradients (`#f8fafc` canvas, `#ffffff` card surface, `#0f172a` deep slate typography, `#2563eb` electric blue accent).
-- 🌙 **Midnight Slate**: Deep zinc with vivid cobalt blue accents (`#4f7cff`).
-- 🌊 **Deep Ocean**: Marine abyss navy with ice cyan highlights (`#38bdf8`).
-- 🌲 **Nordic Forest**: Pine evergreen with emerald highlights (`#10b981`).
-- 🔮 **Obsidian Amethyst**: Royal obsidian with vibrant purple accents (`#a855f7`).
-- ☕ **Warm Espresso**: Dark roasted cocoa with warm amber gold highlights (`#f59e0b`).
-- **1-Click Theme Switcher**: Dedicated Sun/Moon toggle in the navigation header with local persistence via `localStorage`.
-
-### 11. 🗂 Structured Navigation & Command Palette
-- **Structured Sidebar Sections**: Organized into 4 logical groups:
-  - 🔹 **Workspace**: Dashboard, Focus Mode, Study Notes, Flashcards, Study Calendar
-  - 🔹 **Organize**: Subjects, Tasks, Deadlines, Learning Plans
-  - 🔹 **Insights & AI**: Learning Insights, AI Assistant
-  - 🔹 **Preferences**: Settings
-- **Command Palette (`Cmd + K` / `Ctrl + K`)**: Instant search and navigation across Study Notes, Subjects, Tasks, Deadlines, Plans, and Decks, with visible shortcut triggers in both Header and Sidebar.
-- **Full JSON Backup**: 1-click export of complete user workspace data including `study_notes`.
-- **CSV Exports**: Formatted and quote-escaped exports for Notes, Tasks, Study Sessions, and Flashcards.
+- **Flexible Entry Points**: Students are never forced into a rigid linear order. You can jump straight into a 25-minute focus session without creating a task, write notes before organizing subjects, generate flashcards directly from a concept, or ask the AI Tutor without creating a learning plan.
+- **One-Page, One-Primary-Purpose Rule**: Every route answers exactly one primary question:
+  - **Dashboard** (`/dashboard`): *What should I do now?*
+  - **Subjects** (`/subjects`): *What am I learning?*
+  - **Tasks** (`/tasks`): *What do I need to complete?*
+  - **Calendar & Deadlines** (`/calendar`): *When do I need to do it?*
+  - **Focus Mode** (`/focus`): *Help me concentrate.*
+  - **Study Notes** (`/notes`): *What knowledge do I want to capture?*
+  - **AI Study Tutor** (`/ai-assistant`): *Help me understand this.*
+  - **Flashcards** (`/flashcards`): *Help me remember this.*
+  - **Learning Plans** (`/plans`): *How do I reach a larger goal?*
+  - **Learning Insights** (`/analytics`): *How am I progressing?*
+  - **Settings** (`/settings`): *How do I configure my workspace?*
 
 ---
 
-## 🏗 Architecture & Technology Stack
+## 🌟 Key Capabilities & Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                   React 19 + Vite 6 Single Page App         │
-│                 Tailwind CSS v4 (Design System Tokens)      │
-├──────────────────────────────┬──────────────────────────────┤
-│ Frontend Features            │ Backend & AI Services        │
-│ ├─ Study Notes (Markdown)    │ ├─ Supabase Auth & RLS       │
-│ ├─ Spaced Repetition (SM-2)  │ ├─ PostgreSQL Storage        │
-│ ├─ Web Audio Sound Generator │ ├─ Google Gemini 2.5 Flash   │
-│ ├─ Timetable Calendar Engine │ ├─ Realtime DB Subscriptions │
-│ └─ Learning Analytics Engine │ └─ Data Export (JSON / CSV)  │
-└──────────────────────────────┴──────────────────────────────┘
-```
+### 1. 🎯 Action-Oriented Dashboard (`/dashboard`)
+- **What should I do now?**: Serves strictly as a daily cockpit to direct action rather than retrospective analytics.
+- **Smart Next Action (Rule-Based)**: Deterministic, transparent heuristic with a clear *"Why this?"* explanation badge. Evaluates overdue tasks, tasks due today, high-priority backlog, neglected subjects, and recent activity without fake AI claims.
+- **Getting Started Guide**: Dismissible 5-step onboarding card for new learners.
+- **Today's Focus**: Actionable tasks due or scheduled today with 1-click completion.
+- **Quick Focus**: 1-click launcher for an instant 25:00 focus timer.
+- **Recent Notes**: Direct links to resume recent study notes.
+- **Weekly Summary Strip**: Compact 1-line overview linking to dedicated Learning Insights.
 
-- **Frontend**: React 19, Vite 6, Tailwind CSS v4, Motion (v12), Lucide React.
-- **Backend & Database**: Supabase (PostgreSQL with Row Level Security on all tables).
-- **AI Engine**: Google Gemini API via serverless backend function with strict prompt engineering and human-in-the-loop approval.
-- **Audio Synthesis**: Web Audio API (oscillators, white/pink/brown noise procedural buffers, biquad filters).
-- **Deployment**: Vercel CI/CD pipeline connected to GitHub `main` branch.
+### 2. 📝 Single-Column Distraction-Free Study Notes (`/notes`)
+- **Single-Canvas Editor**: Replaces confusing split views with a focused writing canvas featuring clean `[ Edit ]` and `[ Preview ]` tabs.
+- **Markdown Formatting Toolbar**: Headings (H1/H2), Bold, Italic, Bullet Lists, Numbered Lists, Code Blocks, Blockquotes, and horizontal dividers.
+- **Draft Protection**: Debounced auto-save to Supabase PostgreSQL paired with local storage draft backup (`studyzone_note_draft_<id>`) and clear status indicators (`Saved`, `Saving...`, `Offline — saved locally`).
+- **Non-Destructive Contextual AI**: Summarize Note, Explain Simply (Feynman technique), Quiz Me (3 active recall questions), and Improve Structure. All AI actions present interactive proposal modals with `[ Apply Changes ]`, `[ Copy ]`, and `[ Cancel ]`.
+- **Direct AI Tutor Integration**: 1-click *"Ask AI Study Tutor about this Note"* button attaches the current note directly into the conversational tutor.
+
+### 3. ⏱ Instant 1-Click Focus Mode & Procedural Soundscapes (`/focus`)
+- **Immediate Start**: 25:00 timer starts with 1 click without requiring prior subject or task assignment (`subject_id = NULL`).
+- **Guaranteed Single Log**: `sessionLoggedRef` ensures focus sessions are recorded exactly once upon completion without duplicate database writes on page refresh.
+- **Pure Web Audio Ambient Soundscapes**: 10 real-time procedural synthesizers (Rain, Ocean Waves, Forest Wind, Campfire, 528Hz Drone, 432Hz Harmonic, Brown Noise, Pink Noise, White Noise, Mute) generated directly on client CPU with zero external audio streaming or latency.
+- **Post-Session Reflection**: Completion modal offers optional subject linking and reflection notes.
+
+### 4. 🧠 Automatic-First Spaced Repetition Flashcards (`/flashcards`)
+- **Primary AI Generation**: Prominent `✨ Generate Flashcards` action creates active-recall cards from any topic or note in seconds.
+- **Strict Validation & Deduplication**: JSON schema validation ensures single-concept cards, active-recall formatting, and question deduplication before presentation.
+- **Interactive Review & Card Editing**: Students can inspect checkboxes, edit questions or answers inline, and regenerate before committing to Supabase.
+- **SuperMemo SM-2 Algorithm**: Pure SM-2 scheduling ($I$, $n$, $EF \ge 1.3$) behind student-friendly ratings: `Again (<1d)`, `Hard (1d)`, `Good (3-6d)`, `Easy (>6d)`.
+
+### 5. 🤖 Privacy-Preserving AI Study Tutor (`/ai-assistant`)
+- **Strict Privacy Model**: `Explicit Context In → AI Processing → Response Out`. Zero silent querying or dumping of private student notes, tasks, or sessions.
+- **Context Attachment**: Visual chip `[ 📄 Note: Title ✕ ]` allows attaching specific study notes (bounded at ~6,000 characters to prevent context truncation).
+- **Academic Persona**: Expert tutor explaining concepts via analogies, step-by-step breakdowns, and code snippets, paired with quick follow-ups (*Explain Simpler*, *Give Example*, *Quiz Me*).
+
+### 6. 🗂 Subjects as Knowledge Containers & Learning Plans as Roadmaps
+- **Subjects (`/subjects`)**: Central knowledge containers aggregating linked notes count, active tasks count, flashcard decks count, and total focus minutes logged.
+- **Safe Non-Destructive Deletion**: PostgreSQL foreign keys use `ON DELETE SET NULL`. Deleting a subject preserves all notes, tasks, flashcards, and study sessions as unassigned items.
+- **Learning Plans (`/plans`)**: Optional chronological roadmaps for larger long-term goals (e.g. *"Master React"*, *"Prepare for Finals"*) with an integrated milestone list builder in the creation modal.
+
+### 7. 📅 Unified Study Calendar & Deadlines (`/calendar`)
+- **Cohesive Timetable**: Tabbed interface featuring `[ Calendar Grid ]` (monthly event cells and day inspector) and `[ Upcoming Deadlines ]` (filterable list with urgency countdown badges).
+- **URL Preservation**: `/deadlines` routes directly into the Calendar's Deadlines view with zero broken links.
+- **Global Search**: Command palette (`Ctrl + K` / `⌘K`) scopes across notes, subjects, tasks, flashcard decks, and learning plans.
+
+### 8. 📊 Truthful Learning Analytics (`/analytics`)
+- **Data Provenance**: Clearly displays *"📊 Your Data — Calculated strictly from database records"*.
+- **Baseline Building Guard**: Accounts with `< 3` sessions display a warm *"🌱 Building Your Learning Baseline"* state rather than fabricated productivity scores or misleading zeroed charts.
+- **AI Coach Separation**: Explicitly demarcates user-requested AI study coaching proposals from verified historical records.
 
 ---
 
-## 🚀 Getting Started Locally
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 19, Vite 6, Tailwind CSS v4, Motion (v12), Lucide React |
+| **Backend & DB** | Supabase PostgreSQL, Row Level Security (RLS), Supabase Edge Functions (Deno) |
+| **AI Intelligence**| Google Gemini 2.5 Flash API via secure Edge Function proxy |
+| **Audio Engine** | Web Audio API (Synthesized BiquadFilters, GainNodes, LFOs) |
+| **Local Storage** | Reserved strictly for unsaved draft recovery, theme, and UI preferences |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 - Node.js 18+ and npm
-- Supabase Project URL & Anon Key
-- Google Gemini API Key
+- Supabase Project with active schema migrations
 
 ### Installation
-
 ```bash
-# 1. Clone repository
+# Clone the repository
 git clone https://github.com/Enoch1702/StudyZone.git
 cd StudyZone/studyzone
 
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Configure environment variables
-cp .env.example .env.local
-# Set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and GEMINI_API_KEY
+# Configure environment variables (.env)
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# 4. Run local development server
+# Start local development server
 npm run dev
+```
+
+### Verification & Quality Assurance
+```bash
+# Run ESLint (0 errors, 0 warnings enforced)
+npm run lint
+
+# Build production bundle
+npm run build
 ```
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT License — Created with care for learners worldwide.

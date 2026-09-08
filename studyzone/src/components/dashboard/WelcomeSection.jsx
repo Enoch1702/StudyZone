@@ -4,7 +4,6 @@ import { Sparkles } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import { getGreeting } from '../../lib/utils'
 import { fadeUp } from '../../lib/motion'
-import { getPersonalizedGreeting, getLearnerTypeShortLabel } from '../../lib/learnerProfile'
 
 /**
  * @param {{ loading: boolean, stats: object|null, focusTasks: Array, deadlines: Array }} props
@@ -17,12 +16,6 @@ export function WelcomeSection({ loading, focusTasks, deadlines }) {
     user?.email?.split('@')[0] ||
     'Student'
   const greeting = getGreeting()
-  const personalizedMessage = getPersonalizedGreeting(
-    profile?.learner_type,
-    profile?.primary_goal,
-    profile?.learning_focus,
-  )
-  const learnerBadge = getLearnerTypeShortLabel(profile?.learner_type)
 
   // Count incomplete focus tasks
   const tasksDueToday = focusTasks.filter((t) => t.status !== 'completed').length
@@ -47,17 +40,12 @@ export function WelcomeSection({ loading, focusTasks, deadlines }) {
       <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-400/10 blur-2xl" aria-hidden="true" />
 
       <div className="relative z-10">
-        <div className="flex items-center gap-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">{greeting}</p>
-          <span className="rounded-full bg-accent/15 border border-accent/30 px-2.5 py-0.5 text-[11px] font-bold text-accent shadow-2xs">
-            {learnerBadge}
-          </span>
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">{greeting} 👋</p>
         <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
           {displayName}
         </h2>
-        <p className="mt-1.5 text-xs text-accent font-semibold tracking-wide">
-          {personalizedMessage}
+        <p className="mt-1 text-xs text-accent font-semibold tracking-wide">
+          Ready to continue where you left off?
         </p>
         <p className="mt-1 max-w-lg text-xs leading-relaxed text-muted">
           {loading ? (

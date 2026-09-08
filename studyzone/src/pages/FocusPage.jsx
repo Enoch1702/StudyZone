@@ -32,6 +32,7 @@ import { useAuth } from '../context/useAuth'
 import { useAudio } from '../context/useAudio'
 import { getSubjects } from '../services/subjectsService'
 import { getTasks, toggleTaskComplete } from '../services/tasksService'
+import { updateStudySession } from '../services/studySessionsService'
 import {
   FOCUS_PRESETS,
   saveActiveFocusState,
@@ -142,6 +143,9 @@ export default function FocusPage() {
   const targetEndTimeRef = useRef(null)
   const lastTickTimeRef = useRef(null)
   const wakeLockSentinelRef = useRef(null)
+  const sessionLoggedRef = useRef(false)
+  const [reflectionInput, setReflectionInput] = useState('')
+  const [isUpdatingSession, setIsUpdatingSession] = useState(false)
 
   // ─── Load Subjects, Tasks, and Stats ───────────────────────────
   useEffect(() => {
@@ -304,10 +308,17 @@ export default function FocusPage() {
     }
 
     if (sessionPhase === 'focus') {
+      if (sessionLoggedRef.current) return
+      sessionLoggedRef.current = true
+
+      // Immediately clear active focus state from storage to avoid duplicate re-logging on refresh
+      saveActiveFocusState(null)
+
       const focusedMins = Math.max(1, Math.round(totalPhaseSeconds / 60))
+      let loggedSessionId = null
 
       if (user?.id) {
-        await logCompletedFocusSession({
+        const logRes = await logCompletedFocusSession({
           userId: user.id,
           subjectId: selectedSubjectId || null,
           taskId: selectedTaskId || null,
@@ -315,6 +326,7 @@ export default function FocusPage() {
           presetName: currentPreset.name,
           intendedMinutes: currentPreset.focusMinutes,
         })
+        loggedSessionId = logRes?.data?.id || null
         const updatedStats = await getFocusSessionStats(user.id)
         if (updatedStats) setStats(updatedStats)
       }
@@ -327,16 +339,19 @@ export default function FocusPage() {
 
       setCompletionData({
         type: 'focus_complete',
+        sessionId: loggedSessionId,
         focusedMinutes: focusedMins,
         cycleIndex,
         maxCycles: currentPreset.cyclesBeforeLongBreak,
         isLongBreakDue,
         nextBreakMins,
         nextBreakPhase,
-        subjectName: subjects.find((s) => s.id === selectedSubjectId)?.name,
+        subjectId: selectedSubjectId || null,
+        subjectName: subjects.find((s) => s.id === selectedSubjectId)?.name || null,
         taskId: selectedTaskId || null,
-        taskTitle: tasks.find((t) => t.id === selectedTaskId)?.title,
+        taskTitle: tasks.find((t) => t.id === selectedTaskId)?.title || null,
         taskCompleted: false,
+        reflectionSaved: false,
       })
     } else {
       setCompletionData({
@@ -380,6 +395,8 @@ export default function FocusPage() {
 
   // ─── Control Handlers ──────────────────────────────────────────
   function handleStart() {
+    sessionLoggedRef.current = false
+    setReflectionInput('')
     if (sessionPhase === 'idle') {
       setSessionPhase('focus')
       const secs = currentPreset.focusMinutes * 60
@@ -401,7 +418,14 @@ export default function FocusPage() {
   }
 
   async function handleEndEarlyAndLog() {
+    if (sessionLoggedRef.current) {
+      handleReset()
+      return
+    }
+    sessionLoggedRef.current = true
+
     const focusedMins = Math.round(accumulatedFocusSeconds / 60)
+    saveActiveFocusState(null)
 
     if (sessionPhase === 'focus' && focusedMins >= 1 && user?.id) {
       await logCompletedFocusSession({
@@ -1131,11 +1155,69 @@ export default function FocusPage() {
                     You logged <strong className="text-foreground">{completionData.focusedMinutes} minutes</strong> of deep study.
                   </p>
 
-                  {completionData.subjectName && (
+                  {completionData.subjectName ? (
                     <p className="text-xs text-accent mt-1">
                       Subject: {completionData.subjectName}
                     </p>
+                  ) : (
+                    <div className="text-left space-y-1 my-2 max-w-xs mx-auto">
+                      <label className="text-[11px] font-semibold text-muted block">Link Subject (Optional)</label>
+                      <select
+                        disabled={isUpdatingSession}
+                        onChange={async (e) => {
+                          const newSubId = e.target.value
+                          if (newSubId && completionData.sessionId && user?.id) {
+                            setIsUpdatingSession(true)
+                            await updateStudySession(completionData.sessionId, user.id, { subjectId: newSubId })
+                            setIsUpdatingSession(false)
+                            setCompletionData((prev) => ({
+                              ...prev,
+                              subjectId: newSubId,
+                              subjectName: subjects.find((s) => s.id === newSubId)?.name,
+                            }))
+                          }
+                        }}
+                        className="w-full rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
+                      >
+                        <option value="">Unassigned (No Subject)</option>
+                        {subjects.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
+
+                  {/* Optional Session Reflection Note */}
+                  <div className="text-left space-y-1 my-3 border-t border-border/50 pt-2.5">
+                    <label className="text-[11px] font-semibold text-muted block">Session Reflection (Optional)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="What did you learn or accomplish?"
+                        value={reflectionInput}
+                        onChange={(e) => setReflectionInput(e.target.value)}
+                        disabled={completionData.reflectionSaved || isUpdatingSession}
+                        className="flex-1 rounded-lg border border-border bg-surface-raised px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={!reflectionInput.trim() || completionData.reflectionSaved || isUpdatingSession}
+                        onClick={async () => {
+                          if (completionData.sessionId && user?.id && reflectionInput.trim()) {
+                            setIsUpdatingSession(true)
+                            await updateStudySession(completionData.sessionId, user.id, { notes: reflectionInput.trim() })
+                            setIsUpdatingSession(false)
+                            setCompletionData((prev) => ({ ...prev, reflectionSaved: true }))
+                          }
+                        }}
+                        className="text-xs shrink-0 cursor-pointer"
+                      >
+                        {completionData.reflectionSaved ? 'Saved ✓' : 'Save'}
+                      </Button>
+                    </div>
+                  </div>
 
                   {completionData.taskId && completionData.taskTitle && (
                     <div className="pt-2 pb-1 border-y border-border/60 my-3">

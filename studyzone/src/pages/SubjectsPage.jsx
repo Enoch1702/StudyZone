@@ -16,6 +16,9 @@ import {
   deleteSubject,
 } from '../services/subjectsService'
 import { getNotes } from '../services/notesService'
+import { getTasks } from '../services/tasksService'
+import { getFlashcardDecks } from '../services/flashcardsService'
+import { getStudySessions } from '../services/studySessionsService'
 import { bannerVariant, staggerContainer } from '../lib/motion'
 
 export default function SubjectsPage() {
@@ -23,6 +26,9 @@ export default function SubjectsPage() {
 
   const [subjects, setSubjects] = useState([])
   const [noteCountMap, setNoteCountMap] = useState(new Map())
+  const [taskCountMap, setTaskCountMap] = useState(new Map())
+  const [flashcardCountMap, setFlashcardCountMap] = useState(new Map())
+  const [studyMinutesMap, setStudyMinutesMap] = useState(new Map())
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
@@ -48,9 +54,12 @@ export default function SubjectsPage() {
       if (!user?.id) return
 
       try {
-        const [subRes, notesRes] = await Promise.all([
+        const [subRes, notesRes, tasksRes, decksRes, sessionsRes] = await Promise.all([
           getSubjects(user.id),
           getNotes(user.id),
+          getTasks(user.id),
+          getFlashcardDecks(user.id),
+          getStudySessions(user.id),
         ])
 
         if (!ignore) {
@@ -61,13 +70,43 @@ export default function SubjectsPage() {
             setFetchError('')
           }
 
-          const countMap = new Map()
+          // Notes count per subject
+          const nMap = new Map()
           for (const n of notesRes?.data || []) {
-            if (n.subjectId) {
-              countMap.set(n.subjectId, (countMap.get(n.subjectId) || 0) + 1)
+            if (n.subjectId || n.subject_id) {
+              const sid = n.subjectId || n.subject_id
+              nMap.set(sid, (nMap.get(sid) || 0) + 1)
             }
           }
-          setNoteCountMap(countMap)
+          setNoteCountMap(nMap)
+
+          // Active/Pending Tasks count per subject
+          const tMap = new Map()
+          for (const t of tasksRes?.data || []) {
+            if (t.subject_id && t.status !== 'completed' && t.status !== 'archived') {
+              tMap.set(t.subject_id, (tMap.get(t.subject_id) || 0) + 1)
+            }
+          }
+          setTaskCountMap(tMap)
+
+          // Flashcard decks count per subject
+          const dMap = new Map()
+          for (const d of decksRes?.data || []) {
+            if (d.subject_id) {
+              dMap.set(d.subject_id, (dMap.get(d.subject_id) || 0) + 1)
+            }
+          }
+          setFlashcardCountMap(dMap)
+
+          // Study minutes per subject
+          const sMap = new Map()
+          for (const s of sessionsRes?.data || []) {
+            if (s.subject_id && s.duration_minutes) {
+              sMap.set(s.subject_id, (sMap.get(s.subject_id) || 0) + Number(s.duration_minutes))
+            }
+          }
+          setStudyMinutesMap(sMap)
+
           setLoading(false)
         }
       } catch {
@@ -177,7 +216,7 @@ export default function SubjectsPage() {
     <PageContainer width="wide" className="space-y-5">
       <PageHeader
         title="Subjects & Areas"
-        description="Organize your subjects, skills, courses, and exam topics in one place."
+        description="Your central learning containers. Link notes, tasks, flashcards, and focus sessions to keep your knowledge organized."
         icon={BookOpen}
         actions={
           <Button onClick={handleOpenCreate} className="gap-2">
@@ -240,8 +279,8 @@ export default function SubjectsPage() {
       ) : subjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="Start by adding what you're learning"
-          description="Add a subject, programming skill, exam topic, course, or certification to organize your tasks and study plans."
+          title="Add your first learning container"
+          description="Create a subject, course, or topic to organize your notes, tasks, flashcard decks, and focus sessions."
           actionLabel="Add Subject"
           onAction={handleOpenCreate}
         />
@@ -257,6 +296,9 @@ export default function SubjectsPage() {
               key={subject.id}
               subject={subject}
               noteCount={noteCountMap.get(subject.id) || 0}
+              taskCount={taskCountMap.get(subject.id) || 0}
+              flashcardCount={flashcardCountMap.get(subject.id) || 0}
+              studyMinutes={studyMinutesMap.get(subject.id) || 0}
               onEdit={handleOpenEdit}
               onDelete={handleOpenDelete}
             />

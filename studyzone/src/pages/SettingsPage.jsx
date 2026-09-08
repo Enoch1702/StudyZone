@@ -14,7 +14,6 @@ import {
   LogOut,
   Palette,
   Sliders,
-  Sparkles,
   User,
 } from 'lucide-react'
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
@@ -24,8 +23,7 @@ import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
 import { useTheme } from '../context/useTheme'
-import { LEARNER_TYPES, PRIMARY_GOALS } from '../lib/learnerProfile'
-import { updateLearnerProfile, updateNotificationPreferences } from '../services/learnerProfileService'
+import { updateNotificationPreferences } from '../services/learnerProfileService'
 import { supabase } from '../lib/supabase'
 import { cn } from '../lib/utils'
 
@@ -151,9 +149,6 @@ export default function SettingsPage() {
           </Button>
         </form>
       </Card>
-
-      {/* Learner Profile & Goals */}
-      <LearnerProfileSettingsCard />
 
       {/* In-App Notification Alert Preferences */}
       <NotificationPreferencesCard />
@@ -677,160 +672,7 @@ function NotificationPreferencesCard() {
   )
 }
 
-/**
- * Settings card allowing users to configure learner category, primary goal, and learning focus.
- */
-function LearnerProfileSettingsCard() {
-  const { profile, user, refreshProfile } = useAuth()
 
-  const defaultLearnerType = profile?.learner_type || 'college'
-  const defaultPrimaryGoal = profile?.primary_goal || 'exams'
-  const defaultLearningFocus = profile?.learning_focus || ''
-
-  const [learnerType, setLearnerType] = useState(defaultLearnerType)
-  const [primaryGoal, setPrimaryGoal] = useState(defaultPrimaryGoal)
-  const [learningFocus, setLearningFocus] = useState(defaultLearningFocus)
-
-  const [prevProfileId, setPrevProfileId] = useState(profile?.id)
-  const [prevUpdated, setPrevUpdated] = useState(profile?.updated_at)
-
-  if (profile && (profile.id !== prevProfileId || profile.updated_at !== prevUpdated)) {
-    setPrevProfileId(profile.id)
-    setPrevUpdated(profile.updated_at)
-    setLearnerType(defaultLearnerType)
-    setPrimaryGoal(defaultPrimaryGoal)
-    setLearningFocus(defaultLearningFocus)
-  }
-
-  const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleSave(e) {
-    e.preventDefault()
-    if (!user?.id) return
-    setError('')
-    setSuccess(false)
-
-    try {
-      setSaving(true)
-      const res = await updateLearnerProfile({
-        userId: user.id,
-        learnerType,
-        primaryGoal,
-        learningFocus: learningFocus.trim() || null,
-        onboardingCompleted: true,
-      })
-
-      if (res.error) {
-        setError(res.error.message || 'Failed to update learner profile.')
-      } else {
-        await refreshProfile()
-        setSuccess(true)
-        setTimeout(() => setSuccess(false), 3000)
-      }
-    } catch {
-      setError('An unexpected error occurred.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent" />
-          <CardTitle>Learner Profile & Goals</CardTitle>
-        </div>
-        <CardDescription>
-          Customize your learning category to personalize dashboard messaging and AI guidance.
-        </CardDescription>
-      </CardHeader>
-
-      <form onSubmit={handleSave} className="space-y-4">
-        {success && (
-          <div className="flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs text-accent">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>Learner profile updated successfully.</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="settings-learner-type" className="mb-1.5 block text-xs font-medium text-muted">
-            Learning Category
-          </label>
-          <select
-            id="settings-learner-type"
-            value={learnerType}
-            onChange={(e) => setLearnerType(e.target.value)}
-            disabled={saving}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-          >
-            {LEARNER_TYPES.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="settings-primary-goal" className="mb-1.5 block text-xs font-medium text-muted">
-            Primary Goal
-          </label>
-          <select
-            id="settings-primary-goal"
-            value={primaryGoal}
-            onChange={(e) => setPrimaryGoal(e.target.value)}
-            disabled={saving}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-foreground transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
-          >
-            {PRIMARY_GOALS.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="settings-learning-focus" className="mb-1.5 block text-xs font-medium text-muted">
-            Current Focus / Key Topics
-          </label>
-          <Input
-            id="settings-learning-focus"
-            value={learningFocus}
-            onChange={(e) => setLearningFocus(e.target.value)}
-            placeholder="e.g. Java, NEET Biology, DSA, React, GATE..."
-            disabled={saving}
-          />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Informs your AI Study Assistant and Dashboard about what you are actively studying.
-          </p>
-        </div>
-
-        <Button type="submit" size="sm" disabled={saving}>
-          {saving ? (
-            <>
-              <LoadingSpinner size="sm" />
-              <span>Saving...</span>
-            </>
-          ) : (
-            'Save preferences'
-          )}
-        </Button>
-      </form>
-    </Card>
-  )
-}
 
 /**
  * Theme & Color Scheme selector card with live previews.
