@@ -68,6 +68,7 @@ interface AnalyticsSummary {
     workload_level: string
     workload_reasons?: string[]
   }
+}
 interface SelectedContext {
   type?: string
   id?: string

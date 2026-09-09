@@ -334,14 +334,14 @@ export default function LandingPage() {
                   {/* Top Bar Representation */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
                     <div>
-                      <span className="text-[10px] uppercase tracking-wider text-muted font-bold">Good morning</span>
-                      <h2 className="text-base sm:text-lg font-bold text-foreground">Alex Chen · Computer Science</h2>
-                      <p className="text-xs text-muted">2 tasks remaining today · 2 deadlines on your radar this week</p>
+                      <span className="text-[10px] uppercase tracking-wider text-muted font-bold">Good morning 👋</span>
+                      <h2 className="text-base sm:text-lg font-bold text-foreground">Alex Chen</h2>
+                      <p className="text-xs text-accent font-medium">Ready to continue where you left off?</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-xl border border-accent/25 bg-accent-muted px-2.5 py-1 text-[11px] font-bold text-accent flex items-center gap-1.5">
                         <Sparkles className="h-3 w-3" />
-                        <span>Ask AI Coach</span>
+                        <span>Ask AI Tutor</span>
                       </span>
                     </div>
                   </div>
@@ -365,30 +365,46 @@ export default function LandingPage() {
                     </Button>
                   </div>
 
-                  {/* 4 Stat Cards */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
-                      <p className="text-[10px] text-muted uppercase font-semibold">Total Tasks</p>
-                      <p className="text-lg font-extrabold text-foreground">5</p>
-                      <p className="text-[10px] text-muted-foreground">across all subjects</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
-                      <p className="text-[10px] text-muted uppercase font-semibold">Completed</p>
-                      <p className="text-lg font-extrabold text-success">2 <span className="text-xs font-normal text-muted">(40%)</span></p>
-                      <p className="text-[10px] text-muted-foreground">tasks finished</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
-                      <p className="text-[10px] text-muted uppercase font-semibold">Upcoming Due</p>
-                      <p className="text-lg font-extrabold text-warning">1</p>
-                      <p className="text-[10px] text-muted-foreground">in the next 7 days</p>
-                    </div>
-                    <div className="rounded-xl border border-border bg-surface p-3 space-y-1 shadow-xs">
-                      <p className="text-[10px] text-muted uppercase font-semibold">Progress</p>
-                      <p className="text-lg font-extrabold text-accent">40%</p>
-                      <div className="h-1.5 w-full rounded-full bg-surface-raised overflow-hidden">
-                        <div className="h-full bg-accent rounded-full w-[40%]" />
+                  {/* Action Hub Preview: Today's Focus & Quick Focus */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-border bg-surface p-3.5 space-y-2 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">Today&apos;s Focus</span>
+                        <span className="text-[10px] text-accent font-semibold">View all &rarr;</span>
+                      </div>
+                      <div className="rounded-lg border border-border/80 bg-surface-raised/40 p-2 flex items-center justify-between text-xs">
+                        <span className="font-medium text-foreground truncate max-w-[180px]">Review Trees & Graphs</span>
+                        <span className="text-[10px] rounded bg-accent/15 text-accent px-1.5 py-0.5 font-bold">Today</span>
+                      </div>
+                      <div className="rounded-lg border border-border/80 bg-surface-raised/40 p-2 flex items-center justify-between text-xs">
+                        <span className="font-medium text-foreground truncate max-w-[180px]">DBMS Indexing Quiz</span>
+                        <span className="text-[10px] rounded bg-warning/15 text-warning px-1.5 py-0.5 font-bold">Urgent</span>
                       </div>
                     </div>
+
+                    <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-50/60 to-surface dark:from-amber-950/20 dark:to-surface p-3.5 space-y-2 shadow-xs flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase text-amber-600 dark:text-amber-400">Instant Focus</span>
+                        <span className="text-[10px] font-extrabold rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-600 dark:text-amber-400">25:00</span>
+                      </div>
+                      <p className="text-xs font-bold text-foreground">Ready to Focus?</p>
+                      <p className="text-[10px] text-muted">Jump straight into deep work with ambient soundscapes.</p>
+                      <div className="pt-1">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white px-3 py-1.5 shadow-sm">
+                          <Play className="h-3 w-3 fill-white" /> Start Focus
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weekly Summary Strip Representation */}
+                  <div className="rounded-xl border border-border/70 bg-surface-raised/40 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-4 text-muted">
+                      <span>Study Time: <strong className="text-foreground font-bold">4h 20m</strong></span>
+                      <span>Active Days: <strong className="text-foreground font-bold">4</strong></span>
+                      <span>Tasks: <strong className="text-foreground font-bold">6 done</strong></span>
+                    </div>
+                    <span className="text-[11px] font-semibold text-accent">Learning Insights &rarr;</span>
                   </div>
                 </div>
               </div>
