@@ -471,7 +471,7 @@ export default function AIAssistantPage() {
               animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface"
+              className="flex shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
             >
               {/* New Chat Button */}
               <div className="p-3 border-b border-border">
@@ -536,7 +536,7 @@ export default function AIAssistantPage() {
         </AnimatePresence>
 
         {/* Active Conversation Chat Window */}
-        <div className="relative flex flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+        <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface">
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-5">
             {!hasMessages ? (

@@ -6,7 +6,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Button } from '../components/ui/Button'
 import { StatCard } from '../components/ui/StatCard'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -143,33 +143,24 @@ export default function LearningAnalyticsPage() {
   return (
     <PageContainer width="wide" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/8">
-            <TrendingUp className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Learning Insights
-            </h1>
-            <p className="mt-0.5 text-xs text-muted sm:text-sm">
-              Understand your study habits, consistency, progress, and workload.
-            </p>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setReloadKey((k) => k + 1)}
-          disabled={loading}
-          className="gap-1.5 self-start text-xs sm:self-auto"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Learning Insights"
+        description="Understand your study habits, consistency, progress, and workload."
+        icon={TrendingUp}
+        actions={
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setReloadKey((k) => k + 1)}
+            disabled={loading}
+            className="gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </Button>
+        }
+      />
 
       {/* Error alert */}
       {error && (

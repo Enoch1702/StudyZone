@@ -26,42 +26,36 @@ export function WelcomeSection() {
       variants={fadeUp}
       initial="hidden"
       animate="visible"
-      className="relative overflow-hidden flex flex-col gap-4 rounded-2xl border border-accent/25 bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-surface dark:from-blue-950/25 dark:via-surface dark:to-surface-raised/30 p-5 sm:p-6 shadow-[0_4px_20px_-4px_rgba(37,99,235,0.08)] sm:flex-row sm:items-center sm:justify-between transition-all"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-xs sm:flex-row sm:items-center sm:justify-between transition-colors"
     >
-      {/* Decorative ambient gradient corner */}
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-400/10 blur-2xl"
-        aria-hidden="true"
-      />
-
-      <div className="relative z-10">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          {greeting} 👋
+      <div>
+        <p className="text-xs font-medium text-muted">
+          {greeting}
         </p>
-        <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          {displayName}
+        <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+          Welcome back, {displayName}
         </h2>
-        <p className="mt-1 text-xs text-accent font-semibold tracking-wide">
+        <p className="mt-1 text-xs text-muted">
           Ready to continue where you left off?
         </p>
       </div>
 
-      <div className="relative z-10 flex shrink-0 items-center gap-2.5">
+      <div className="flex shrink-0 items-center gap-2.5">
         <Link
           to="/focus"
-          className="inline-flex items-center gap-2 rounded-xl border border-border/80 bg-surface px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-surface-raised transition-all cursor-pointer shadow-2xs"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3.5 py-2 text-xs font-medium text-foreground hover:bg-surface-raised transition-colors shadow-xs"
         >
-          <Timer className="h-4 w-4 text-amber-500" />
+          <Timer className="h-3.5 w-3.5 text-muted" />
           <span>Quick Timer</span>
         </Link>
 
         <Link
           to="/ai-assistant"
           state={{ prompt: 'Help me decide what I should focus on next.' }}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-violet-500/25 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-xs font-medium text-white hover:bg-accent-hover transition-colors shadow-xs"
         >
-          <Sparkles className="h-4 w-4" />
-          <span>Ask AI Tutor</span>
+          <Sparkles className="h-3.5 w-3.5" />
+          <span>Ask Study Assistant</span>
         </Link>
       </div>
     </motion.section>

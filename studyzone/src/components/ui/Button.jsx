@@ -1,10 +1,11 @@
 import { cn } from '../../lib/utils'
+import { LoadingSpinner } from './LoadingSpinner'
 
 const variants = {
   primary:
-    'bg-accent text-white hover:bg-accent-hover active:scale-[0.98] shadow-xs hover:shadow-sm focus-visible:ring-accent/40',
+    'bg-accent text-white hover:bg-accent-hover active:scale-[0.98] shadow-xs focus-visible:ring-accent/40',
   secondary:
-    'bg-surface text-foreground border border-border hover:bg-surface-raised hover:border-border-strong active:scale-[0.98] focus-visible:ring-border',
+    'bg-surface text-foreground border border-border hover:bg-surface-raised hover:border-border-strong active:scale-[0.98] shadow-xs focus-visible:ring-border',
   outline:
     'bg-transparent text-foreground border border-border hover:bg-surface-raised hover:border-border-strong active:scale-[0.98] focus-visible:ring-border',
   ghost:
@@ -19,15 +20,20 @@ const sizes = {
   sm: 'h-8 px-3 text-xs gap-1.5',
   md: 'h-9 px-4 text-sm gap-2',
   lg: 'h-10 px-5 text-sm gap-2',
+  icon: 'h-9 w-9 p-0 shrink-0',
 }
 
 export function Button({
   className,
   variant = 'primary',
   size = 'md',
+  loading = false,
+  disabled = false,
   children,
   ...props
 }) {
+  const isDisabled = disabled || loading
+
   return (
     <button
       className={cn(
@@ -35,12 +41,21 @@ export function Button({
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
         variants[variant] || variants.primary,
-        sizes[size],
+        sizes[size] || sizes.md,
         className,
       )}
+      disabled={isDisabled}
+      aria-busy={loading}
       {...props}
     >
-      {children}
+      {loading ? (
+        <>
+          <LoadingSpinner size="sm" className="mr-1.5 shrink-0" />
+          <span className="opacity-80">{children}</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   )
 }

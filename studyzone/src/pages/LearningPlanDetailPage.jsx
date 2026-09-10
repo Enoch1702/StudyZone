@@ -399,7 +399,7 @@ export default function LearningPlanDetailPage() {
         variants={fadeUp}
         initial="hidden"
         animate="visible"
-        className="rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-8"
+        className="rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-xs"
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2 max-w-2xl">

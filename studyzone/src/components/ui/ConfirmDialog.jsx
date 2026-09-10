@@ -57,7 +57,7 @@ export function ConfirmDialog({
 
           {/* Modal card */}
           <motion.div
-            className="relative z-10 w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-2xl"
+            className="relative z-10 w-full max-w-md max-h-[92vh] overflow-y-auto rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-lg"
             variants={modalPanel}
           >
             <div className="flex items-start justify-between">

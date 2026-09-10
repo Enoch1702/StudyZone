@@ -39,15 +39,12 @@
   [data-theme="light"] {
     color-scheme: light;
     --sz-background: #f8fafc;
-    --sz-bg-gradient: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(219, 234, 254, 0.65) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 45% at 100% 20%, rgba(238, 242, 255, 0.55) 0%, transparent 65%),
-      radial-gradient(ellipse 55% 55% at 0% 75%, rgba(243, 232, 255, 0.45) 0%, transparent 60%),
-      #f8fafc;
+    --sz-bg-gradient: #f8fafc;
     --sz-surface: #ffffff;
     --sz-surface-raised: #f1f5f9;
     --sz-surface-subtle: #f8fafc;
-    --sz-surface-hover: #eef2f6;
-    --sz-surface-glass: rgba(255, 255, 255, 0.85);
+    --sz-surface-hover: #e2e8f0;
+    --sz-surface-glass: rgba(255, 255, 255, 0.92);
     --sz-border: #e2e8f0;
     --sz-border-subtle: #f1f5f9;
     --sz-border-strong: #cbd5e1;
@@ -56,36 +53,36 @@
     --sz-muted-foreground: #64748b;
     --sz-accent: #2563eb;
     --sz-accent-hover: #1d4ed8;
-    --sz-accent-muted: rgba(37, 99, 235, 0.1);
-    --sz-focus-ring: rgba(37, 99, 235, 0.3);
+    --sz-accent-muted: rgba(37, 99, 235, 0.08);
+    --sz-focus-ring: rgba(37, 99, 235, 0.35);
     --sz-success: #16a34a;
-    --sz-success-muted: rgba(22, 163, 74, 0.12);
+    --sz-success-muted: rgba(22, 163, 74, 0.1);
     --sz-warning: #d97706;
-    --sz-warning-muted: rgba(217, 119, 6, 0.12);
-    --sz-danger: #e11d48;
-    --sz-danger-muted: rgba(225, 29, 72, 0.12);
+    --sz-warning-muted: rgba(217, 119, 6, 0.1);
+    --sz-danger: #dc2626;
+    --sz-danger-muted: rgba(220, 38, 38, 0.1);
     --sz-ai-accent: #7c3aed;
-    --sz-ai-muted: rgba(124, 58, 237, 0.1);
-    --sz-card-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.94) 100%);
-    --sz-hero-gradient: linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(245, 243, 255, 0.75) 50%, rgba(255, 255, 255, 0.95) 100%);
+    --sz-ai-muted: rgba(124, 58, 237, 0.08);
+    --sz-card-gradient: #ffffff;
+    --sz-hero-gradient: #f1f5f9;
   }
 
   /* ─── 2. Midnight Slate (Dark) ─────────────────────────────────── */
   [data-theme="midnight"] {
     color-scheme: dark;
     --sz-background: #09090b;
-    --sz-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(79, 124, 255, 0.08) 0%, transparent 70%), #09090b;
+    --sz-bg-gradient: #09090b;
     --sz-surface: #121215;
     --sz-surface-raised: #18181c;
     --sz-surface-subtle: #0d0d10;
-    --sz-surface-hover: #1f1f25;
-    --sz-surface-glass: rgba(18, 18, 21, 0.85);
+    --sz-surface-hover: #222228;
+    --sz-surface-glass: rgba(18, 18, 21, 0.92);
     --sz-border: #27272e;
     --sz-border-subtle: #1c1c22;
     --sz-border-strong: #3f3f4a;
     --sz-foreground: #f4f4f6;
-    --sz-muted: #9fa1ad;
-    --sz-muted-foreground: #6f7180;
+    --sz-muted: #a1a1aa;
+    --sz-muted-foreground: #71717a;
     --sz-accent: #4f7cff;
     --sz-accent-hover: #3d6ae8;
     --sz-accent-muted: rgba(79, 124, 255, 0.12);
@@ -98,18 +95,20 @@
     --sz-danger-muted: rgba(244, 63, 94, 0.12);
     --sz-ai-accent: #8b5cf6;
     --sz-ai-muted: rgba(139, 92, 246, 0.12);
+    --sz-card-gradient: #121215;
+    --sz-hero-gradient: #18181c;
   }
 
   /* ─── 3. Deep Ocean (Dark) ─────────────────────────────────────── */
   [data-theme="ocean"] {
     color-scheme: dark;
     --sz-background: #070e17;
-    --sz-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.08) 0%, transparent 70%), #070e17;
+    --sz-bg-gradient: #070e17;
     --sz-surface: #0c1624;
     --sz-surface-raised: #132034;
     --sz-surface-subtle: #09121f;
     --sz-surface-hover: #182840;
-    --sz-surface-glass: rgba(12, 22, 36, 0.85);
+    --sz-surface-glass: rgba(12, 22, 36, 0.92);
     --sz-border: #1e2f47;
     --sz-border-subtle: #142236;
     --sz-border-strong: #2a4163;
@@ -128,18 +127,20 @@
     --sz-danger-muted: rgba(244, 63, 94, 0.12);
     --sz-ai-accent: #818cf8;
     --sz-ai-muted: rgba(129, 140, 248, 0.12);
+    --sz-card-gradient: #0c1624;
+    --sz-hero-gradient: #132034;
   }
 
   /* ─── 4. Nordic Forest (Dark) ──────────────────────────────────── */
   [data-theme="emerald"] {
     color-scheme: dark;
     --sz-background: #06120d;
-    --sz-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.08) 0%, transparent 70%), #06120d;
+    --sz-bg-gradient: #06120d;
     --sz-surface: #0b1c15;
     --sz-surface-raised: #12281e;
     --sz-surface-subtle: #081710;
     --sz-surface-hover: #173326;
-    --sz-surface-glass: rgba(11, 28, 21, 0.85);
+    --sz-surface-glass: rgba(11, 28, 21, 0.92);
     --sz-border: #1d3c2e;
     --sz-border-subtle: #132a20;
     --sz-border-strong: #2a5542;
@@ -158,18 +159,20 @@
     --sz-danger-muted: rgba(244, 63, 94, 0.12);
     --sz-ai-accent: #34d399;
     --sz-ai-muted: rgba(52, 211, 153, 0.12);
+    --sz-card-gradient: #0b1c15;
+    --sz-hero-gradient: #12281e;
   }
 
   /* ─── 5. Obsidian Amethyst (Dark) ──────────────────────────────── */
   [data-theme="amethyst"] {
     color-scheme: dark;
     --sz-background: #0c0914;
-    --sz-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(168, 85, 247, 0.08) 0%, transparent 70%), #0c0914;
+    --sz-bg-gradient: #0c0914;
     --sz-surface: #140f21;
     --sz-surface-raised: #1d1630;
     --sz-surface-subtle: #0f0c19;
     --sz-surface-hover: #261c3f;
-    --sz-surface-glass: rgba(20, 15, 33, 0.85);
+    --sz-surface-glass: rgba(20, 15, 33, 0.92);
     --sz-border: #2e234c;
     --sz-border-subtle: #211937;
     --sz-border-strong: #403268;
@@ -188,18 +191,20 @@
     --sz-danger-muted: rgba(244, 63, 94, 0.12);
     --sz-ai-accent: #c084fc;
     --sz-ai-muted: rgba(192, 132, 252, 0.12);
+    --sz-card-gradient: #140f21;
+    --sz-hero-gradient: #1d1630;
   }
 
   /* ─── 6. Warm Espresso (Dark) ──────────────────────────────────── */
   [data-theme="espresso"] {
     color-scheme: dark;
     --sz-background: #110d0b;
-    --sz-bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 158, 11, 0.08) 0%, transparent 70%), #110d0b;
+    --sz-bg-gradient: #110d0b;
     --sz-surface: #191410;
     --sz-surface-raised: #231c17;
     --sz-surface-subtle: #140f0d;
     --sz-surface-hover: #2d241e;
-    --sz-surface-glass: rgba(25, 20, 16, 0.85);
+    --sz-surface-glass: rgba(25, 20, 16, 0.92);
     --sz-border: #362c24;
     --sz-border-subtle: #261f19;
     --sz-border-strong: #4a3d32;
@@ -218,19 +223,19 @@
     --sz-danger-muted: rgba(244, 63, 94, 0.12);
     --sz-ai-accent: #fbbf24;
     --sz-ai-muted: rgba(251, 191, 36, 0.12);
+    --sz-card-gradient: #191410;
+    --sz-hero-gradient: #231c17;
   }
 
   body {
     margin: 0;
     min-height: 100svh;
     font-family: var(--font-sans);
-    background: var(--sz-bg-gradient, var(--sz-background));
     background-color: var(--sz-background);
-    background-attachment: fixed;
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {

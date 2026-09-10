@@ -13,7 +13,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -539,44 +539,35 @@ Format your response as a strict JSON array of objects with "front" (concise que
   return (
     <PageContainer width="wide" className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-md">
-            <Brain className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Active Recall Flashcards
-            </h1>
-            <p className="text-xs sm:text-sm text-muted">
-              Spaced repetition flashcard decks powered by the SuperMemo SM-2 memory algorithm.
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        title="Active Recall Flashcards"
+        description="Spaced repetition flashcard decks powered by the SuperMemo SM-2 memory algorithm."
+        icon={Brain}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsAiModalOpen(true)}
+              className="gap-1.5"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Generate Flashcards</span>
+            </Button>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setIsAiModalOpen(true)}
-            className="gap-1.5 text-xs font-bold cursor-pointer"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Generate Flashcards</span>
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setIsCreateDeckOpen(true)}
-            className="gap-1.5 text-xs font-semibold cursor-pointer"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>New Deck</span>
-          </Button>
-        </div>
-      </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCreateDeckOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>New Deck</span>
+            </Button>
+          </div>
+        }
+      />
 
       {loading ? (
         <div className="flex min-h-[300px] items-center justify-center">

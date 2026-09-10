@@ -2,26 +2,22 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  BookOpen,
-  Brain,
-  CalendarDays,
-  Compass,
-  Globe,
-  LayoutDashboard,
   LogOut,
-  Palette,
-  Sparkles,
-  Timer,
-  TrendingUp,
+  Search,
+  Settings,
+  User,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
+import { useSearch } from '../../context/useSearch'
 import { getInitials, cn } from '../../lib/utils'
 
 export function HeaderUserMenu() {
   const { profile, user, signOut } = useAuth()
+  const { openSearch } = useSearch()
   const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
+  const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform || '')
 
   const displayName =
     profile?.full_name ||
@@ -70,7 +66,7 @@ export function HeaderUserMenu() {
         aria-label="User profile menu"
         aria-expanded={isOpen}
         className={cn(
-          'flex items-center gap-2 border-l border-border pl-2 sm:gap-2.5 sm:pl-3 cursor-pointer rounded-xl p-1 transition-all',
+          'flex items-center gap-2 border-l border-border pl-2 sm:gap-2.5 sm:pl-3 cursor-pointer rounded-lg p-1 transition-all',
           isOpen ? 'bg-surface-raised' : 'hover:bg-surface-raised/60',
         )}
       >
@@ -78,7 +74,7 @@ export function HeaderUserMenu() {
           <p className="text-xs font-medium text-foreground truncate max-w-[130px]">{displayName}</p>
         </div>
         <div
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface-raised text-[11px] font-semibold text-accent uppercase shadow-2xs"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-[11px] font-semibold text-accent uppercase shadow-2xs"
           aria-hidden="true"
         >
           {getInitials(displayName)}
@@ -93,96 +89,44 @@ export function HeaderUserMenu() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 6 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 z-50 w-56 rounded-2xl border border-border/90 bg-surface shadow-2xl overflow-hidden py-1.5"
+            className="absolute right-0 mt-2 z-50 w-56 rounded-xl border border-border bg-surface shadow-lg overflow-hidden py-1"
           >
             {/* Header info */}
             <div className="px-3.5 py-2.5 border-b border-border/60">
-              <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <User className="h-3.5 w-3.5 text-muted" />
+                <p className="text-xs font-bold text-foreground truncate">{displayName}</p>
+              </div>
               <p className="text-[11px] text-muted truncate">{email}</p>
             </div>
 
             {/* Menu Links */}
             <div className="py-1">
               <Link
-                to="/dashboard"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <LayoutDashboard className="h-3.5 w-3.5 text-muted" />
-                <span>Dashboard</span>
-              </Link>
-              <Link
-                to="/"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <Globe className="h-3.5 w-3.5 text-muted" />
-                <span>Home Page</span>
-              </Link>
-              <Link
                 to="/settings"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
               >
-                <Palette className="h-3.5 w-3.5 text-muted" />
-                <span>Themes & Settings</span>
+                <Settings className="h-3.5 w-3.5 text-muted" />
+                <span>Settings & Preferences</span>
               </Link>
-              <Link
-                to="/focus"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false)
+                  openSearch()
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors cursor-pointer text-left"
               >
-                <Timer className="h-3.5 w-3.5 text-muted" />
-                <span>Focus Mode</span>
-              </Link>
-              <Link
-                to="/calendar"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <CalendarDays className="h-3.5 w-3.5 text-muted" />
-                <span>Study Calendar</span>
-              </Link>
-              <Link
-                to="/flashcards"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <Brain className="h-3.5 w-3.5 text-muted" />
-                <span>Flashcards</span>
-              </Link>
-              <Link
-                to="/ai-assistant"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-muted" />
-                <span>AI Study Assistant</span>
-              </Link>
-              <Link
-                to="/analytics"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <TrendingUp className="h-3.5 w-3.5 text-muted" />
-                <span>Learning Insights</span>
-              </Link>
-              <Link
-                to="/plans"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <Compass className="h-3.5 w-3.5 text-muted" />
-                <span>Learning Plans</span>
-              </Link>
-              <Link
-                to="/subjects"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-foreground hover:bg-surface-raised hover:text-accent transition-colors"
-              >
-                <BookOpen className="h-3.5 w-3.5 text-muted" />
-                <span>Subjects</span>
-              </Link>
+                <div className="flex items-center gap-2.5">
+                  <Search className="h-3.5 w-3.5 text-muted" />
+                  <span>Search Workspace</span>
+                </div>
+                <kbd className="rounded border border-border bg-surface-raised px-1.5 py-0.5 text-[9px] font-mono text-muted">
+                  {isMac ? '⌘K' : 'Ctrl K'}
+                </kbd>
+              </button>
             </div>
 
             {/* Sign Out */}

@@ -14,7 +14,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Button } from '../components/ui/Button'
 import { Input, Textarea } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
@@ -236,26 +236,17 @@ export default function LearningPlansPage() {
   return (
     <PageContainer width="wide" className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/8">
-            <Compass className="h-5 w-5 text-accent" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Learning Plans & Roadmaps
-            </h1>
-            <p className="mt-0.5 text-xs text-muted sm:text-sm">
-              Optional structured roadmaps for larger goals (e.g. Master React, Prepare for Finals). Break big objectives into sequential milestones.
-            </p>
-          </div>
-        </div>
-
-        <Button onClick={handleOpenCreateModal} className="shrink-0 gap-1.5 self-start sm:self-auto">
-          <Plus className="h-4 w-4" />
-          <span>Create Plan</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Learning Plans & Roadmaps"
+        description="Optional structured roadmaps for larger goals (e.g. Master React, Prepare for Finals). Break big objectives into sequential milestones."
+        icon={Compass}
+        actions={
+          <Button onClick={handleOpenCreateModal} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            <span>Create Plan</span>
+          </Button>
+        }
+      />
 
       {/* Subject vs Plan distinction callout */}
       <div className="flex items-start gap-3 rounded-xl border border-border/80 bg-surface-raised/40 p-3.5 text-xs text-muted">

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, BookOpen, Plus, RefreshCw } from 'lucide-react'
+import { AlertCircle, BookOpen, Plus } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingState } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { SubjectCard } from '../components/subjects/SubjectCard'
@@ -260,22 +261,11 @@ export default function SubjectsPage() {
       {loading ? (
         <LoadingState message="Loading what you're learning..." />
       ) : fetchError ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface p-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
-            <AlertCircle className="h-6 w-6" />
-          </div>
-          <h3 className="text-base font-semibold text-foreground">Failed to load subjects</h3>
-          <p className="max-w-md text-sm text-muted">{fetchError}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleRetry}
-            className="gap-2 mt-2"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            <span>Try Again</span>
-          </Button>
-        </div>
+        <ErrorState
+          title="Failed to load subjects"
+          message={fetchError}
+          onRetry={handleRetry}
+        />
       ) : subjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}

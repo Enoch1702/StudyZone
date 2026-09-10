@@ -18,7 +18,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
@@ -475,84 +475,73 @@ export default function CalendarPage({ initialTab }) {
   return (
     <PageContainer width="wide" className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-md">
-            <CalendarDays className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Study Calendar & Deadlines
-            </h1>
-            <p className="text-xs sm:text-sm text-muted">
-              Unified schedule of your upcoming deadlines, tasks, and study session history.
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        title="Study Calendar & Deadlines"
+        description="Unified schedule of your upcoming deadlines, tasks, and study session history."
+        icon={CalendarDays}
+        actions={
+          activeTab === 'calendar' ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center rounded-lg border border-border bg-surface p-1 shadow-xs">
+                <button
+                  type="button"
+                  onClick={handlePrevMonth}
+                  className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Previous Month"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="min-w-[130px] text-center text-xs sm:text-sm font-semibold text-foreground">
+                  {MONTH_NAMES[currentMonth]} {currentYear}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Next Month"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
 
-        {/* Action button changes based on active tab */}
-        {activeTab === 'calendar' ? (
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-            <div className="flex items-center rounded-xl border border-border bg-surface p-1 shadow-2xs">
-              <button
+              <Button
                 type="button"
-                onClick={handlePrevMonth}
-                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                aria-label="Previous Month"
+                variant="outline"
+                size="sm"
+                onClick={handleJumpToday}
               >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="min-w-[130px] text-center text-xs sm:text-sm font-bold text-foreground">
-                {MONTH_NAMES[currentMonth]} {currentYear}
-              </span>
-              <button
+                Today
+              </Button>
+
+              <Button
                 type="button"
-                onClick={handleNextMonth}
-                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
-                aria-label="Next Month"
+                size="sm"
+                onClick={() => {
+                  setQuickAddDate(selectedDateStr || todayStr)
+                  setQuickAddModal({ isOpen: true, type: 'task' })
+                }}
+                className="gap-1.5"
               >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+                <Plus className="h-3.5 w-3.5" />
+                <span>Schedule Task</span>
+              </Button>
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleJumpToday}
-              className="text-xs font-semibold cursor-pointer"
-            >
-              Today
-            </Button>
-
+          ) : (
             <Button
               type="button"
               size="sm"
               onClick={() => {
-                setQuickAddDate(selectedDateStr || todayStr)
-                setQuickAddModal({ isOpen: true, type: 'task' })
+                setDeadlineBannerError('')
+                setDeadlineModalState({ isOpen: true, deadline: null })
               }}
-              className="gap-1.5 text-xs font-bold shadow-xs cursor-pointer"
+              className="gap-1.5"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Schedule Task</span>
+              <span>Add Deadline</span>
             </Button>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              setDeadlineBannerError('')
-              setDeadlineModalState({ isOpen: true, deadline: null })
-            }}
-            className="gap-1.5 text-xs font-bold shadow-xs cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Add Deadline</span>
-          </Button>
-        )}
-      </div>
+          )
+        }
+      />
 
       {/* View Toggle Tabs */}
       <div className="flex items-center gap-2 border-b border-border pb-3">

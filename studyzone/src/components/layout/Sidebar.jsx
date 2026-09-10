@@ -8,7 +8,6 @@ import {
   CheckSquare,
   Compass,
   FileText,
-  Globe,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -110,15 +109,15 @@ export function Sidebar({ open, onClose }) {
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <Link
-            to="/"
+            to="/dashboard"
             onClick={onClose}
             className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
-            title="Go to Home Page"
+            title="StudyZone Dashboard"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-accent text-white shadow-sm shadow-blue-500/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white shadow-2xs">
               <GraduationCap className="h-4 w-4" />
             </div>
-            <span className="text-base font-extrabold tracking-tight text-foreground">
+            <span className="text-base font-bold tracking-tight text-foreground">
               StudyZone
             </span>
           </Link>
@@ -167,10 +166,10 @@ export function Sidebar({ open, onClose }) {
                     onClick={onClose}
                     className={({ isActive }) =>
                       cn(
-                        'group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-150',
+                        'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-colors duration-150',
                         isActive
-                          ? 'bg-gradient-to-r from-accent/15 via-accent/10 to-transparent text-accent font-bold border-l-2 border-accent shadow-2xs'
-                          : 'text-muted hover:bg-surface-raised/70 hover:text-foreground font-medium',
+                          ? 'bg-accent/10 text-accent font-semibold'
+                          : 'text-muted hover:bg-surface-raised hover:text-foreground font-medium',
                       )
                     }
                   >
@@ -192,21 +191,12 @@ export function Sidebar({ open, onClose }) {
           ))}
         </nav>
 
-        {/* Public Home & User Account footer */}
-        <div className="border-t border-border p-2 space-y-1.5">
-          <NavLink
-            to="/"
-            onClick={onClose}
-            className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-raised/60 hover:text-foreground transition-colors"
-          >
-            <Globe className="h-3.5 w-3.5 text-muted shrink-0" />
-            <span>Home Page</span>
-          </NavLink>
-
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/60 p-2 border border-border/50 transition-colors hover:border-border">
+        {/* User Account footer */}
+        <div className="border-t border-border p-2">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-raised/50 p-2 border border-border/50 transition-colors hover:border-border">
             <div className="flex items-center gap-2 min-w-0">
               <div
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-raised text-[10px] font-bold text-accent uppercase"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-[10px] font-bold text-accent uppercase"
                 aria-hidden="true"
               >
                 {getInitials(displayName)}
@@ -221,7 +211,7 @@ export function Sidebar({ open, onClose }) {
               onClick={handleSignOut}
               aria-label="Sign out"
               title="Sign out"
-              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors active:scale-95 cursor-pointer"
+              className="shrink-0 rounded-md p-1.5 text-muted hover:bg-danger/10 hover:text-danger transition-colors cursor-pointer"
             >
               <LogOut className="h-4 w-4" />
             </button>

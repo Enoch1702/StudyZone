@@ -31,7 +31,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
@@ -596,33 +596,22 @@ ${editorContent.trim().slice(0, 6000)}`
   return (
     <PageContainer width="wide" className="space-y-4 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/70 pb-3.5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
-            <FileText className="h-4 w-4" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-              Study Notes
-            </h1>
-            <p className="text-xs text-muted">
-              Capture knowledge, write markdown, and understand with AI study tools.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Study Notes"
+        description="Capture knowledge, write markdown, and understand with AI study tools."
+        icon={FileText}
+        actions={
           <Button
             type="button"
             size="sm"
             onClick={() => handleCreateNote()}
-            className="gap-1.5 text-xs font-bold cursor-pointer"
+            className="gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>New Note</span>
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {fetchError && (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger">

@@ -25,7 +25,7 @@ import {
   VolumeX,
   Zap,
 } from 'lucide-react'
-import { PageContainer } from '../components/layout/PageContainer'
+import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../context/useAuth'
@@ -519,85 +519,75 @@ export default function FocusPage() {
       </AnimatePresence>
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/80 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-md">
-            <Timer className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-              Focus Mode
-            </h1>
-            <p className="text-xs sm:text-sm text-muted">
-              Distraction-free deep work environment with synthesized ambient noise and automatic session tracking.
-            </p>
-          </div>
-        </div>
+      <PageHeader
+        title="Focus Mode"
+        description="Distraction-free deep work environment with synthesized ambient noise and automatic session tracking."
+        icon={Timer}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Notification Permission Button */}
+            {!hasNotificationPermission && (
+              <button
+                type="button"
+                onClick={requestNotificationPermission}
+                title="Enable browser notifications on session complete"
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Alerts</span>
+              </button>
+            )}
 
-        {/* Status Badge & Environment Controls */}
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {/* Notification Permission Button */}
-          {!hasNotificationPermission && (
+            {/* WakeLock indicator */}
+            {isWakeLockActive && (
+              <span
+                title="Screen WakeLock Active — Display will not sleep during focus"
+                className="inline-flex items-center gap-1 rounded-lg bg-warning-muted border border-warning/30 px-2.5 py-1.5 text-xs font-semibold text-warning"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">Awake</span>
+              </span>
+            )}
+
+            {/* Fullscreen Button */}
             <button
               type="button"
-              onClick={requestNotificationPermission}
-              title="Enable browser notifications on session complete"
-              className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
             >
-              <Bell className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Alerts</span>
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="hidden md:inline">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
             </button>
-          )}
 
-          {/* WakeLock indicator */}
-          {isWakeLockActive && (
-            <span
-              title="Screen WakeLock Active — Display will not sleep during focus"
-              className="inline-flex items-center gap-1 rounded-xl bg-warning-muted border border-warning/30 px-2.5 py-1.5 text-xs font-semibold text-warning"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Awake</span>
-            </span>
-          )}
-
-          {/* Fullscreen Button */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            <span className="hidden md:inline">{isFullscreen ? 'Exit' : 'Fullscreen'}</span>
-          </button>
-
-          {/* Phase Badge */}
-          {sessionPhase === 'focus' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-muted border border-success/30 px-3 py-1 text-xs font-bold text-success">
-              <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              Focusing
-            </span>
-          )}
-          {sessionPhase === 'short_break' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-muted border border-accent/30 px-3 py-1 text-xs font-bold text-accent">
-              <CoffeeCupIcon className="h-3.5 w-3.5" />
-              Short Break
-            </span>
-          )}
-          {sessionPhase === 'long_break' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ai-muted border border-ai-accent/30 px-3 py-1 text-xs font-bold text-ai-accent">
-              <Sparkles className="h-3.5 w-3.5" />
-              Long Break
-            </span>
-          )}
-          {sessionPhase === 'idle' && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-raised border border-border px-3 py-1 text-xs font-medium text-muted">
-              <Hourglass className="h-3.5 w-3.5" />
-              Ready
-            </span>
-          )}
-        </div>
-      </div>
+            {/* Phase Badge */}
+            {sessionPhase === 'focus' && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-success-muted border border-success/30 px-2.5 py-1 text-xs font-semibold text-success">
+                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                Focusing
+              </span>
+            )}
+            {sessionPhase === 'short_break' && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-accent-muted border border-accent/30 px-2.5 py-1 text-xs font-semibold text-accent">
+                <CoffeeCupIcon className="h-3.5 w-3.5" />
+                Short Break
+              </span>
+            )}
+            {sessionPhase === 'long_break' && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-ai-muted border border-ai-accent/30 px-2.5 py-1 text-xs font-semibold text-ai-accent">
+                <Sparkles className="h-3.5 w-3.5" />
+                Long Break
+              </span>
+            )}
+            {sessionPhase === 'idle' && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-raised border border-border px-2.5 py-1 text-xs font-medium text-muted">
+                <Hourglass className="h-3.5 w-3.5" />
+                Ready
+              </span>
+            )}
+          </div>
+        }
+      />
 
       {/* Main Focus Control Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
