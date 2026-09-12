@@ -253,10 +253,10 @@ export default function LearningPlansPage() {
         <span className="text-base leading-none">💡</span>
         <div className="space-y-0.5">
           <p className="font-semibold text-foreground">
-            Subject vs. Learning Plan: What’s the difference?
+            What are Learning Plans?
           </p>
           <p className="text-[11px] leading-relaxed text-muted">
-            A <strong>Subject</strong> is an ongoing knowledge folder for your daily notes, tasks, and flashcards. A <strong>Learning Plan</strong> is an optional chronological roadmap designed to track milestones toward a target completion date. You don&apos;t need a learning plan to take notes or study!
+            Learning Plans are structured, milestone-based roadmaps for major goals, such as exam preparation, semester milestones, or certification tracks. You can organize related tasks and milestones within a plan to track long-term progress alongside your daily subjects.
           </p>
         </div>
       </div>
@@ -344,7 +344,7 @@ export default function LearningPlansPage() {
                   variants={staggerItem}
                   layout
                   onClick={() => navigate(`/plans/${plan.id}`)}
-                  className="group relative flex flex-col justify-between cursor-pointer rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:border-accent/40 hover:shadow-md hover:translate-y-[-2px]"
+                  className="group relative flex flex-col justify-between cursor-pointer rounded-2xl border border-border bg-surface p-5 transition-all duration-200 hover:border-border/80 hover:bg-surface-raised/30 hover:shadow-xs"
                 >
                   <div>
                     {/* Top Row: status & actions */}

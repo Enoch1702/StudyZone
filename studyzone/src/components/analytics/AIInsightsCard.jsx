@@ -116,7 +116,7 @@ export function AIInsightsCard({ analyticsSummary = null }) {
                 key={qp.id}
                 type="button"
                 onClick={() => handleOpenCoachWithPrompt(qp.prompt)}
-                className="group flex flex-col justify-between rounded-2xl border border-border/80 bg-surface p-4 text-left shadow-xs transition-all hover:border-ai-accent/40 hover:bg-surface-raised/40 hover:-translate-y-0.5 hover:shadow-sm cursor-pointer"
+                className="group flex flex-col justify-between rounded-2xl border border-border/80 bg-surface p-4 text-left shadow-xs transition-all hover:border-ai-accent/40 hover:bg-surface-raised/40 hover:shadow-xs cursor-pointer"
               >
                 <div>
                   <div className="flex items-center justify-between">

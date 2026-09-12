@@ -32,7 +32,7 @@ export function SubjectCard({
       layout
       className={cn(
         'group relative flex flex-col justify-between w-full overflow-hidden rounded-xl border border-border bg-surface text-left transition-all duration-200',
-        'hover:border-border/80 hover:bg-surface-raised/20 hover:-translate-y-0.5 hover:shadow-md',
+        'hover:border-border/80 hover:bg-surface-raised/30 hover:shadow-xs',
       )}
     >
       {/* Subject Color Accent Strip */}

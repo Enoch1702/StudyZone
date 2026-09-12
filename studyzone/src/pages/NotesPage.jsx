@@ -82,7 +82,9 @@ export default function NotesPage() {
   // ─── Save & Draft State Tracking ───────────────────────────────
   const [saveStatus, setSaveStatus] = useState('saved') // 'saving', 'saved', 'unsaved', 'offline', 'error'
   const [lastSavedTime, setLastSavedTime] = useState(null)
+  const [recoveredDraft, setRecoveredDraft] = useState(null)
   const autoSaveTimerRef = useRef(null)
+  const draftTimerRef = useRef(null)
   const textareaRef = useRef(null)
 
   // ─── Delete Confirmation Modal ─────────────────────────────────
@@ -108,43 +110,64 @@ export default function NotesPage() {
   // ─── Subject Map ───────────────────────────────────────────────
   const subjectMap = useMemo(() => new Map(subjects.map((s) => [s.id, s])), [subjects])
 
-  // Helper to load note details into editor with local draft recovery
+  // Helper to load note details into editor with local draft recovery check
   const loadNoteIntoEditor = useCallback((note) => {
     if (!note) return
     setActiveNoteId(note.id)
+    setRecoveredDraft(null)
 
-    // Check for offline unsaved draft in localStorage
-    let titleToSet = note.title || ''
-    let contentToSet = note.content || ''
-    let summaryToSet = note.summary || ''
-    let isDraftRestored = false
-
-    try {
-      const rawDraft = localStorage.getItem(`studyzone_draft_note_${note.id}`)
-      if (rawDraft) {
-        const draft = JSON.parse(rawDraft)
-        const noteUpdatedTs = new Date(note.updatedAt || note.createdAt || 0).getTime()
-        if (draft && draft.timestamp && draft.timestamp > noteUpdatedTs) {
-          titleToSet = draft.title ?? titleToSet
-          contentToSet = draft.content ?? contentToSet
-          summaryToSet = draft.summary ?? summaryToSet
-          isDraftRestored = true
-        }
-      }
-    } catch {
-      // ignore draft parse error
-    }
-
-    setEditorTitle(titleToSet)
-    setEditorContent(contentToSet)
-    setEditorSummary(summaryToSet)
+    // 1. Load server version into editor
+    setEditorTitle(note.title || '')
+    setEditorContent(note.content || '')
+    setEditorSummary(note.summary || '')
     setEditorSubjectId(note.subjectId || '')
     setEditorTags(Array.isArray(note.tags) ? note.tags : [])
     setIsEditorPinned(Boolean(note.isPinned))
     setEditorViewMode('edit')
-    setSaveStatus(isDraftRestored ? 'offline' : 'saved')
+    setSaveStatus('saved')
     setLastSavedTime(new Date(note.updatedAt || note.createdAt))
+
+    // 2. Check for local unsaved draft
+    try {
+      const rawDraft = localStorage.getItem(`studyzone_draft_note_${note.id}`)
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft)
+        if (draft) {
+          const titleDiffers = (draft.title ?? '') !== (note.title || '')
+          const contentDiffers = (draft.content ?? '') !== (note.content || '')
+          const summaryDiffers = (draft.summary ?? '') !== (note.summary || '')
+
+          if (titleDiffers || contentDiffers || summaryDiffers) {
+            setRecoveredDraft(draft)
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
   }, [])
+
+  function handleRestoreDraft() {
+    if (!recoveredDraft) return
+    if (recoveredDraft.title !== undefined) setEditorTitle(recoveredDraft.title)
+    if (recoveredDraft.content !== undefined) setEditorContent(recoveredDraft.content)
+    if (recoveredDraft.summary !== undefined) setEditorSummary(recoveredDraft.summary)
+    if (recoveredDraft.subjectId !== undefined) setEditorSubjectId(recoveredDraft.subjectId)
+    if (recoveredDraft.tags !== undefined) setEditorTags(recoveredDraft.tags)
+    setSaveStatus('unsaved')
+    setRecoveredDraft(null)
+  }
+
+  function handleDiscardDraft() {
+    if (activeNoteId) {
+      try {
+        localStorage.removeItem(`studyzone_draft_note_${activeNoteId}`)
+      } catch {
+        // ignore
+      }
+    }
+    setRecoveredDraft(null)
+  }
 
   // ─── Fetch Data ────────────────────────────────────────────────
   const refreshData = useCallback(async () => {
@@ -239,22 +262,28 @@ export default function NotesPage() {
 
       setSaveStatus('unsaved')
 
-      // Save draft immediately to localStorage for crash/refresh protection
-      try {
-        localStorage.setItem(
-          `studyzone_draft_note_${activeNoteId}`,
-          JSON.stringify({
-            title: updatedFields.title ?? editorTitle,
-            content: updatedFields.content ?? editorContent,
-            summary: updatedFields.summary ?? editorSummary,
-            subjectId: updatedFields.subjectId ?? editorSubjectId,
-            tags: updatedFields.tags ?? editorTags,
-            timestamp: Date.now(),
-          }),
-        )
-      } catch {
-        // ignore storage quota error
+      // Debounced draft persistence to localStorage (300ms)
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current)
       }
+
+      draftTimerRef.current = setTimeout(() => {
+        try {
+          localStorage.setItem(
+            `studyzone_draft_note_${activeNoteId}`,
+            JSON.stringify({
+              title: updatedFields.title ?? editorTitle,
+              content: updatedFields.content ?? editorContent,
+              summary: updatedFields.summary ?? editorSummary,
+              subjectId: updatedFields.subjectId ?? editorSubjectId,
+              tags: updatedFields.tags ?? editorTags,
+              timestamp: Date.now(),
+            }),
+          )
+        } catch {
+          // ignore storage quota error
+        }
+      }, 300)
 
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current)
@@ -630,7 +659,7 @@ ${editorContent.trim().slice(0, 6000)}`
         {/* ─── Left Column: Notes Navigation List ─── */}
         <div
           className={cn(
-            'lg:col-span-4 space-y-3',
+            'lg:col-span-4 xl:col-span-3 space-y-3',
             activeNoteId ? 'hidden lg:block' : 'block',
           )}
         >
@@ -779,7 +808,7 @@ ${editorContent.trim().slice(0, 6000)}`
         {/* ─── Right Column: Note Writing Canvas ─── */}
         <div
           className={cn(
-            'lg:col-span-8',
+            'lg:col-span-8 xl:col-span-9',
             activeNoteId ? 'block' : 'hidden lg:block',
           )}
         >
@@ -790,17 +819,19 @@ ${editorContent.trim().slice(0, 6000)}`
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
                   <div className="flex items-center gap-2">
                     {/* Mobile Back Button */}
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => {
                         setActiveNoteId(null)
                         setSearchParams({})
                       }}
-                      className="lg:hidden flex items-center gap-1 text-xs font-semibold text-muted hover:text-foreground mr-1"
+                      className="lg:hidden flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 cursor-pointer mr-1"
                     >
                       <ArrowLeft className="h-4 w-4" />
-                      <span>Back</span>
-                    </button>
+                      <span>Back to Notes</span>
+                    </Button>
 
                     <button
                       type="button"
@@ -1033,72 +1064,115 @@ ${editorContent.trim().slice(0, 6000)}`
                   </div>
                 </div>
 
-                {/* Single Formatting Toolbar (Shown in Edit Mode) */}
+                {/* Non-destructive Draft Recovery Prompt */}
+                {recoveredDraft && (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs text-foreground">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+                      <div>
+                        <p className="font-semibold text-foreground">Unsaved draft found from a previous session</p>
+                        <p className="text-[11px] text-muted">
+                          Your local draft differs from the saved note.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        onClick={handleRestoreDraft}
+                        className="h-7 text-xs px-2.5 font-semibold cursor-pointer"
+                      >
+                        Restore Draft
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={handleDiscardDraft}
+                        className="h-7 text-xs px-2.5 text-muted hover:text-foreground cursor-pointer"
+                      >
+                        Discard
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Single Formatting Toolbar (Shown in Edit Mode with 36x36px touch targets) */}
                 {editorViewMode === 'edit' && (
                   <div className="flex flex-wrap items-center gap-1 border-b border-border/60 pb-2 text-muted">
                     <button
                       type="button"
                       onClick={() => insertMarkdown('**', '**')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Bold"
+                      aria-label="Format Bold"
                     >
-                      <Bold className="h-3.5 w-3.5" />
+                      <Bold className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('*', '*')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Italic"
+                      aria-label="Format Italic"
                     >
-                      <Italic className="h-3.5 w-3.5" />
+                      <Italic className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('## ')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Heading 1"
+                      aria-label="Format Heading 1"
                     >
-                      <Heading1 className="h-3.5 w-3.5" />
+                      <Heading1 className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('### ')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Heading 2"
+                      aria-label="Format Heading 2"
                     >
-                      <Heading2 className="h-3.5 w-3.5" />
+                      <Heading2 className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('- ')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Bullet List"
+                      aria-label="Format Bullet List"
                     >
-                      <List className="h-3.5 w-3.5" />
+                      <List className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('1. ')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Numbered List"
+                      aria-label="Format Numbered List"
                     >
-                      <ListOrdered className="h-3.5 w-3.5" />
+                      <ListOrdered className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('```\n', '\n```')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Code Block"
+                      aria-label="Format Code Block"
                     >
-                      <Code className="h-3.5 w-3.5" />
+                      <Code className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => insertMarkdown('> ')}
-                      className="p-1.5 rounded hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer"
+                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
                       title="Quote"
+                      aria-label="Format Quote"
                     >
-                      <Quote className="h-3.5 w-3.5" />
+                      <Quote className="h-4 w-4" />
                     </button>
                   </div>
                 )}
