@@ -592,7 +592,7 @@ export default function FocusPage() {
       {/* Main Focus Control Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Preset, Audio, and Context (4 cols on lg) */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="order-2 lg:order-1 lg:col-span-4 space-y-4">
           {/* Preset Selector Card */}
           <Card className="border-border/90 bg-surface shadow-md">
             <CardHeader className="pb-3">
@@ -844,7 +844,7 @@ export default function FocusPage() {
         </div>
 
         {/* Right Column: Distraction-Free Radial Timer Centerpiece (8 cols on lg) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="order-1 lg:order-2 lg:col-span-8 space-y-6">
           <Card className="relative overflow-hidden border-border/90 bg-gradient-to-b from-surface to-surface-raised p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center">
             {/* Cycle Dots Header */}
             <div className="flex items-center gap-3 mb-6">
