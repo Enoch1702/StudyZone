@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   FileText,
+  X,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -66,7 +67,9 @@ export default function AIAssistantPage() {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(
+    () => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true),
+  )
 
   // Delete conversation confirmation dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -182,6 +185,9 @@ export default function AIAssistantPage() {
   const handleSelectConversation = useCallback(
     async (conversationId) => {
       if (!user?.id || conversationId === activeConversationId || isLoading) return
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setIsHistoryOpen(false)
+      }
 
       setActiveConversationId(conversationId)
       setIsLoading(true)
@@ -215,6 +221,9 @@ export default function AIAssistantPage() {
     setActiveConversationId(null)
     setMessages([])
     setInputValue('')
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setIsHistoryOpen(false)
+    }
     setTimeout(() => textareaRef.current?.focus(), 50)
   }, [isLoading])
 
@@ -463,7 +472,7 @@ export default function AIAssistantPage() {
 
       {/* Main Workspace: History Drawer + Chat Area */}
       <div className="flex flex-1 min-h-0 gap-3 overflow-hidden">
-        {/* Conversation History Sidebar */}
+        {/* Desktop Conversation History Sidebar */}
         <AnimatePresence>
           {isHistoryOpen && (
             <motion.aside
@@ -471,7 +480,7 @@ export default function AIAssistantPage() {
               animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
+              className="hidden md:flex shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
             >
               {/* New Chat Button */}
               <div className="p-3 border-b border-border">
@@ -533,6 +542,101 @@ export default function AIAssistantPage() {
                 )}
               </div>
             </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile History Drawer (Slide-Over Sheet) */}
+        <AnimatePresence>
+          {isHistoryOpen && (
+            <div className="fixed inset-0 z-50 flex md:hidden">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsHistoryOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+              />
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 280 }}
+                className="relative z-10 flex h-full w-4/5 max-w-xs flex-col border-r border-border bg-surface shadow-xl"
+              >
+                {/* Mobile Drawer Header */}
+                <div className="flex items-center justify-between p-3 border-b border-border">
+                  <span className="text-xs font-bold text-foreground">Chat History</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryOpen(false)}
+                    aria-label="Close history drawer"
+                    className="p-1 rounded-lg text-muted hover:text-foreground hover:bg-surface-raised cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* New Chat Button */}
+                <div className="p-3 border-b border-border">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleNewChat}
+                    disabled={isLoading}
+                    className="w-full gap-1.5 font-semibold text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>New Chat</span>
+                  </Button>
+                </div>
+
+                {/* History List */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1 divide-y divide-transparent">
+                  {conversations.length === 0 ? (
+                    <div className="py-8 text-center px-3">
+                      <MessageSquare className="h-5 w-5 mx-auto text-muted/60 mb-1.5" />
+                      <p className="text-xs font-semibold text-muted">No saved chats</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Your study conversations will be saved here.</p>
+                    </div>
+                  ) : (
+                    conversations.map((conv) => {
+                      const isActive = conv.id === activeConversationId
+
+                      return (
+                        <div
+                          key={conv.id}
+                          onClick={() => handleSelectConversation(conv.id)}
+                          className={cn(
+                            'group flex items-center justify-between rounded-xl px-2.5 py-2 text-left transition-all cursor-pointer',
+                            isActive
+                              ? 'bg-ai-muted border border-ai-accent/30 text-foreground font-semibold shadow-xs'
+                              : 'hover:bg-surface-raised/70 text-foreground/80 border border-transparent',
+                          )}
+                        >
+                          <div className="min-w-0 flex-1 pr-1">
+                            <p className="text-xs font-semibold truncate text-foreground">{conv.title}</p>
+                            <span className="text-[9px] text-muted-foreground">{formatConversationTime(conv.updated_at)}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setConversationToDelete(conv)
+                              setDeleteConfirmOpen(true)
+                            }}
+                            className="rounded p-1 text-muted opacity-0 group-hover:opacity-100 hover:text-danger hover:bg-surface-raised transition-all"
+                            aria-label="Delete chat"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </motion.aside>
+            </div>
           )}
         </AnimatePresence>
 

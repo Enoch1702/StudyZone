@@ -371,7 +371,7 @@ export function QuickPrompts({ onSelect, disabled }) {
       variants={staggerItem}
       initial="hidden"
       animate="visible"
-      className="flex flex-wrap gap-2"
+      className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap sm:overflow-x-visible sm:pb-0"
     >
       {prompts.map(({ icon, label, id }) => (
         <button
@@ -380,7 +380,7 @@ export function QuickPrompts({ onSelect, disabled }) {
           onClick={() => onSelect(label)}
           disabled={disabled}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-raised',
+            'shrink-0 sm:shrink inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-raised',
             'px-3.5 py-1.5 text-xs font-medium text-muted',
             'transition-all duration-150',
             'hover:border-accent/40 hover:bg-accent/8 hover:text-foreground',
