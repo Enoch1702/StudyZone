@@ -9,7 +9,6 @@ import {
   PanelLeftClose,
   PanelLeft,
   FileText,
-  X,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -20,6 +19,7 @@ import {
   ChatComposer,
   EmptyConversation,
 } from '../components/ai/AIStudyForm'
+import { Modal } from '../components/ui/Modal'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { Button } from '../components/ui/Button'
 import { sendMessage } from '../services/aiService'
@@ -416,7 +416,7 @@ export default function AIAssistantPage() {
   const hasMessages = messages.length > 0
 
   return (
-    <PageContainer width="wide" className="flex h-[calc(100vh-3.5rem)] flex-col p-3 sm:p-5">
+    <PageContainer width="wide" className="flex flex-1 min-h-0 flex-col overflow-hidden w-full p-0">
       {/* Top Header & Adaptive Prompts */}
       <motion.div
         variants={staggerContainer}
@@ -462,7 +462,7 @@ export default function AIAssistantPage() {
       </motion.div>
 
       {/* Main Workspace: History Drawer + Chat Area */}
-      <div className="flex flex-1 gap-3 overflow-hidden">
+      <div className="flex flex-1 min-h-0 gap-3 overflow-hidden">
         {/* Conversation History Sidebar */}
         <AnimatePresence>
           {isHistoryOpen && (
@@ -475,15 +475,16 @@ export default function AIAssistantPage() {
             >
               {/* New Chat Button */}
               <div className="p-3 border-b border-border">
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={handleNewChat}
                   disabled={isLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-3 py-2 text-xs font-bold text-white hover:opacity-95 shadow-md shadow-violet-500/20 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+                  className="w-full gap-1.5 font-semibold text-xs"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   <span>New Chat</span>
-                </button>
+                </Button>
               </div>
 
               {/* History List */}
@@ -536,9 +537,9 @@ export default function AIAssistantPage() {
         </AnimatePresence>
 
         {/* Active Conversation Chat Window */}
-        <div className="relative flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface">
           {/* Messages Scroll Area */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5">
             {!hasMessages ? (
               <EmptyConversation />
             ) : (
@@ -586,45 +587,36 @@ export default function AIAssistantPage() {
       </div>
 
       {/* Explicit Note Context Selector Modal */}
-      {isAttachModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-accent" />
-                <h3 className="text-sm font-bold text-foreground">Attach Note as Explicit Context</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAttachModalOpen(false)}
-                className="rounded p-1 text-muted hover:text-foreground cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xs text-muted leading-relaxed">
-              Privacy First: Only the selected note content will be sent to the AI Tutor. No other notes or private data will be read.
-            </p>
-            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
-              {availableNotes.length === 0 ? (
-                <p className="text-xs text-muted text-center py-6">No study notes found.</p>
-              ) : (
-                availableNotes.map((note) => (
-                  <button
-                    key={note.id}
-                    type="button"
-                    onClick={() => {
-                      setAttachedContext({
-                        type: 'note',
-                        id: note.id,
-                        title: note.title,
-                        content: note.content,
-                      })
-                      setIsAttachModalOpen(false)
-                    }}
-                    className="w-full text-left p-2.5 rounded-xl border border-border/70 hover:border-accent/40 hover:bg-surface-raised transition-colors flex items-center justify-between group cursor-pointer"
-                  >
-                    <div className="min-w-0">
+      <Modal
+        open={isAttachModalOpen}
+        onClose={() => setIsAttachModalOpen(false)}
+        title="Attach Note as Context"
+        description="Privacy First: Only the selected note content will be sent to the AI Assistant. No other notes or private data will be read."
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+            {availableNotes.length === 0 ? (
+              <p className="text-xs text-muted text-center py-6">No study notes found.</p>
+            ) : (
+              availableNotes.map((note) => (
+                <button
+                  key={note.id}
+                  type="button"
+                  onClick={() => {
+                    setAttachedContext({
+                      type: 'note',
+                      id: note.id,
+                      title: note.title,
+                      content: note.content,
+                    })
+                    setIsAttachModalOpen(false)
+                  }}
+                  className="w-full text-left p-2.5 rounded-xl border border-border/70 hover:border-accent/40 hover:bg-surface-raised transition-colors flex items-center justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <FileText className="h-4 w-4 text-muted shrink-0 group-hover:text-accent transition-colors" />
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold text-foreground truncate group-hover:text-accent">
                         {note.title || 'Untitled Note'}
                       </p>
@@ -632,27 +624,27 @@ export default function AIAssistantPage() {
                         {note.content ? note.content.slice(0, 60) : 'Empty note'}...
                       </p>
                     </div>
-                    <span className="text-[10px] font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-                      Attach
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-            <div className="pt-2 flex justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsAttachModalOpen(false)}
-                className="text-xs cursor-pointer"
-              >
-                Cancel
-              </Button>
-            </div>
+                  </div>
+                  <span className="text-[10px] font-semibold text-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                    Attach
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsAttachModalOpen(false)}
+              className="text-xs cursor-pointer"
+            >
+              Cancel
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Delete Conversation Confirmation Dialog */}
       <ConfirmDialog

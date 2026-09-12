@@ -9,6 +9,7 @@ import { GlobalSearchModal } from '../search/GlobalSearchModal'
 import { LearnerOnboardingModal } from '../onboarding/LearnerOnboardingModal'
 import { useAuth } from '../../context/useAuth'
 import { pageEntrance } from '../../lib/motion'
+import { cn } from '../../lib/utils'
 
 const pageTitles = {
   '/dashboard': 'Dashboard',
@@ -41,15 +42,17 @@ export function AppLayout() {
     }
   }
 
+  const isWorkspace = location.pathname === '/ai-assistant'
+
   // Show onboarding modal only if user is logged in, profile is loaded, and onboarding_completed is strictly false
   const showOnboarding = Boolean(user && profile && profile.onboarding_completed === false)
 
   return (
     <SearchProvider>
-      <div className="relative flex min-h-svh bg-background overflow-x-hidden">
+      <div className={cn('relative flex min-h-svh bg-background overflow-x-hidden', isWorkspace && 'h-svh max-h-svh overflow-hidden')}>
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="relative z-10 flex min-w-0 flex-1 flex-col lg:pl-0">
+        <div className={cn('relative z-10 flex min-w-0 flex-1 flex-col lg:pl-0', isWorkspace && 'h-full min-h-0 overflow-hidden')}>
           <Header
             title={title}
             onMenuClick={() => setSidebarOpen(true)}
@@ -59,7 +62,12 @@ export function AppLayout() {
             variants={pageEntrance}
             initial="hidden"
             animate="visible"
-            className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
+            className={cn(
+              'flex-1',
+              isWorkspace
+                ? 'flex flex-col min-h-0 overflow-hidden p-3 sm:p-5 sm:pb-4'
+                : 'overflow-y-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8',
+            )}
           >
             <Outlet />
           </motion.main>
