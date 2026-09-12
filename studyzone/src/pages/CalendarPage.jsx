@@ -11,6 +11,7 @@ import {
   Flag,
   GraduationCap,
   Layers,
+  ListTodo,
   Pencil,
   Plus,
   Search,
@@ -27,6 +28,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { DeadlineUrgency } from '../components/ui/DeadlineUrgency'
 import { DeadlineModal } from '../components/deadlines/DeadlineModal'
+import { Modal } from '../components/ui/Modal'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth } from '../context/useAuth'
 import { getTasks, createTask } from '../services/tasksService'
@@ -136,6 +138,22 @@ export default function CalendarPage({ initialTab }) {
   const [currentMonth, setCurrentMonth] = useState(() => today.getMonth())
   const [selectedDateStr, setSelectedDateStr] = useState(todayStr)
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
+
+  // Responsive calendar view state: default to 'agenda' on < 640px, 'grid' on >= 640px
+  const [userSelectedView, setUserSelectedView] = useState(null)
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 640,
+  )
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < 640)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const activeCalendarView = userSelectedView || (isMobile ? 'agenda' : 'grid')
 
   // Workload Data State
   const [tasks, setTasks] = useState([])
@@ -472,6 +490,16 @@ export default function CalendarPage({ initialTab }) {
     return getCalendarGrid(currentYear, currentMonth)
   }, [currentYear, currentMonth])
 
+  const currentMonthPrefix = useMemo(() => {
+    return `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`
+  }, [currentYear, currentMonth])
+
+  const monthAgendaDates = useMemo(() => {
+    return Array.from(eventsByDate.keys())
+      .filter((d) => d.startsWith(currentMonthPrefix))
+      .sort()
+  }, [eventsByDate, currentMonthPrefix])
+
   return (
     <PageContainer width="wide" className="space-y-6 pb-12">
       {/* Header */}
@@ -543,35 +571,69 @@ export default function CalendarPage({ initialTab }) {
         }
       />
 
-      {/* View Toggle Tabs */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab('calendar')}
-          className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'calendar'
-              ? 'bg-accent text-white shadow-xs'
-              : 'bg-surface border border-border text-muted hover:text-foreground hover:bg-surface-raised',
-          )}
-        >
-          <CalendarDays className="h-3.5 w-3.5" />
-          <span>Calendar Grid</span>
-        </button>
+      {/* View Toggle Tabs & Sub-view controls */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('calendar')}
+            className={cn(
+              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer',
+              activeTab === 'calendar'
+                ? 'bg-accent text-white shadow-xs'
+                : 'bg-surface border border-border text-muted hover:text-foreground hover:bg-surface-raised',
+            )}
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span>Calendar</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('deadlines')}
-          className={cn(
-            'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer',
-            activeTab === 'deadlines'
-              ? 'bg-accent text-white shadow-xs'
-              : 'bg-surface border border-border text-muted hover:text-foreground hover:bg-surface-raised',
-          )}
-        >
-          <Clock className="h-3.5 w-3.5" />
-          <span>Upcoming Deadlines ({deadlines.length})</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('deadlines')}
+            className={cn(
+              'flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all cursor-pointer',
+              activeTab === 'deadlines'
+                ? 'bg-accent text-white shadow-xs'
+                : 'bg-surface border border-border text-muted hover:text-foreground hover:bg-surface-raised',
+            )}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            <span>Upcoming Deadlines ({deadlines.length})</span>
+          </button>
+        </div>
+
+        {/* View Toggle (Month Grid vs Agenda) when in Calendar tab */}
+        {activeTab === 'calendar' && (
+          <div className="flex items-center rounded-lg border border-border bg-surface p-0.5 shadow-2xs self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setUserSelectedView('grid')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer',
+                activeCalendarView === 'grid'
+                  ? 'bg-surface-raised text-foreground shadow-2xs'
+                  : 'text-muted hover:text-foreground',
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span>Month Grid</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserSelectedView('agenda')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer',
+                activeCalendarView === 'agenda'
+                  ? 'bg-surface-raised text-foreground shadow-2xs'
+                  : 'text-muted hover:text-foreground',
+              )}
+            >
+              <ListTodo className="h-3.5 w-3.5" />
+              <span>Agenda</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -579,16 +641,142 @@ export default function CalendarPage({ initialTab }) {
           <LoadingSpinner size="md" />
         </div>
       ) : activeTab === 'calendar' ? (
-        /* Calendar Grid View */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Main Calendar Grid (8 or 12 cols depending on inspector) */}
-          <div
-            className={cn(
-              isInspectorOpen ? 'lg:col-span-8' : 'lg:col-span-12',
-              'transition-all duration-300',
+        activeCalendarView === 'agenda' ? (
+          /* Responsive Agenda View */
+          <div className="space-y-4">
+            {monthAgendaDates.length === 0 ? (
+              <EmptyState
+                icon={CalendarDays}
+                title={`No events in ${MONTH_NAMES[currentMonth]} ${currentYear}`}
+                description="You have no tasks, deadlines, or focus sessions scheduled for this month."
+                actionLabel="Schedule Task"
+                onAction={() => {
+                  setQuickAddDate(todayStr)
+                  setQuickAddModal({ isOpen: true, type: 'task' })
+                }}
+              />
+            ) : (
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+                className="space-y-3"
+              >
+                {monthAgendaDates.map((dateStr) => {
+                  const evList = eventsByDate.get(dateStr) || []
+                  const isToday = dateStr === todayStr
+                  const dObj = new Date(dateStr + 'T00:00:00')
+
+                  return (
+                    <motion.div
+                      key={dateStr}
+                      variants={staggerItem}
+                      className="rounded-xl border border-border bg-surface p-3.5 sm:p-4 shadow-xs"
+                    >
+                      {/* Date Header */}
+                      <div className="flex items-center justify-between border-b border-border/60 pb-2 mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                              isToday ? 'bg-accent text-white shadow-xs' : 'bg-surface-raised text-foreground',
+                            )}
+                          >
+                            {dObj.getDate()}
+                          </span>
+                          <h3 className="text-xs sm:text-sm font-semibold text-foreground">
+                            {formatDate(dateStr)}
+                          </h3>
+                          {isToday && (
+                            <Badge variant="accent" className="text-[10px] py-0 px-1.5 font-bold">
+                              Today
+                            </Badge>
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setQuickAddDate(dateStr)
+                            setQuickAddModal({ isOpen: true, type: 'task' })
+                          }}
+                          className="h-7 text-xs text-muted hover:text-accent gap-1 px-2 cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Add</span>
+                        </Button>
+                      </div>
+
+                      {/* Items List */}
+                      <div className="space-y-2">
+                        {evList.map((ev) => (
+                          <div
+                            key={ev.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface-raised/40 p-2.5 hover:border-accent/30 transition-colors"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span
+                                  className={cn(
+                                    'rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shrink-0',
+                                    ev.type === 'deadline' && 'bg-rose-500/15 text-rose-300 border border-rose-500/20',
+                                    ev.type === 'task' && 'bg-accent/15 text-accent border border-accent/20',
+                                    ev.type === 'session' && 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20',
+                                  )}
+                                >
+                                  {ev.type}
+                                </span>
+                                {ev.subjectName && (
+                                  <span className="text-[11px] text-muted truncate">
+                                    {ev.subjectName}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs sm:text-sm font-medium text-foreground truncate">
+                                {ev.title}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {ev.type === 'task' && (
+                                <Badge
+                                  variant={ev.status === 'completed' ? 'success' : 'default'}
+                                  className="text-[10px] capitalize"
+                                >
+                                  {ev.status || 'pending'}
+                                </Badge>
+                              )}
+                              {ev.type === 'deadline' && ev.urgency && (
+                                <DeadlineUrgency date={ev.date} />
+                              )}
+                              {ev.type === 'session' && (
+                                <span className="text-[11px] font-medium text-emerald-400">
+                                  {ev.duration}m
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
             )}
-          >
-            <div className="rounded-2xl border border-border bg-surface shadow-xl overflow-hidden">
+          </div>
+        ) : (
+          /* Calendar Grid View */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Main Calendar Grid (8 or 12 cols depending on inspector) with mobile horizontal scroll safety */}
+            <div
+              className={cn(
+                isInspectorOpen ? 'lg:col-span-8' : 'lg:col-span-12',
+                'transition-all duration-300 overflow-x-auto pb-2 -mx-2 px-2 sm:mx-0 sm:px-0',
+              )}
+            >
+              <div className="min-w-[580px] sm:min-w-0 rounded-2xl border border-border bg-surface shadow-xl overflow-hidden">
               {/* Day of Week Headers */}
               <div className="grid grid-cols-7 border-b border-border bg-surface-raised/70 text-center text-[11px] font-bold text-muted uppercase tracking-wider py-3">
                 {DAYS_OF_WEEK.map((d) => (
@@ -796,6 +984,7 @@ export default function CalendarPage({ initialTab }) {
             )}
           </AnimatePresence>
         </div>
+      )
       ) : (
         /* Deadlines Management View */
         <div className="space-y-4">
@@ -990,126 +1179,107 @@ export default function CalendarPage({ initialTab }) {
       )}
 
       {/* Quick Add Modal (Calendar view) */}
-      <AnimatePresence>
-        {quickAddModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                <h3 className="text-sm font-bold text-foreground">
-                  Schedule {quickAddModal.type === 'task' ? 'Task' : 'Deadline'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuickAddModal({ isOpen: false, type: 'task' })
-                    setQuickAddError('')
-                  }}
-                  className="rounded-lg p-1 text-muted hover:text-foreground cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {quickAddError && (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-300">
-                  {quickAddError}
-                </div>
-              )}
-
-              <form onSubmit={handleQuickAddSubmit} className="space-y-3">
-                <div>
-                  <label className="text-xs font-semibold text-muted block mb-1">Title</label>
-                  <input
-                    type="text"
-                    required
-                    value={quickAddTitle}
-                    onChange={(e) => setQuickAddTitle(e.target.value)}
-                    placeholder={
-                      quickAddModal.type === 'task'
-                        ? 'e.g. Complete chapter 4 exercise'
-                        : 'e.g. Midterm exam submission'
-                    }
-                    className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-hidden"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-muted block mb-1">Target Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={quickAddDate}
-                    onChange={(e) => setQuickAddDate(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-muted block mb-1">
-                    Subject (Optional)
-                  </label>
-                  <select
-                    value={quickAddSubjectId}
-                    onChange={(e) => setQuickAddSubjectId(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-                  >
-                    <option value="">No specific subject</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {quickAddModal.type === 'task' && (
-                  <div>
-                    <label className="text-xs font-semibold text-muted block mb-1">Priority</label>
-                    <select
-                      value={quickAddPriority}
-                      onChange={(e) => setQuickAddPriority(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
-                    >
-                      <option value="low">Low Priority</option>
-                      <option value="medium">Medium Priority</option>
-                      <option value="high">High Priority</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
-                )}
-
-                <div className="pt-2 flex items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setQuickAddModal({ isOpen: false, type: 'task' })
-                      setQuickAddError('')
-                    }}
-                    className="cursor-pointer"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={quickAddLoading || !quickAddTitle.trim()}
-                    className="font-bold cursor-pointer"
-                  >
-                    {quickAddLoading ? 'Saving...' : 'Save to Calendar'}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
+      <Modal
+        open={quickAddModal.isOpen}
+        onClose={() => {
+          setQuickAddModal({ isOpen: false, type: 'task' })
+          setQuickAddError('')
+        }}
+        title={`Schedule ${quickAddModal.type === 'task' ? 'Task' : 'Deadline'}`}
+        maxWidth="max-w-md"
+      >
+        {quickAddError && (
+          <div className="mb-3 rounded-xl border border-danger/30 bg-danger/10 p-2.5 text-xs text-danger">
+            {quickAddError}
           </div>
         )}
-      </AnimatePresence>
+
+        <form onSubmit={handleQuickAddSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-muted block mb-1">Title</label>
+            <Input
+              type="text"
+              required
+              value={quickAddTitle}
+              onChange={(e) => setQuickAddTitle(e.target.value)}
+              placeholder={
+                quickAddModal.type === 'task'
+                  ? 'e.g. Complete chapter 4 exercise'
+                  : 'e.g. Midterm exam submission'
+              }
+              className="text-xs"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted block mb-1">Target Date</label>
+            <Input
+              type="date"
+              required
+              value={quickAddDate}
+              onChange={(e) => setQuickAddDate(e.target.value)}
+              className="text-xs cursor-pointer"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-muted block mb-1">
+              Subject (Optional)
+            </label>
+            <Select
+              value={quickAddSubjectId}
+              onChange={(e) => setQuickAddSubjectId(e.target.value)}
+              className="text-xs cursor-pointer"
+            >
+              <option value="">No specific subject</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {quickAddModal.type === 'task' && (
+            <div>
+              <label className="text-xs font-semibold text-muted block mb-1">Priority</label>
+              <Select
+                value={quickAddPriority}
+                onChange={(e) => setQuickAddPriority(e.target.value)}
+                className="text-xs cursor-pointer"
+              >
+                <option value="low">Low Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="high">High Priority</option>
+                <option value="urgent">Urgent</option>
+              </Select>
+            </div>
+          )}
+
+          <div className="pt-2 flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setQuickAddModal({ isOpen: false, type: 'task' })
+                setQuickAddError('')
+              }}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={quickAddLoading || !quickAddTitle.trim()}
+              className="font-bold cursor-pointer"
+            >
+              {quickAddLoading ? 'Saving...' : 'Save to Calendar'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Deadline Create / Edit Modal */}
       <DeadlineModal
