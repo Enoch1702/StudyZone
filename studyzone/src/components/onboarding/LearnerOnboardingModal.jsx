@@ -68,8 +68,21 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
   const [createdSubjectId, setCreatedSubjectId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [dismissed, setDismissed] = useState(false)
 
-  if (!isOpen) return null
+  if (!isOpen || dismissed) return null
+
+  function persistDismissed() {
+    setDismissed(true)
+    onClose?.()
+    if (user?.id) {
+      try {
+        localStorage.setItem(`studyzone_onboarding_dismissed_${user.id}`, 'true')
+      } catch {
+        // ignore localStorage access limitations
+      }
+    }
+  }
 
   function handleSelectQuickSubject(sub) {
     setSelectedSubjectName(sub.name)
@@ -98,35 +111,41 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
 
     try {
       if (user?.id) {
-        const res = await createSubject({
+        const { data: newSub, error: subError } = await createSubject({
           userId: user.id,
           name: subjectName,
           color: selectedSubjectColor,
-          description: 'Created during initial setup',
         })
-        if (res.data?.id) {
-          setCreatedSubjectId(res.data.id)
+        if (subError) {
+          console.warn('Subject creation note:', subError.message)
+        } else if (newSub?.id) {
+          setCreatedSubjectId(newSub.id)
         }
       }
       setStep(3)
     } catch (err) {
-      console.warn('Subject creation note:', err)
+      console.warn('Subject creation error note:', err)
       setStep(3)
     } finally {
       setIsSaving(false)
     }
   }
 
-  // Progress to step 4 after creating task
+  // Progress to step 4 after creating the optional first task
   async function handleTaskStepNext() {
+    if (!taskTitle.trim()) {
+      setStep(4)
+      return
+    }
+
     setIsSaving(true)
     setErrorMsg('')
 
     try {
-      if (taskTitle.trim() && user?.id) {
+      if (user?.id) {
         await createTask({
           userId: user.id,
-          subjectId: createdSubjectId || null,
+          subjectId: createdSubjectId,
           title: taskTitle.trim(),
           dueDate: taskDueDate ? new Date(taskDueDate).toISOString() : null,
           priority: 'high',
@@ -144,6 +163,7 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
 
   // Complete onboarding and optionally navigate
   async function handleFinish(destinationRoute = '/dashboard') {
+    persistDismissed()
     if (!user?.id) return
     setIsSaving(true)
     setErrorMsg('')
@@ -158,7 +178,6 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
       console.warn('Onboarding completion note:', err)
     } finally {
       setIsSaving(false)
-      onClose?.()
       if (destinationRoute) {
         navigate(destinationRoute)
       }
@@ -166,6 +185,7 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
   }
 
   async function handleSkip() {
+    persistDismissed()
     if (!user?.id) return
     setIsSaving(true)
     try {
@@ -175,7 +195,6 @@ export function LearnerOnboardingModal({ isOpen, onClose }) {
       console.warn('[StudyZone] Skip onboarding fallback:', err)
     } finally {
       setIsSaving(false)
-      onClose?.()
     }
   }
 

@@ -43,9 +43,27 @@ export function AppLayout() {
   }
 
   const isWorkspace = location.pathname === '/ai-assistant'
+  const [dismissedOnboarding, setDismissedOnboarding] = useState(false)
+
+  const isDismissedInStorage = Boolean(
+    user?.id &&
+      (() => {
+        try {
+          return localStorage.getItem(`studyzone_onboarding_dismissed_${user.id}`) === 'true'
+        } catch {
+          return false
+        }
+      })(),
+  )
 
   // Show onboarding modal only if user is logged in, profile is loaded, and onboarding_completed is strictly false
-  const showOnboarding = Boolean(user && profile && profile.onboarding_completed === false)
+  const showOnboarding = Boolean(
+    user &&
+      profile &&
+      profile.onboarding_completed === false &&
+      !dismissedOnboarding &&
+      !isDismissedInStorage,
+  )
 
   return (
     <SearchProvider>
@@ -80,7 +98,10 @@ export function AppLayout() {
         <GlobalAudioBar />
 
         {/* First-time Learner Onboarding Modal */}
-        <LearnerOnboardingModal isOpen={showOnboarding} />
+        <LearnerOnboardingModal
+          isOpen={showOnboarding}
+          onClose={() => setDismissedOnboarding(true)}
+        />
       </div>
     </SearchProvider>
   )
