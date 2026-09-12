@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { ArrowRight } from 'lucide-react'
 import { Card } from '../ui/Card'
@@ -15,6 +15,7 @@ import { staggerContainer } from '../../lib/motion'
  */
 export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   function subjectName(subjectId) {
     if (!subjectId) return ''
@@ -65,6 +66,8 @@ export function TodaysFocus({ loading, tasks, subjects, onTaskToggled }) {
           <EmptyState
             title="No tasks scheduled for today"
             description="You're all caught up. Add a new task or log a study session to keep your momentum going."
+            actionLabel="Add a Task"
+            onAction={() => navigate('/tasks')}
           />
         ) : (
           <motion.ul

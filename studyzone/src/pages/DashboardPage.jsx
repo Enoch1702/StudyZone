@@ -88,13 +88,21 @@ export default function DashboardPage() {
     })
   }, [dashData])
 
+  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('studyzone_dismiss_getting_started') === 'true'
+    } catch {
+      return false
+    }
+  })
+
   return (
     <PageContainer width="wide" className="space-y-6 pb-12">
       {/* ─── 1. Welcome Section ─────────────────────────────── */}
       <WelcomeSection />
 
       {/* ─── Dismissible Getting Started Guide (First-Time Only) ─── */}
-      <GettingStartedCard />
+      <GettingStartedCard onDismiss={() => setGettingStartedDismissed(true)} />
 
       {/* Error Alert if data fetch failed */}
       {fetchError && (
@@ -104,7 +112,7 @@ export default function DashboardPage() {
       )}
 
       {/* ─── 2. Smart Next Action (Deterministic Heuristic) ─── */}
-      {!loading && (
+      {!loading && (smartNextAction || gettingStartedDismissed) && (
         <SmartNextActionCard action={smartNextAction} />
       )}
 

@@ -14,7 +14,7 @@ import { Card } from '../ui/Card'
 
 const DISMISS_KEY = 'studyzone_dismiss_getting_started'
 
-export function GettingStartedCard() {
+export function GettingStartedCard({ onDismiss }) {
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(DISMISS_KEY) === 'true'
@@ -30,6 +30,7 @@ export function GettingStartedCard() {
       // ignore
     }
     setDismissed(true)
+    onDismiss?.()
   }
 
   if (dismissed) return null
@@ -108,14 +109,14 @@ export function GettingStartedCard() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1.5 no-scrollbar sm:grid sm:grid-cols-5 sm:overflow-x-visible sm:pb-0">
             {steps.map((s) => {
               const Icon = s.icon
               return (
                 <Link
                   key={s.num}
                   to={s.to}
-                  className="group flex flex-col justify-between rounded-xl border border-border/70 bg-surface-raised/40 p-3 hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer"
+                  className="group flex min-w-[135px] sm:min-w-0 flex-1 flex-col justify-between rounded-xl border border-border/70 bg-surface-raised/40 p-3 hover:border-accent/40 hover:bg-surface-raised transition-all cursor-pointer shrink-0 sm:shrink"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-extrabold text-muted">STEP {s.num}</span>
@@ -124,10 +125,10 @@ export function GettingStartedCard() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-foreground group-hover:text-accent transition-colors truncate">
+                    <p className="text-xs font-bold text-foreground group-hover:text-accent transition-colors leading-tight">
                       {s.title}
                     </p>
-                    <p className="text-[10px] text-muted truncate mt-0.5">{s.desc}</p>
+                    <p className="text-[10px] text-muted line-clamp-2 mt-0.5 leading-snug">{s.desc}</p>
                   </div>
                 </Link>
               )
