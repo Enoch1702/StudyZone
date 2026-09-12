@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, CheckSquare, X } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { AlertCircle } from 'lucide-react'
+import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Input, Select, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { modalBackdrop, modalPanel } from '../../lib/motion'
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low' },
@@ -91,7 +90,7 @@ function TaskFormContent({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div
           className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
@@ -331,88 +330,28 @@ export function TaskModal({
   const isModalOpen = Boolean(open ?? isOpen)
   const isEditing = Boolean(task)
 
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isModalOpen) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isModalOpen, onClose])
-
   return (
-    <AnimatePresence>
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="task-modal-title"
-        >
-          {/* Backdrop */}
-          <motion.div
-            variants={modalBackdrop}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-
-          {/* Modal Panel */}
-          <motion.div
-            variants={modalPanel}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            className="relative z-10 w-full max-w-lg rounded-2xl border border-border bg-surface shadow-xl overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-muted text-accent">
-                  <CheckSquare className="h-4 w-4" />
-                </div>
-                <div>
-                  <h2 id="task-modal-title" className="text-sm font-semibold text-foreground">
-                    {isEditing ? 'Edit Task' : 'New Task'}
-                  </h2>
-                  <p className="text-[11px] text-muted">
-                    {isEditing
-                      ? 'Update task details and progress'
-                      : 'Add a new actionable item to your study list'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="rounded-lg p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Form body keyed to task id to ensure clean state reset */}
-            <TaskFormContent
-              key={task?.id || 'new-task'}
-              task={task}
-              subjects={subjects}
-              plans={plans}
-              milestones={milestones}
-              onSave={onSave}
-              onClose={onClose}
-              loading={loading}
-            />
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    <Modal
+      open={isModalOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit Task' : 'New Task'}
+      description={
+        isEditing
+          ? 'Update task details and progress'
+          : 'Add a new actionable item to your study list'
+      }
+      maxWidth="max-w-lg"
+    >
+      <TaskFormContent
+        key={task?.id || 'new-task'}
+        task={task}
+        subjects={subjects}
+        plans={plans}
+        milestones={milestones}
+        onSave={onSave}
+        onClose={onClose}
+        loading={loading}
+      />
+    </Modal>
   )
 }

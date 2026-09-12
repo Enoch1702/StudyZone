@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, BookOpen, Check, X } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, Check } from 'lucide-react'
+import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Input, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { modalBackdrop, modalPanel } from '../../lib/motion'
 
 const PRESET_COLORS = [
   { label: 'Blue', value: '#4f7cff' },
@@ -42,7 +41,7 @@ function SubjectFormContent({ subject, onSave, onClose, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div
           className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
@@ -141,80 +140,36 @@ function SubjectFormContent({ subject, onSave, onClose, loading }) {
   )
 }
 
-export function SubjectModal({ isOpen, onClose, onSave, subject = null, loading = false }) {
+export function SubjectModal({
+  open,
+  isOpen,
+  onClose,
+  onSave,
+  subject = null,
+  loading = false,
+}) {
+  const isModalOpen = Boolean(open ?? isOpen)
   const isEditing = Boolean(subject)
-  const headerColor = subject?.color || '#4f7cff'
-
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen && !loading) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, loading, onClose])
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="subject-modal-title"
-          variants={modalBackdrop}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
-            onClick={() => { if (!loading) onClose() }}
-            aria-hidden="true"
-          />
-
-          {/* Modal Panel */}
-          <motion.div
-            className="relative w-full max-w-lg rounded-xl border border-border bg-surface shadow-2xl"
-            variants={modalPanel}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border"
-                  style={{ backgroundColor: `${headerColor}20` }}
-                >
-                  <BookOpen className="h-4 w-4" style={{ color: headerColor }} />
-                </div>
-                <h2 id="subject-modal-title" className="text-base font-semibold text-foreground">
-                  {isEditing ? 'Edit Subject' : 'Add New Subject'}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                aria-label="Close dialog"
-                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Form Body keyed to subject id or new */}
-            <SubjectFormContent
-              key={subject?.id || 'new-subject'}
-              subject={subject}
-              onSave={onSave}
-              onClose={onClose}
-              loading={loading}
-            />
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <Modal
+      open={isModalOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit Subject' : 'Add New Subject'}
+      description={
+        isEditing
+          ? 'Update course information and tags'
+          : 'Create a course to organize tasks and notes'
+      }
+      maxWidth="max-w-lg"
+    >
+      <SubjectFormContent
+        key={subject?.id || 'new-subject'}
+        subject={subject}
+        onSave={onSave}
+        onClose={onClose}
+        loading={loading}
+      />
+    </Modal>
   )
 }

@@ -19,6 +19,7 @@ import {
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
@@ -49,6 +50,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   const email = profile?.email || user?.email || ''
 
@@ -173,10 +176,7 @@ export default function SettingsPage() {
             type="button"
             variant="danger"
             size="sm"
-            onClick={async () => {
-              await signOut()
-              navigate('/')
-            }}
+            onClick={() => setSignOutConfirmOpen(true)}
             className="gap-2 cursor-pointer"
           >
             <LogOut className="h-3.5 w-3.5" />
@@ -184,6 +184,27 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Card>
+
+      {/* Sign Out Confirmation Dialog */}
+      <ConfirmDialog
+        open={signOutConfirmOpen}
+        onClose={() => setSignOutConfirmOpen(false)}
+        onConfirm={async () => {
+          try {
+            setSigningOut(true)
+            await signOut()
+            navigate('/')
+          } finally {
+            setSigningOut(false)
+            setSignOutConfirmOpen(false)
+          }
+        }}
+        loading={signingOut}
+        title="Sign Out"
+        confirmText="Sign Out"
+        variant="danger"
+        description="Are you sure you want to sign out of your StudyZone account on this device?"
+      />
     </PageContainer>
   )
 }

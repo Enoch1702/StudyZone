@@ -12,7 +12,7 @@ import { ErrorState } from '../components/ui/ErrorState'
 import { LoadingState } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { TaskModal } from '../components/tasks/TaskModal'
-import { DeleteTaskModal } from '../components/tasks/DeleteTaskModal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { getTasks, createTask, updateTask, toggleTaskComplete, deleteTask } from '../services/tasksService'
 import { getSubjects } from '../services/subjectsService'
 import { getLearningPlans } from '../services/learningPlansService'
@@ -518,12 +518,26 @@ export default function TasksPage() {
       />
 
       {/* Delete Confirmation Modal */}
-      <DeleteTaskModal
+      <ConfirmDialog
         isOpen={deleteModalState.isOpen}
         onClose={() => setDeleteModalState({ isOpen: false, task: null })}
         onConfirm={handleConfirmDelete}
-        task={deleteModalState.task}
         loading={actionLoading}
+        title="Delete Task"
+        confirmText="Delete Task"
+        description={
+          deleteModalState.task ? (
+            <>
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-foreground">
+                {deleteModalState.task.title}
+              </span>
+              ? This task will be permanently removed from your account.
+            </>
+          ) : (
+            'Are you sure you want to delete this task? This action cannot be undone.'
+          )
+        }
       />
     </PageContainer>
   )

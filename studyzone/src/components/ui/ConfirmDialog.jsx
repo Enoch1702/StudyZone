@@ -19,6 +19,7 @@ export function ConfirmDialog({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   variant = 'danger',
+  children,
 }) {
   const isVisible = Boolean(open ?? isOpen)
 
@@ -77,16 +78,23 @@ export function ConfirmDialog({
                 onClick={onClose}
                 disabled={loading}
                 aria-label="Close dialog"
-                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
+                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-4">
-              <p id="confirm-dialog-desc" className="text-sm leading-relaxed text-muted">
-                {description}
-              </p>
+            <div className="mt-4 space-y-3">
+              {typeof description === 'string' ? (
+                <p id="confirm-dialog-desc" className="text-sm leading-relaxed text-muted">
+                  {description}
+                </p>
+              ) : (
+                <div id="confirm-dialog-desc" className="text-sm leading-relaxed text-muted">
+                  {description}
+                </div>
+              )}
+              {children}
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3 border-t border-border pt-4">

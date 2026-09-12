@@ -9,7 +9,7 @@ import { LoadingState } from '../components/ui/LoadingSpinner'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { SubjectCard } from '../components/subjects/SubjectCard'
 import { SubjectModal } from '../components/subjects/SubjectModal'
-import { DeleteSubjectModal } from '../components/subjects/DeleteSubjectModal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import {
   getSubjects,
   createSubject,
@@ -306,12 +306,27 @@ export default function SubjectsPage() {
       />
 
       {/* Delete Confirmation Modal */}
-      <DeleteSubjectModal
+      <ConfirmDialog
         isOpen={deleteModalState.isOpen}
         onClose={() => setDeleteModalState({ isOpen: false, subject: null })}
         onConfirm={handleConfirmDelete}
-        subject={deleteModalState.subject}
         loading={actionLoading}
+        title="Delete Subject"
+        confirmText="Delete Subject"
+        description={
+          deleteModalState.subject ? (
+            <div className="space-y-2">
+              <p>
+                Are you sure you want to delete <span className="font-semibold text-foreground">{deleteModalState.subject.name}</span>?
+              </p>
+              <p className="text-xs leading-relaxed text-muted bg-surface-raised p-3 rounded-lg border border-border">
+                ℹ️ <strong>Your study material is safe:</strong> Your notes, tasks, flashcards, and study sessions will <strong>not</strong> be deleted. They will remain in your workspace as unassigned items.
+              </p>
+            </div>
+          ) : (
+            'Are you sure you want to delete this subject? This action cannot be undone.'
+          )
+        }
       />
     </PageContainer>
   )

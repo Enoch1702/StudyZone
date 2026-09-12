@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, CalendarDays, X } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle } from 'lucide-react'
+import { Modal } from '../ui/Modal'
 import { Button } from '../ui/Button'
 import { Input, Select, Textarea } from '../ui/Input'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
-import { modalBackdrop, modalPanel } from '../../lib/motion'
 
 const DEADLINE_TYPE_OPTIONS = [
   { value: 'assignment', label: 'Assignment' },
@@ -58,7 +57,7 @@ function DeadlineFormContent({ deadline, subjects, onSave, onClose, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div
           className="flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger"
@@ -185,6 +184,7 @@ function DeadlineFormContent({ deadline, subjects, onSave, onClose, loading }) {
 }
 
 export function DeadlineModal({
+  open,
   isOpen,
   onClose,
   onSave,
@@ -192,76 +192,29 @@ export function DeadlineModal({
   subjects = [],
   loading = false,
 }) {
+  const isModalOpen = Boolean(open ?? isOpen)
   const isEditing = Boolean(deadline)
 
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen && !loading) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, loading, onClose])
-
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="deadline-modal-title"
-          variants={modalBackdrop}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
-            onClick={() => { if (!loading) onClose() }}
-            aria-hidden="true"
-          />
-
-          {/* Modal panel */}
-          <motion.div
-            className="relative w-full max-w-lg overflow-y-auto max-h-[90vh] rounded-xl border border-border bg-surface shadow-2xl"
-            variants={modalPanel}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-6 py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-accent/10">
-                  <CalendarDays className="h-4 w-4 text-accent" />
-                </div>
-                <h2 id="deadline-modal-title" className="text-base font-semibold text-foreground">
-                  {isEditing ? 'Edit Deadline' : 'Add New Deadline'}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={loading}
-                aria-label="Close dialog"
-                className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Form body — keyed so state resets when switching create ↔ edit */}
-            <DeadlineFormContent
-              key={deadline?.id || 'new-deadline'}
-              deadline={deadline}
-              subjects={subjects}
-              onSave={onSave}
-              onClose={onClose}
-              loading={loading}
-            />
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <Modal
+      open={isModalOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit Deadline' : 'Add New Deadline'}
+      description={
+        isEditing
+          ? 'Update target date, urgency, and subject'
+          : 'Schedule an exam, project submission, or milestone'
+      }
+      maxWidth="max-w-lg"
+    >
+      <DeadlineFormContent
+        key={deadline?.id || 'new-deadline'}
+        deadline={deadline}
+        subjects={subjects}
+        onSave={onSave}
+        onClose={onClose}
+        loading={loading}
+      />
+    </Modal>
   )
 }

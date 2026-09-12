@@ -27,7 +27,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { DeadlineUrgency } from '../components/ui/DeadlineUrgency'
 import { DeadlineModal } from '../components/deadlines/DeadlineModal'
-import { DeleteDeadlineModal } from '../components/deadlines/DeleteDeadlineModal'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth } from '../context/useAuth'
 import { getTasks, createTask } from '../services/tasksService'
 import {
@@ -1122,12 +1122,26 @@ export default function CalendarPage({ initialTab }) {
       />
 
       {/* Deadline Delete Confirmation Modal */}
-      <DeleteDeadlineModal
+      <ConfirmDialog
         isOpen={deleteDeadlineModalState.isOpen}
         onClose={() => setDeleteDeadlineModalState({ isOpen: false, deadline: null })}
         onConfirm={handleDeleteDeadline}
-        deadline={deleteDeadlineModalState.deadline}
         loading={deadlineActionLoading}
+        title="Delete Deadline"
+        confirmText="Delete Deadline"
+        description={
+          deleteDeadlineModalState.deadline ? (
+            <>
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-foreground">
+                {deleteDeadlineModalState.deadline.title}
+              </span>
+              ? This deadline will be permanently removed from your calendar.
+            </>
+          ) : (
+            'Are you sure you want to delete this deadline? This action cannot be undone.'
+          )
+        }
       />
     </PageContainer>
   )
