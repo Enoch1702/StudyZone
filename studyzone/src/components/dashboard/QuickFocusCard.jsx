@@ -19,30 +19,24 @@ export function QuickFocusCard() {
 
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible">
-      <Card className="relative overflow-hidden p-5 sm:p-6 border-accent/30 bg-gradient-to-br from-amber-50/60 via-surface to-surface dark:from-amber-950/20 dark:via-surface dark:to-surface-raised/40 shadow-xs">
-        {/* Ambient glow accent */}
-        <div
-          className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gradient-to-br from-amber-500/15 to-orange-500/10 blur-xl"
-          aria-hidden="true"
-        />
-
-        <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+      <Card className="relative overflow-hidden p-5 sm:p-6 border border-border/90 bg-surface shadow-xs">
+        <div className="flex flex-col justify-between h-full space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/25">
-                <Flame className="h-5 w-5 fill-white" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 text-accent">
+                <Flame className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-accent flex items-center gap-1">
                   <Zap className="h-3 w-3" />
                   Instant Focus
                 </span>
-                <h3 className="text-base sm:text-lg font-extrabold text-foreground">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">
                   Ready to Focus?
                 </h3>
               </div>
             </div>
-            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-600 dark:text-amber-400">
+            <span className="rounded-md border border-border bg-surface-raised px-2 py-0.5 text-xs font-mono font-semibold text-muted">
               25:00
             </span>
           </div>
@@ -51,21 +45,21 @@ export function QuickFocusCard() {
             Start a 25-minute distraction-free session with ambient soundscapes. No subject, task, or setup needed — jump right into deep work.
           </p>
 
-          <div className="pt-1 flex flex-wrap items-center gap-2.5">
+          <div className="pt-1 flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              size="md"
+              size="sm"
               onClick={() => handleStart(25)}
-              className="gap-2 font-bold bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md shadow-amber-500/25 cursor-pointer"
+              className="gap-2 font-medium cursor-pointer"
             >
-              <Play className="h-4 w-4 fill-white" />
-              <span>Start Focus</span>
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Start 25m Focus</span>
             </Button>
 
             <button
               type="button"
               onClick={() => handleStart(50)}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-border/70 hover:border-amber-500/40 hover:bg-surface-raised transition-colors text-muted hover:text-foreground cursor-pointer"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-surface hover:bg-surface-raised hover:border-border-strong transition-colors text-muted hover:text-foreground cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               50m Deep Work
             </button>
@@ -73,7 +67,7 @@ export function QuickFocusCard() {
             <button
               type="button"
               onClick={() => handleStart(15)}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-border/70 hover:border-amber-500/40 hover:bg-surface-raised transition-colors text-muted hover:text-foreground cursor-pointer"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-surface hover:bg-surface-raised hover:border-border-strong transition-colors text-muted hover:text-foreground cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/40"
             >
               15m Sprint
             </button>

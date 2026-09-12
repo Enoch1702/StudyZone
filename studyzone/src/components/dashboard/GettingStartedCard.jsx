@@ -41,7 +41,7 @@ export function GettingStartedCard() {
       desc: 'Organize what you study',
       to: '/subjects',
       icon: BookOpen,
-      color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+      color: 'text-accent bg-accent/10 border-accent/25',
     },
     {
       num: '2',
@@ -49,7 +49,7 @@ export function GettingStartedCard() {
       desc: 'Track specific goals',
       to: '/tasks',
       icon: CheckSquare,
-      color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+      color: 'text-foreground bg-surface-raised border-border',
     },
     {
       num: '3',
@@ -57,7 +57,7 @@ export function GettingStartedCard() {
       desc: '25-min Pomodoro timer',
       to: '/focus',
       icon: Timer,
-      color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+      color: 'text-amber-500 bg-amber-500/10 border-amber-500/25',
     },
     {
       num: '4',
@@ -65,7 +65,7 @@ export function GettingStartedCard() {
       desc: 'Markdown & AI summary',
       to: '/notes',
       icon: FileText,
-      color: 'text-purple-500 bg-purple-500/10 border-purple-500/20',
+      color: 'text-foreground/80 bg-surface-raised border-border',
     },
     {
       num: '5',
@@ -73,7 +73,7 @@ export function GettingStartedCard() {
       desc: 'Active recall spaced review',
       to: '/flashcards',
       icon: Brain,
-      color: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+      color: 'text-accent bg-accent/10 border-accent/25',
     },
   ]
 
