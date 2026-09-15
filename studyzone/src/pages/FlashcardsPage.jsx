@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
-import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
+import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
@@ -639,20 +639,20 @@ Format your response as a strict JSON array of objects with "front" (concise que
             return (
               <Card
                 key={deck.id}
-                className="border-border/90 bg-surface hover:border-accent/50 transition-all duration-200 shadow-md flex flex-col justify-between"
+                className="border-border/90 bg-surface hover:border-accent/50 transition-all duration-200 shadow-xs flex flex-col justify-between p-0 overflow-hidden"
               >
-                <CardHeader className="pb-3">
+                <div className="p-4 sm:p-5 pb-3 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       {subName && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent mb-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-md bg-accent/15 border border-accent/30 px-2 py-0.5 text-[10px] font-semibold text-accent mb-2">
                           <Layers className="h-3 w-3" />
                           <span className="truncate">{subName}</span>
                         </span>
                       )}
-                      <CardTitle className="text-base font-bold text-foreground truncate">
+                      <h3 className="text-base font-bold text-foreground truncate">
                         {deck.title}
-                      </CardTitle>
+                      </h3>
                     </div>
 
                     <button
@@ -662,7 +662,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
                         setDeckToDelete(deck)
                         setDeleteDeckConfirmOpen(true)
                       }}
-                      className="text-muted hover:text-danger rounded p-1 transition-colors cursor-pointer"
+                      className="text-muted hover:text-danger rounded p-1.5 hover:bg-danger/10 transition-colors cursor-pointer shrink-0"
                       title="Delete Deck"
                       aria-label={`Delete ${deck.title} deck`}
                     >
@@ -671,14 +671,14 @@ Format your response as a strict JSON array of objects with "front" (concise que
                   </div>
 
                   {deck.description && (
-                    <CardDescription className="text-xs line-clamp-2 mt-1">
+                    <p className="text-xs text-muted line-clamp-2 mt-2 leading-relaxed">
                       {deck.description}
-                    </CardDescription>
+                    </p>
                   )}
-                </CardHeader>
+                </div>
 
-                <div className="p-4 pt-0 border-t border-border/60 mt-auto flex items-center justify-between">
-                  <span className="text-xs font-mono text-muted">
+                <div className="p-4 pt-3 border-t border-border/60 bg-surface-raised/30 flex items-center justify-between">
+                  <span className="text-xs font-mono font-medium text-muted">
                     {deck.cardCount || 0} card{deck.cardCount === 1 ? '' : 's'}
                   </span>
 
@@ -691,7 +691,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
                         setTargetDeckForCard(deck)
                         setIsAddCardOpen(true)
                       }}
-                      className="text-xs text-muted hover:text-foreground cursor-pointer"
+                      className="text-xs text-muted hover:text-foreground cursor-pointer h-8 px-2.5"
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Add Card
@@ -701,7 +701,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
                       type="button"
                       size="sm"
                       onClick={() => handleStartStudy(deck)}
-                      className="gap-1.5 text-xs font-bold cursor-pointer"
+                      className="gap-1.5 text-xs font-bold cursor-pointer h-8 px-3"
                     >
                       <span>Study</span>
                       <ChevronRight className="h-3 w-3" />

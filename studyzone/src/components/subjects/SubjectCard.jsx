@@ -94,85 +94,66 @@ export function SubjectCard({
           </p>
         </div>
 
-        {/* Knowledge Container Metrics */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Link
-            to={`/notes?subjectId=${subject.id}`}
-            className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-raised/40 p-2 text-xs text-muted hover:border-accent/40 hover:text-foreground transition-all"
-            title="View study notes"
-          >
-            <FileText className="h-3.5 w-3.5 text-accent shrink-0" />
-            <span className="truncate">
-              <strong>{noteCount}</strong> {noteCount === 1 ? 'note' : 'notes'}
-            </span>
-          </Link>
+        {/* Connected Materials Summary */}
+        <div className="pt-1">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">
+            Workspace Contents
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <Link
+              to={`/notes?subjectId=${subject.id}`}
+              className="flex items-center gap-2 p-2 rounded-lg bg-surface-raised/40 hover:bg-surface-raised border border-border/50 hover:border-accent/30 text-muted hover:text-foreground transition-all"
+            >
+              <FileText className="h-3.5 w-3.5 text-accent shrink-0" />
+              <span className="truncate">
+                <strong className="text-foreground">{noteCount}</strong> {noteCount === 1 ? 'Note' : 'Notes'}
+              </span>
+            </Link>
 
-          <Link
-            to={`/tasks?subjectId=${subject.id}`}
-            className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-raised/40 p-2 text-xs text-muted hover:border-accent/40 hover:text-foreground transition-all"
-            title="View tasks"
-          >
-            <CheckSquare className="h-3.5 w-3.5 text-success shrink-0" />
-            <span className="truncate">
-              <strong>{taskCount}</strong> {taskCount === 1 ? 'task' : 'tasks'}
-            </span>
-          </Link>
+            <Link
+              to={`/tasks?subjectId=${subject.id}`}
+              className="flex items-center gap-2 p-2 rounded-lg bg-surface-raised/40 hover:bg-surface-raised border border-border/50 hover:border-accent/30 text-muted hover:text-foreground transition-all"
+            >
+              <CheckSquare className="h-3.5 w-3.5 text-success shrink-0" />
+              <span className="truncate">
+                <strong className="text-foreground">{taskCount}</strong> {taskCount === 1 ? 'Task' : 'Tasks'}
+              </span>
+            </Link>
 
-          <Link
-            to={`/flashcards?subjectId=${subject.id}`}
-            className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-raised/40 p-2 text-xs text-muted hover:border-accent/40 hover:text-foreground transition-all"
-            title="View flashcard decks"
-          >
-            <Brain className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-            <span className="truncate">
-              <strong>{flashcardCount}</strong> {flashcardCount === 1 ? 'deck' : 'decks'}
-            </span>
-          </Link>
+            <Link
+              to={`/flashcards?subjectId=${subject.id}`}
+              className="flex items-center gap-2 p-2 rounded-lg bg-surface-raised/40 hover:bg-surface-raised border border-border/50 hover:border-accent/30 text-muted hover:text-foreground transition-all"
+            >
+              <Brain className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+              <span className="truncate">
+                <strong className="text-foreground">{flashcardCount}</strong> {flashcardCount === 1 ? 'Deck' : 'Decks'}
+              </span>
+            </Link>
 
-          <Link
-            to={`/focus?subjectId=${subject.id}`}
-            className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-raised/40 p-2 text-xs text-muted hover:border-accent/40 hover:text-foreground transition-all"
-            title="Start focus session"
-          >
-            <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">
-              <strong>{formattedStudyTime}</strong> focused
-            </span>
-          </Link>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-surface-raised/40 border border-border/50 text-muted">
+              <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span className="truncate">
+                <strong className="text-foreground">{formattedStudyTime}</strong> focused
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Quick Action Footer */}
-        <div className="border-t border-border-subtle pt-3 flex items-center justify-between gap-1 text-[11px]">
+        {/* Primary Learning Action */}
+        <div className="border-t border-border/50 pt-3 flex items-center justify-between gap-2">
           <Link
             to={`/notes?subjectId=${subject.id}`}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted hover:bg-surface-raised hover:text-accent transition-colors"
+            className="text-xs font-medium text-muted hover:text-foreground transition-colors"
           >
-            <FileText className="h-3 w-3" />
-            <span>Notes</span>
-          </Link>
-
-          <Link
-            to={`/tasks?subjectId=${subject.id}`}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
-          >
-            <CheckSquare className="h-3 w-3" />
-            <span>Tasks</span>
-          </Link>
-
-          <Link
-            to={`/flashcards?subjectId=${subject.id}`}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted hover:bg-surface-raised hover:text-foreground transition-colors"
-          >
-            <Brain className="h-3 w-3" />
-            <span>Cards</span>
+            Browse notes &rarr;
           </Link>
 
           <Link
             to={`/focus?subjectId=${subject.id}`}
-            className="inline-flex items-center gap-1 rounded-md bg-accent/10 px-2 py-1 font-semibold text-accent hover:bg-accent/20 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 hover:bg-accent text-accent hover:text-white text-xs font-semibold transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <Flame className="h-3 w-3" />
-            <span>Focus</span>
+            <Flame className="h-3.5 w-3.5" />
+            <span>Start Focus</span>
           </Link>
         </div>
       </div>
