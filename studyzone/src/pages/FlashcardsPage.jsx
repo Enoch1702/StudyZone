@@ -435,6 +435,8 @@ Format your response as a strict JSON array of objects with "front" (concise que
                 refreshData()
               }}
               className="text-xs text-muted hover:text-foreground cursor-pointer"
+              title="Exit Study Mode"
+              aria-label="Exit Study Mode"
             >
               &larr; Exit Deck
             </Button>
@@ -555,7 +557,25 @@ Format your response as a strict JSON array of objects with "front" (concise que
               You reviewed <strong className="text-foreground">{reviewedCount} flashcard{reviewedCount === 1 ? '' : 's'}</strong>. Your next review dates have been automatically scheduled based on your recall accuracy.
             </p>
 
-            <div className="pt-4 flex justify-center gap-3">
+            <div className="pt-4 flex flex-wrap justify-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={async () => {
+                  if (activeDeck && user?.id) {
+                    setIsSessionComplete(false)
+                    setCurrentCardIndex(0)
+                    setIsFlipped(false)
+                    setReviewedCount(0)
+                    const cardsRes = await getFlashcards(activeDeck.id, user.id)
+                    if (cardsRes.data) setStudyCards(cardsRes.data)
+                  }
+                }}
+                className="font-bold cursor-pointer gap-1.5"
+              >
+                <RotateCw className="h-4 w-4" />
+                <span>Review Again</span>
+              </Button>
               <Button
                 type="button"
                 onClick={() => {

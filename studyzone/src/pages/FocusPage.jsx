@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
+  BarChart3,
   Bell,
   BookOpen,
   CheckCircle2,
@@ -1160,6 +1161,19 @@ export default function FocusPage() {
                     >
                       <FileText className="h-3.5 w-3.5" />
                       <span>Write Study Reflection Note</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        handleReset()
+                        navigate('/analytics')
+                      }}
+                      className="w-full gap-2 text-xs text-muted hover:text-foreground cursor-pointer"
+                    >
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      <span>View Learning Analytics</span>
                     </Button>
 
                     <Button
