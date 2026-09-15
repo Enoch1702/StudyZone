@@ -17,6 +17,7 @@ import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import { useAuth } from '../context/useAuth'
 import { getSubjects } from '../services/subjectsService'
 import {
@@ -57,6 +58,11 @@ export default function FlashcardsPage() {
   const [targetDeckForCard, setTargetDeckForCard] = useState(null)
   const [newCardFront, setNewCardFront] = useState('')
   const [newCardBack, setNewCardBack] = useState('')
+
+  // ─── Delete Deck Confirmation Dialog State ─────────────────────
+  const [deleteDeckConfirmOpen, setDeleteDeckConfirmOpen] = useState(false)
+  const [deckToDelete, setDeckToDelete] = useState(null)
+  const [deleteDeckLoading, setDeleteDeckLoading] = useState(false)
 
   // ─── AI Deck Generator State ───────────────────────────────────
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
@@ -368,10 +374,19 @@ Format your response as a strict JSON array of objects with "front" (concise que
   }
 
   // ─── Delete Deck ───────────────────────────────────────────────
-  async function handleDeleteDeck(deckId) {
-    if (!user?.id) return
-    await deleteFlashcardDeck(deckId, user.id)
-    refreshData()
+  async function confirmDeleteDeck() {
+    if (!deckToDelete?.id || !user?.id) return
+    setDeleteDeckLoading(true)
+    try {
+      await deleteFlashcardDeck(deckToDelete.id, user.id)
+      await refreshData()
+      setDeleteDeckConfirmOpen(false)
+      setDeckToDelete(null)
+    } catch (err) {
+      console.error('Error deleting flashcard deck:', err)
+    } finally {
+      setDeleteDeckLoading(false)
+    }
   }
 
   // ───────────────────────────────────────────────────────────────
@@ -642,9 +657,14 @@ Format your response as a strict JSON array of objects with "front" (concise que
 
                     <button
                       type="button"
-                      onClick={() => handleDeleteDeck(deck.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeckToDelete(deck)
+                        setDeleteDeckConfirmOpen(true)
+                      }}
                       className="text-muted hover:text-danger rounded p-1 transition-colors cursor-pointer"
                       title="Delete Deck"
+                      aria-label={`Delete ${deck.title} deck`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -1055,6 +1075,31 @@ Format your response as a strict JSON array of objects with "front" (concise que
           </div>
         )}
       </AnimatePresence>
+
+      {/* Delete Flashcard Deck Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDeckConfirmOpen}
+        onClose={() => {
+          if (!deleteDeckLoading) {
+            setDeleteDeckConfirmOpen(false)
+            setDeckToDelete(null)
+          }
+        }}
+        onConfirm={confirmDeleteDeck}
+        loading={deleteDeckLoading}
+        title="Delete Flashcard Deck?"
+        description={
+          deckToDelete ? (
+            <span>
+              Are you sure you want to delete <strong className="text-foreground">{deckToDelete.title}</strong>? All cards and review history in this deck will be permanently removed.
+            </span>
+          ) : (
+            'Are you sure you want to delete this deck? This action cannot be undone.'
+          )
+        }
+        confirmText="Delete Deck"
+        variant="danger"
+      />
     </PageContainer>
   )
 }
