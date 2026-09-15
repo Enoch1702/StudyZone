@@ -1011,6 +1011,8 @@ ${editorContent.trim().slice(0, 6000)}`
                                     id: activeNote?.id,
                                     title: editorTitle || activeNote?.title,
                                     content: editorContent,
+                                    subjectId: editorSubjectId || activeNote?.subjectId || null,
+                                    subjectName: subjectMap.get(editorSubjectId || activeNote?.subjectId)?.name || null,
                                   },
                                 },
                               })

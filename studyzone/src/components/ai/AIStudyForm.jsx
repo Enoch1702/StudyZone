@@ -429,6 +429,11 @@ export function ChatComposer({
         <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-accent/10 border border-accent/25 text-accent rounded-lg w-fit animate-in fade-in">
           <FileText className="h-3.5 w-3.5" />
           <span className="font-semibold truncate max-w-xs">{attachedContext.title}</span>
+          {attachedContext.subjectName && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 border border-accent/20 text-accent font-medium">
+              {attachedContext.subjectName}
+            </span>
+          )}
           <span className="text-[10px] text-muted">({attachedContext.type || 'context'})</span>
           {onRemoveContext && (
             <button
