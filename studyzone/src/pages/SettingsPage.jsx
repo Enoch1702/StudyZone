@@ -25,6 +25,7 @@ import { PageContainer, PageHeader } from '../components/layout/PageContainer'
 import { useAuth } from '../context/useAuth'
 import { useTheme } from '../context/useTheme'
 import { updateNotificationPreferences } from '../services/learnerProfileService'
+import { getNotificationPreferences } from '../services/notificationService'
 import { supabase } from '../lib/supabase'
 import { cn } from '../lib/utils'
 
@@ -554,25 +555,17 @@ function DataExportSettingsCard() {
  * Settings card for in-app notification alert preferences.
  */
 function NotificationPreferencesCard() {
-  const { profile, user, refreshProfile } = useAuth()
+  const { user } = useAuth()
 
-  const [deadlineReminders, setDeadlineReminders] = useState(
-    profile?.notify_deadline_reminders ?? true,
-  )
-  const [dailyTaskSummary, setDailyTaskSummary] = useState(
-    profile?.notify_daily_task_summary ?? true,
-  )
-  const [weeklyReport, setWeeklyReport] = useState(
-    profile?.notify_weekly_report ?? true,
-  )
-
-  const [prevProfileUpdated, setPrevProfileUpdated] = useState(profile?.updated_at)
-  if (profile && profile.updated_at !== prevProfileUpdated) {
-    setPrevProfileUpdated(profile.updated_at)
-    setDeadlineReminders(profile.notify_deadline_reminders ?? true)
-    setDailyTaskSummary(profile.notify_daily_task_summary ?? true)
-    setWeeklyReport(profile.notify_weekly_report ?? true)
-  }
+  const [deadlineReminders, setDeadlineReminders] = useState(() => {
+    return getNotificationPreferences(user?.id).notify_deadline_reminders
+  })
+  const [dailyTaskSummary, setDailyTaskSummary] = useState(() => {
+    return getNotificationPreferences(user?.id).notify_daily_task_summary
+  })
+  const [weeklyReport, setWeeklyReport] = useState(() => {
+    return getNotificationPreferences(user?.id).notify_weekly_report
+  })
 
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -596,7 +589,6 @@ function NotificationPreferencesCard() {
       if (res.error) {
         setError(res.error.message || 'Failed to update preferences.')
       } else {
-        await refreshProfile()
         setSuccess(true)
         setTimeout(() => setSuccess(false), 3000)
       }

@@ -74,26 +74,20 @@ export async function updateNotificationPreferences({
   }
 
   try {
-    const updates = {
-      updated_at: new Date().toISOString(),
+    const prefs = {
       notify_deadline_reminders: Boolean(notifyDeadlineReminders),
       notify_daily_task_summary: Boolean(notifyDailyTaskSummary),
       notify_weekly_report: Boolean(notifyWeeklyReport),
+      updated_at: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select()
-      .maybeSingle()
-
-    if (error) {
-      console.error('[StudyZone] Error saving notification preferences:', error.message)
-      return { data: null, error }
+    try {
+      localStorage.setItem(`studyzone_notification_prefs_${userId}`, JSON.stringify(prefs))
+    } catch {
+      // ignore
     }
 
-    return { data, error: null }
+    return { data: prefs, error: null }
   } catch (err) {
     console.error('[StudyZone] Error saving notification preferences:', err)
     return {

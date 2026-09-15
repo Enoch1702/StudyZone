@@ -128,6 +128,43 @@ export async function clearAllNotifications(userId) {
  * - Uses deduplication keys in metadata to prevent spam on repeated visits.
  * - Respects user notification preferences.
  */
+/**
+ * Gets user notification preferences with fallback defaults.
+ * Uses client-side storage to avoid requesting non-existent database columns.
+ *
+ * @param {string} userId
+ * @returns {{ notify_deadline_reminders: boolean, notify_daily_task_summary: boolean, notify_weekly_report: boolean }}
+ */
+export function getNotificationPreferences(userId) {
+  if (!userId || typeof window === 'undefined') {
+    return {
+      notify_deadline_reminders: true,
+      notify_daily_task_summary: true,
+      notify_weekly_report: true,
+    }
+  }
+
+  try {
+    const raw = localStorage.getItem(`studyzone_notification_prefs_${userId}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return {
+        notify_deadline_reminders: parsed.notify_deadline_reminders ?? parsed.notifyDeadlineReminders ?? true,
+        notify_daily_task_summary: parsed.notify_daily_task_summary ?? parsed.notifyDailyTaskSummary ?? true,
+        notify_weekly_report: parsed.notify_weekly_report ?? parsed.notifyWeeklyReport ?? true,
+      }
+    }
+  } catch {
+    // fallback to defaults
+  }
+
+  return {
+    notify_deadline_reminders: true,
+    notify_daily_task_summary: true,
+    notify_weekly_report: true,
+  }
+}
+
 export async function syncDeterministicNotifications(userId) {
   if (!userId) return { generatedCount: 0, error: null }
 
@@ -135,14 +172,12 @@ export async function syncDeterministicNotifications(userId) {
     const now = new Date()
     const todayStr = now.toISOString().slice(0, 10)
 
-    // Fetch user profile preferences, recent notifications, and workload in parallel
-    const [profileRes, recentNotifsRes, tasksRes, deadlinesRes, sessionsRes] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('notify_deadline_reminders, notify_daily_task_summary, notify_weekly_report')
-        .eq('id', userId)
-        .maybeSingle(),
+    const preferences = getNotificationPreferences(userId)
+    const notifyDeadlines = preferences.notify_deadline_reminders
+    const notifyTasks = preferences.notify_daily_task_summary
 
+    // Fetch recent notifications and workload in parallel
+    const [recentNotifsRes, tasksRes, deadlinesRes, sessionsRes] = await Promise.all([
       supabase
         .from('notifications')
         .select('metadata')
@@ -167,10 +202,6 @@ export async function syncDeterministicNotifications(userId) {
         .eq('user_id', userId)
         .gte('started_at', new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()),
     ])
-
-    const profile = profileRes.data || {}
-    const notifyDeadlines = profile.notify_deadline_reminders ?? true
-    const notifyTasks = profile.notify_daily_task_summary ?? true
 
     // Existing deduplication keys in the last 7 days
     const existingDedupeKeys = new Set(
