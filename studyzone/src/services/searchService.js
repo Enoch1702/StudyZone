@@ -140,7 +140,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
           category: 'Tasks',
           title: t.title,
           subtitle: parts.join(' · '),
-          route: '/tasks',
+          route: `/tasks?id=${t.id}`,
           metadata: {
             priority: t.priority,
             status: t.status,
@@ -186,7 +186,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
           category: 'Deadlines',
           title: d.title,
           subtitle: parts.join(' · '),
-          route: '/deadlines',
+          route: '/calendar?tab=deadlines',
           metadata: {
             deadlineType: d.deadline_type,
             subject: sub,
@@ -301,7 +301,7 @@ export async function searchWorkspace({ userId, query, limitPerCategory = 5 }) {
           category: 'Flashcards',
           title: d.title,
           subtitle: sub ? `Subject: ${sub}` : (d.description || 'Active recall deck'),
-          route: '/flashcards',
+          route: d.subject_id ? `/flashcards?subjectId=${d.subject_id}` : '/flashcards',
           metadata: {
             deckId: d.id,
             subject: sub,
