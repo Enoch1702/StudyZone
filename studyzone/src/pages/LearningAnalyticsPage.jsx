@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'motion/react'
 import {
   AlertCircle,
@@ -33,6 +34,7 @@ import { fadeUp, staggerContainer, staggerItem } from '../lib/motion'
 
 export default function LearningAnalyticsPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -212,7 +214,7 @@ export default function LearningAnalyticsPage() {
                 <Button
                   type="button"
                   size="md"
-                  onClick={() => window.location.href = '/focus'}
+                  onClick={() => navigate('/focus')}
                   className="font-bold cursor-pointer"
                 >
                   Start a Focus Session
