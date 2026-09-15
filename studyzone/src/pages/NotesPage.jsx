@@ -1222,6 +1222,8 @@ ${editorContent.trim().slice(0, 6000)}`
                 {/* Single Continuous Editing Surface */}
                 <div className="min-h-[420px]">
                   <textarea
+                    id="note-editor-content"
+                    aria-label="Note content editor"
                     ref={textareaRef}
                     value={editorContent}
                     onChange={(e) => {

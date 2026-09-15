@@ -788,11 +788,12 @@ function TaskRowItem({
             size="sm"
             variant="outline"
             onClick={() => onFocus(task)}
-            title="Start a focus session on this task"
-            className="h-8 px-2.5 text-xs gap-1.5 text-accent hover:text-accent hover:border-accent"
+            title={`Start focus on ${task.title}`}
+            aria-label={`Start focus on ${task.title}`}
+            className="h-8 px-2.5 text-xs gap-1.5 text-accent hover:text-accent hover:border-accent cursor-pointer"
           >
             <Timer className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">Focus</span>
+            <span>Focus</span>
           </Button>
         )}
 

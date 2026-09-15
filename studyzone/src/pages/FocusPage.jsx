@@ -898,6 +898,8 @@ export default function FocusPage() {
 
             <div className="space-y-2">
               <select
+                id="focus-subject-select"
+                aria-label="Select study subject"
                 value={selectedSubjectId}
                 disabled={isRunning}
                 onChange={(e) => {
@@ -915,6 +917,8 @@ export default function FocusPage() {
               </select>
 
               <select
+                id="focus-task-select"
+                aria-label="Select linked task"
                 value={selectedTaskId}
                 disabled={isRunning}
                 onChange={(e) => setSelectedTaskId(e.target.value)}
