@@ -70,6 +70,7 @@ export default function AIAssistantPage() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(
     () => (typeof window !== 'undefined' ? window.innerWidth >= 768 : true),
   )
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false)
 
   // Delete conversation confirmation dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -185,9 +186,7 @@ export default function AIAssistantPage() {
   const handleSelectConversation = useCallback(
     async (conversationId) => {
       if (!user?.id || conversationId === activeConversationId || isLoading) return
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setIsHistoryOpen(false)
-      }
+      setMobileHistoryOpen(false)
 
       setActiveConversationId(conversationId)
       setIsLoading(true)
@@ -221,9 +220,7 @@ export default function AIAssistantPage() {
     setActiveConversationId(null)
     setMessages([])
     setInputValue('')
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setIsHistoryOpen(false)
-    }
+    setMobileHistoryOpen(false)
     setTimeout(() => textareaRef.current?.focus(), 50)
   }, [isLoading])
 
@@ -450,12 +447,22 @@ export default function AIAssistantPage() {
 
           <button
             type="button"
-            onClick={() => setIsHistoryOpen((prev) => !prev)}
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                setMobileHistoryOpen((prev) => !prev)
+              } else {
+                setIsHistoryOpen((prev) => !prev)
+              }
+            }}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-foreground hover:bg-surface-raised transition-colors cursor-pointer"
             aria-label="Toggle conversation history"
           >
-            {isHistoryOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">{isHistoryOpen ? 'Hide History' : 'Show History'}</span>
+            <PanelLeft className="h-3.5 w-3.5 sm:hidden" />
+            <span className="sm:hidden">History</span>
+            <span className="hidden sm:inline-flex sm:items-center sm:gap-1.5">
+              {isHistoryOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeft className="h-3.5 w-3.5" />}
+              {isHistoryOpen ? 'Hide History' : 'Show History'}
+            </span>
           </button>
         </div>
 
@@ -547,13 +554,13 @@ export default function AIAssistantPage() {
 
         {/* Mobile History Drawer (Slide-Over Sheet) */}
         <AnimatePresence>
-          {isHistoryOpen && (
+          {mobileHistoryOpen && (
             <div className="fixed inset-0 z-50 flex md:hidden">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setIsHistoryOpen(false)}
+                onClick={() => setMobileHistoryOpen(false)}
                 className="fixed inset-0 bg-black/60 backdrop-blur-xs"
               />
               <motion.aside
@@ -568,7 +575,7 @@ export default function AIAssistantPage() {
                   <span className="text-xs font-bold text-foreground">Chat History</span>
                   <button
                     type="button"
-                    onClick={() => setIsHistoryOpen(false)}
+                    onClick={() => setMobileHistoryOpen(false)}
                     aria-label="Close history drawer"
                     className="p-1 rounded-lg text-muted hover:text-foreground hover:bg-surface-raised cursor-pointer"
                   >
