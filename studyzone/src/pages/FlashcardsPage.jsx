@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   AlertCircle,
@@ -34,11 +35,19 @@ import { sendMessage } from '../services/aiService'
 
 export default function FlashcardsPage() {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedSubjectId = searchParams.get('subjectId') || ''
 
   // ─── Data State ────────────────────────────────────────────────
   const [decks, setDecks] = useState([])
   const [subjects, setSubjects] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Filtered decks based on URL searchParams
+  const filteredDecks = useMemo(() => {
+    if (!selectedSubjectId) return decks
+    return decks.filter((d) => d.subject_id === selectedSubjectId)
+  }, [decks, selectedSubjectId])
 
   // ─── Study / Practice Session State ────────────────────────────
   const [activeDeck, setActiveDeck] = useState(null)
@@ -125,6 +134,22 @@ export default function FlashcardsPage() {
     for (const s of subjects) map.set(s.id, s.name)
     return map
   }, [subjects])
+
+  function handleOpenCreateDeck() {
+    setNewDeckTitle('')
+    setNewDeckSubjectId(selectedSubjectId || '')
+    setNewDeckDesc('')
+    setIsCreateDeckOpen(true)
+  }
+
+  function handleOpenAiModal() {
+    setAiTopic('')
+    setAiSubjectId(selectedSubjectId || '')
+    setAiCardCount(6)
+    setAiProposals(null)
+    setAiError(null)
+    setIsAiModalOpen(true)
+  }
 
   // ─── Launch Study Session ──────────────────────────────────────
   async function handleStartStudy(deck) {
@@ -563,7 +588,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
             <Button
               type="button"
               size="sm"
-              onClick={() => setIsAiModalOpen(true)}
+              onClick={handleOpenAiModal}
               className="gap-1.5"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -574,7 +599,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsCreateDeckOpen(true)}
+              onClick={handleOpenCreateDeck}
               className="gap-1.5"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -583,6 +608,60 @@ Format your response as a strict JSON array of objects with "front" (concise que
           </div>
         }
       />
+
+      {/* Subject Filter Bar */}
+      {!loading && decks.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-surface border border-border/80 rounded-xl p-3">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted" />
+            <span className="text-xs font-semibold text-muted">Filter by Subject:</span>
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => {
+                const val = e.target.value
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev)
+                  if (val) next.set('subjectId', val)
+                  else next.delete('subjectId')
+                  return next
+                })
+              }}
+              className="rounded-lg border border-border bg-surface-raised px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
+            >
+              <option value="">All Subjects ({decks.length} decks)</option>
+              {subjects.map((s) => {
+                const count = decks.filter((d) => d.subject_id === s.id).length
+                return (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({count})
+                  </option>
+                )
+              })}
+            </select>
+          </div>
+
+          {selectedSubjectId && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted">
+                Filtered to <strong className="text-foreground">{subjectMap.get(selectedSubjectId) || 'Subject'}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev)
+                    next.delete('subjectId')
+                    return next
+                  })
+                }}
+                className="text-accent hover:underline font-semibold cursor-pointer"
+              >
+                Show all decks
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex min-h-[300px] items-center justify-center">
@@ -602,7 +681,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
             <Button
               type="button"
               size="sm"
-              onClick={() => setIsAiModalOpen(true)}
+              onClick={handleOpenAiModal}
               className="gap-1.5 cursor-pointer font-bold"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -622,7 +701,7 @@ Format your response as a strict JSON array of objects with "front" (concise que
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setIsCreateDeckOpen(true)}
+              onClick={handleOpenCreateDeck}
               className="gap-1.5 cursor-pointer font-semibold text-xs"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -630,10 +709,59 @@ Format your response as a strict JSON array of objects with "front" (concise que
             </Button>
           </div>
         </Card>
+      ) : filteredDecks.length === 0 ? (
+        /* Filtered Empty State */
+        <Card className="border-border/90 bg-surface p-12 text-center space-y-4 shadow-md">
+          <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-accent/15 text-accent border border-accent/30">
+            <Brain className="h-7 w-7" />
+          </div>
+          <h3 className="text-base font-bold text-foreground sm:text-lg">
+            No Flashcard Decks for {subjectMap.get(selectedSubjectId) || 'this subject'}
+          </h3>
+          <p className="text-xs sm:text-sm text-muted max-w-md mx-auto leading-relaxed">
+            Create your first active recall deck for {subjectMap.get(selectedSubjectId) || 'this subject'} or generate one with AI.
+          </p>
+          <div className="pt-2 flex flex-wrap justify-center gap-3">
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleOpenAiModal}
+              className="gap-1.5 cursor-pointer font-bold"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Generate Flashcards</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenCreateDeck}
+              className="gap-1.5 cursor-pointer font-semibold text-xs"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>New Deck in {subjectMap.get(selectedSubjectId) || 'Subject'}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchParams((prev) => {
+                  const next = new URLSearchParams(prev)
+                  next.delete('subjectId')
+                  return next
+                })
+              }}
+              className="gap-1.5 cursor-pointer text-xs text-muted hover:text-foreground"
+            >
+              Show all decks
+            </Button>
+          </div>
+        </Card>
       ) : (
         /* Decks Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {decks.map((deck) => {
+          {filteredDecks.map((deck) => {
             const subName = subjectMap.get(deck.subject_id)
 
             return (

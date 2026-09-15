@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Bell,
@@ -84,15 +84,32 @@ export default function FocusPage() {
     customCycles,
   ])
 
+  const [searchParams] = useSearchParams()
+
   // ─── Linked Context (Subject & Task) ───────────────────────────
   const [subjects, setSubjects] = useState([])
   const [tasks, setTasks] = useState([])
   const [selectedSubjectId, setSelectedSubjectId] = useState(
-    () => location.state?.subjectId || initialSavedSession?.subjectId || '',
+    () => location.state?.subjectId || searchParams.get('subjectId') || initialSavedSession?.subjectId || '',
   )
   const [selectedTaskId, setSelectedTaskId] = useState(
-    () => location.state?.taskId || initialSavedSession?.taskId || '',
+    () => location.state?.taskId || searchParams.get('taskId') || initialSavedSession?.taskId || '',
   )
+
+  // Synchronize incoming searchParams or location.state during render
+  const incomingSub = location.state?.subjectId || searchParams.get('subjectId') || ''
+  const incomingTask = location.state?.taskId || searchParams.get('taskId') || ''
+
+  const [prevIncoming, setPrevIncoming] = useState({ sub: incomingSub, task: incomingTask })
+  if (prevIncoming.sub !== incomingSub || prevIncoming.task !== incomingTask) {
+    setPrevIncoming({ sub: incomingSub, task: incomingTask })
+    if (incomingSub && incomingSub !== selectedSubjectId) {
+      setSelectedSubjectId(incomingSub)
+    }
+    if (incomingTask && incomingTask !== selectedTaskId) {
+      setSelectedTaskId(incomingTask)
+    }
+  }
 
   // ─── Timer State ───────────────────────────────────────────────
   const [sessionPhase, setSessionPhase] = useState(
@@ -151,7 +168,12 @@ export default function FocusPage() {
         if (isMounted) {
           if (subRes.data) setSubjects(subRes.data)
           if (taskRes.data) {
-            setTasks(taskRes.data.filter((t) => t.status !== 'completed' && t.status !== 'archived'))
+            const active = taskRes.data.filter((t) => t.status !== 'completed' && t.status !== 'archived')
+            setTasks(active)
+            const activeTask = active.find((t) => t.id === incomingTask || t.id === initialSavedSession?.taskId)
+            if (activeTask?.subject_id && !incomingSub && !initialSavedSession?.subjectId) {
+              setSelectedSubjectId(activeTask.subject_id)
+            }
           }
         }
       } catch (err) {
@@ -164,7 +186,7 @@ export default function FocusPage() {
     return () => {
       isMounted = false
     }
-  }, [user])
+  }, [user, incomingSub, incomingTask, initialSavedSession])
 
   // ─── Save State to LocalStorage on changes ─────────────────────
   useEffect(() => {
@@ -753,12 +775,27 @@ export default function FocusPage() {
 
               {/* Linked Subject / Task pill in center */}
               {(selectedSubjectId || selectedTaskId) && (
-                <div className="mt-2.5 flex items-center gap-1.5 rounded-full bg-surface-raised border border-border px-3 py-1 text-[11px] text-muted max-w-[220px] truncate shadow-2xs">
-                  <BookOpen className="h-3 w-3 shrink-0 text-accent" />
-                  <span className="truncate">
-                    {tasks.find((t) => t.id === selectedTaskId)?.title ||
-                      subjects.find((s) => s.id === selectedSubjectId)?.name}
-                  </span>
+                <div className="mt-2.5 flex items-center justify-center gap-1.5 rounded-full bg-surface-raised border border-border px-3 py-1 text-[11px] text-muted max-w-[280px] shadow-2xs">
+                  {selectedTaskId ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 shrink-0 text-accent" />
+                      <span className="truncate font-medium text-foreground max-w-[140px]">
+                        {tasks.find((t) => t.id === selectedTaskId)?.title || 'Selected Task'}
+                      </span>
+                      {selectedSubjectId && (
+                        <span className="text-muted/60 text-[10px] truncate max-w-[90px]">
+                          ({subjects.find((s) => s.id === selectedSubjectId)?.name})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="h-3 w-3 shrink-0 text-accent" />
+                      <span className="truncate font-medium text-foreground max-w-[200px]">
+                        {subjects.find((s) => s.id === selectedSubjectId)?.name || 'Selected Subject'}
+                      </span>
+                    </>
+                  )}
                 </div>
               )}
             </div>

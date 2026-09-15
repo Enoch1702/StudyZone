@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   AlertCircle,
@@ -47,6 +47,8 @@ function getDueStatus(dueDate) {
 export default function TasksPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const targetTaskId = searchParams.get('id') || null
 
   // ─── Data state ───────────────────────────────────────────────
   const [tasks, setTasks] = useState([])
@@ -62,7 +64,7 @@ export default function TasksPage() {
   const [search, setSearch] = useState('')
   const [quickFilter, setQuickFilter] = useState('active') // 'active', 'urgent', 'all', 'completed'
   const [priorityFilter, setPriorityFilter] = useState('all')
-  const [subjectFilter, setSubjectFilter] = useState('all')
+  const subjectFilter = searchParams.get('subjectId') || 'all'
   const [showCompleted, setShowCompleted] = useState(false)
 
   // ─── Modal state ──────────────────────────────────────────────
@@ -224,10 +226,23 @@ export default function TasksPage() {
   }
 
   function handleFocusTask(task) {
-    navigate('/focus', {
+    const params = new URLSearchParams()
+    if (task.id) params.set('taskId', task.id)
+    if (task.subject_id) params.set('subjectId', task.subject_id)
+    navigate(`/focus?${params.toString()}`, {
       state: { taskId: task.id, subjectId: task.subject_id },
     })
   }
+
+  // Scroll to target task if opened via deep link / search / calendar
+  useEffect(() => {
+    if (targetTaskId && !loading) {
+      const el = document.getElementById(`task-row-${targetTaskId}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [targetTaskId, loading])
 
   async function handleToggleComplete(task) {
     setBannerError('')
@@ -422,7 +437,18 @@ export default function TasksPage() {
           {/* Subject filter */}
           <Select
             value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              setSearchParams((prev) => {
+                const next = new URLSearchParams(prev)
+                if (val && val !== 'all') {
+                  next.set('subjectId', val)
+                } else {
+                  next.delete('subjectId')
+                }
+                return next
+              })
+            }}
             aria-label="Filter by subject"
             className="text-xs h-9"
           >
@@ -469,8 +495,22 @@ export default function TasksPage() {
         />
       ) : filteredTasks.length === 0 ? (
         <EmptyState
-          title="No tasks match your filters"
-          description="Try adjusting your search or filter criteria."
+          title={
+            subjectFilter !== 'all'
+              ? `No tasks for ${subjectMap[subjectFilter] || 'this subject'}`
+              : 'No tasks match your filters'
+          }
+          description={
+            subjectFilter !== 'all'
+              ? `Create an actionable task for ${subjectMap[subjectFilter] || 'this subject'} to start tracking execution.`
+              : 'Try adjusting your search or filter criteria.'
+          }
+          actionLabel={
+            subjectFilter !== 'all'
+              ? `Add Task for ${subjectMap[subjectFilter] || 'Subject'}`
+              : undefined
+          }
+          onAction={subjectFilter !== 'all' ? handleOpenCreate : undefined}
         />
       ) : (
         <div className="space-y-6">
@@ -488,6 +528,7 @@ export default function TasksPage() {
                     key={task.id}
                     task={task}
                     isCompleted={task.status === 'completed'}
+                    isHighlighted={targetTaskId === task.id}
                     focusedMinutes={taskFocusTimeMap.get(task.id) || 0}
                     subjectName={subjectName(task.subject_id)}
                     milestoneTitle={milestoneMap[task.milestone_id]}
@@ -514,6 +555,7 @@ export default function TasksPage() {
                     key={task.id}
                     task={task}
                     isCompleted={task.status === 'completed'}
+                    isHighlighted={targetTaskId === task.id}
                     focusedMinutes={taskFocusTimeMap.get(task.id) || 0}
                     subjectName={subjectName(task.subject_id)}
                     milestoneTitle={milestoneMap[task.milestone_id]}
@@ -550,6 +592,7 @@ export default function TasksPage() {
                       key={task.id}
                       task={task}
                       isCompleted={true}
+                      isHighlighted={targetTaskId === task.id}
                       focusedMinutes={taskFocusTimeMap.get(task.id) || 0}
                       subjectName={subjectName(task.subject_id)}
                       milestoneTitle={milestoneMap[task.milestone_id]}
@@ -575,6 +618,7 @@ export default function TasksPage() {
         subjects={subjects}
         plans={plans}
         milestones={milestones}
+        defaultSubjectId={subjectFilter !== 'all' ? subjectFilter : ''}
         loading={actionLoading}
       />
 
@@ -607,6 +651,7 @@ export default function TasksPage() {
 function TaskRowItem({
   task,
   isCompleted,
+  isHighlighted = false,
   focusedMinutes,
   subjectName,
   milestoneTitle,
@@ -633,11 +678,13 @@ function TaskRowItem({
 
   return (
     <div
+      id={`task-row-${task.id}`}
       className={cn(
         'group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border transition-all duration-150',
         isCompleted
           ? 'bg-surface/50 border-border/50 opacity-75'
           : 'bg-surface border-border hover:border-border-hover hover:shadow-2xs',
+        isHighlighted && 'ring-2 ring-accent border-accent/60 bg-accent/5',
       )}
     >
       {/* Left Column: Checkbox & Content */}

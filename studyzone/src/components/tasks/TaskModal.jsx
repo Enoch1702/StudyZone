@@ -29,6 +29,9 @@ function TaskFormContent({
   subjects = [],
   plans = [],
   milestones = [],
+  defaultSubjectId = '',
+  defaultPlanId = '',
+  defaultMilestoneId = '',
   onSave,
   onClose,
   loading,
@@ -39,9 +42,9 @@ function TaskFormContent({
   const [description, setDescription] = useState(task?.description || '')
   const [priority, setPriority] = useState(task?.priority || 'medium')
   const [status, setStatus] = useState(task?.status || 'pending')
-  const [subjectId, setSubjectId] = useState(task?.subject_id || '')
-  const [planId, setPlanId] = useState(task?.plan_id || '')
-  const [milestoneId, setMilestoneId] = useState(task?.milestone_id || '')
+  const [subjectId, setSubjectId] = useState(task?.subject_id || defaultSubjectId || '')
+  const [planId, setPlanId] = useState(task?.plan_id || defaultPlanId || '')
+  const [milestoneId, setMilestoneId] = useState(task?.milestone_id || defaultMilestoneId || '')
   // due_date is stored as TIMESTAMPTZ — convert to YYYY-MM-DD for the date input
   const [dueDate, setDueDate] = useState(
     task?.due_date ? task.due_date.split('T')[0] : '',
@@ -324,6 +327,9 @@ export function TaskModal({
   subjects = [],
   plans = [],
   milestones = [],
+  defaultSubjectId = '',
+  defaultPlanId = '',
+  defaultMilestoneId = '',
   onSave,
   loading = false,
 }) {
@@ -343,11 +349,14 @@ export function TaskModal({
       maxWidth="max-w-lg"
     >
       <TaskFormContent
-        key={task?.id || 'new-task'}
+        key={task?.id || `new-task-${defaultSubjectId}-${defaultPlanId}-${defaultMilestoneId}`}
         task={task}
         subjects={subjects}
         plans={plans}
         milestones={milestones}
+        defaultSubjectId={defaultSubjectId}
+        defaultPlanId={defaultPlanId}
+        defaultMilestoneId={defaultMilestoneId}
         onSave={onSave}
         onClose={onClose}
         loading={loading}

@@ -60,11 +60,9 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
 
-  // ─── Filter & Search State ─────────────────────────────────────
+  // ─── Filter & Search State (derived directly from URL searchParams for single source of truth)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSubjectId, setSelectedSubjectId] = useState(
-    () => searchParams.get('subjectId') || '',
-  )
+  const selectedSubjectId = searchParams.get('subjectId') || ''
   const [showArchived, setShowArchived] = useState(false)
 
   // ─── Active Note / Editor State ────────────────────────────────
@@ -76,7 +74,6 @@ export default function NotesPage() {
   const [editorTags, setEditorTags] = useState([])
   const [newTagInput, setNewTagInput] = useState('')
   const [isEditorPinned, setIsEditorPinned] = useState(false)
-  const [editorViewMode, setEditorViewMode] = useState('edit') // 'edit' or 'preview'
 
   // ─── Save & Draft State Tracking ───────────────────────────────
   const [saveStatus, setSaveStatus] = useState('saved') // 'saving', 'saved', 'unsaved', 'offline', 'error'
@@ -122,7 +119,6 @@ export default function NotesPage() {
     setEditorSubjectId(note.subjectId || '')
     setEditorTags(Array.isArray(note.tags) ? note.tags : [])
     setIsEditorPinned(Boolean(note.isPinned))
-    setEditorViewMode('edit')
     setSaveStatus('saved')
     setLastSavedTime(new Date(note.updatedAt || note.createdAt))
 
@@ -228,7 +224,14 @@ export default function NotesPage() {
           } else if (loadedNotes.length > 0 && window.innerWidth >= 1024) {
             // Auto-select first note on wide screens
             loadNoteIntoEditor(loadedNotes[0])
-            setSearchParams({ id: loadedNotes[0].id }, { replace: true })
+            setSearchParams(
+              (prev) => {
+                const next = new URLSearchParams(prev)
+                next.set('id', loadedNotes[0].id)
+                return next
+              },
+              { replace: true },
+            )
           }
         }
       } catch {
@@ -251,7 +254,11 @@ export default function NotesPage() {
 
   function handleSelectNote(note) {
     loadNoteIntoEditor(note)
-    setSearchParams({ id: note.id })
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('id', note.id)
+      return next
+    })
   }
 
   // ─── Auto-Save Debouncer with Local Draft Protection ────────────
@@ -354,7 +361,11 @@ export default function NotesPage() {
 
       if (res.data) {
         loadNoteIntoEditor(res.data)
-        setSearchParams({ id: res.data.id })
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('id', res.data.id)
+          return next
+        })
       }
       await refreshData()
     } catch {
@@ -371,7 +382,11 @@ export default function NotesPage() {
       const res = await createSampleNote(user.id, subjects[0]?.id || null)
       if (res.data) {
         loadNoteIntoEditor(res.data)
-        setSearchParams({ id: res.data.id })
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('id', res.data.id)
+          return next
+        })
       }
       await refreshData()
     } catch {
@@ -399,7 +414,11 @@ export default function NotesPage() {
         // ignore
       }
       setActiveNoteId(null)
-      setSearchParams({})
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('id')
+        return next
+      })
       await refreshData()
     } finally {
       setDeleteLoading(false)
@@ -421,7 +440,11 @@ export default function NotesPage() {
     const nextArchived = !currentNote?.isArchived
     await archiveNote(activeNoteId, user.id, nextArchived)
     setActiveNoteId(null)
-    setSearchParams({})
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('id')
+      return next
+    })
     refreshData()
   }
 
@@ -690,8 +713,16 @@ ${editorContent.trim().slice(0, 6000)}`
               <select
                 value={selectedSubjectId}
                 onChange={(e) => {
-                  setSelectedSubjectId(e.target.value)
-                  setSearchParams(e.target.value ? { subjectId: e.target.value } : {})
+                  const newSub = e.target.value
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev)
+                    if (newSub) {
+                      next.set('subjectId', newSub)
+                    } else {
+                      next.delete('subjectId')
+                    }
+                    return next
+                  })
                 }}
                 className="flex-1 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer"
               >
@@ -729,17 +760,47 @@ ${editorContent.trim().slice(0, 6000)}`
             ) : sortedNotes.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border p-6 text-center text-muted space-y-2">
                 <FileText className="h-6 w-6 mx-auto text-muted/60" />
-                <p className="text-xs font-semibold">No notes found</p>
-                <p className="text-[11px]">Create a note to start capturing your knowledge.</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCreateNote()}
-                  className="mt-2 text-xs"
-                >
-                  <Plus className="h-3 w-3 mr-1" /> New Note
-                </Button>
+                <p className="text-xs font-semibold text-foreground">
+                  {selectedSubjectId
+                    ? `No notes in ${subjectMap.get(selectedSubjectId)?.name || 'this subject'} yet`
+                    : 'No notes found'}
+                </p>
+                <p className="text-[11px]">
+                  {selectedSubjectId
+                    ? `Capture your first study note for ${subjectMap.get(selectedSubjectId)?.name || 'this subject'}.`
+                    : 'Create a note to start capturing your knowledge.'}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCreateNote({ subjectId: selectedSubjectId || null })}
+                    className="text-xs font-bold"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    {selectedSubjectId
+                      ? `Create note in ${subjectMap.get(selectedSubjectId)?.name || 'Subject'}`
+                      : 'New Note'}
+                  </Button>
+                  {selectedSubjectId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev)
+                          next.delete('subjectId')
+                          return next
+                        })
+                      }}
+                      className="text-xs text-muted hover:text-foreground"
+                    >
+                      Show All Notes
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
               sortedNotes.map((n) => {
@@ -826,7 +887,11 @@ ${editorContent.trim().slice(0, 6000)}`
                       size="sm"
                       onClick={() => {
                         setActiveNoteId(null)
-                        setSearchParams({})
+                        setSearchParams((prev) => {
+                          const next = new URLSearchParams(prev)
+                          next.delete('id')
+                          return next
+                        })
                       }}
                       className="lg:hidden flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 cursor-pointer mr-1"
                     >
@@ -881,30 +946,6 @@ ${editorContent.trim().slice(0, 6000)}`
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* View Mode Tabs: Edit vs Preview */}
-                    <div className="flex items-center rounded-lg border border-border bg-surface-raised/60 p-0.5 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setEditorViewMode('edit')}
-                        className={cn(
-                          'px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer',
-                          editorViewMode === 'edit' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
-                        )}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditorViewMode('preview')}
-                        className={cn(
-                          'px-2.5 py-1 rounded-md font-semibold transition-colors cursor-pointer',
-                          editorViewMode === 'preview' ? 'bg-accent text-white' : 'text-muted hover:text-foreground',
-                        )}
-                      >
-                        Preview
-                      </button>
-                    </div>
-
                     {/* ✨ Study with AI Menu */}
                     <div className="relative">
                       <button
@@ -1100,102 +1141,94 @@ ${editorContent.trim().slice(0, 6000)}`
                   </div>
                 )}
 
-                {/* Single Formatting Toolbar (Shown in Edit Mode with 36x36px touch targets) */}
-                {editorViewMode === 'edit' && (
-                  <div className="flex flex-wrap items-center gap-1 border-b border-border/60 pb-2 text-muted">
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('**', '**')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Bold"
-                      aria-label="Format Bold"
-                    >
-                      <Bold className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('*', '*')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Italic"
-                      aria-label="Format Italic"
-                    >
-                      <Italic className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('## ')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Heading 1"
-                      aria-label="Format Heading 1"
-                    >
-                      <Heading1 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('### ')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Heading 2"
-                      aria-label="Format Heading 2"
-                    >
-                      <Heading2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('- ')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Bullet List"
-                      aria-label="Format Bullet List"
-                    >
-                      <List className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('1. ')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Numbered List"
-                      aria-label="Format Numbered List"
-                    >
-                      <ListOrdered className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('```\n', '\n```')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Code Block"
-                      aria-label="Format Code Block"
-                    >
-                      <Code className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertMarkdown('> ')}
-                      className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
-                      title="Quote"
-                      aria-label="Format Quote"
-                    >
-                      <Quote className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+                {/* Single Formatting Toolbar */}
+                <div className="flex flex-wrap items-center gap-1 border-b border-border/60 pb-2 text-muted">
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('**', '**')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Bold"
+                    aria-label="Format Bold"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('*', '*')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Italic"
+                    aria-label="Format Italic"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('## ')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Heading 1"
+                    aria-label="Format Heading 1"
+                  >
+                    <Heading1 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('### ')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Heading 2"
+                    aria-label="Format Heading 2"
+                  >
+                    <Heading2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('- ')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Bullet List"
+                    aria-label="Format Bullet List"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('1. ')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Numbered List"
+                    aria-label="Format Numbered List"
+                  >
+                    <ListOrdered className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('`', '`')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Inline Code"
+                    aria-label="Format Inline Code"
+                  >
+                    <Code className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdown('> ')}
+                    className="flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-transparent hover:border-border hover:bg-surface-raised hover:text-foreground transition-colors cursor-pointer text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    title="Quote"
+                    aria-label="Format Quote"
+                  >
+                    <Quote className="h-4 w-4" />
+                  </button>
+                </div>
 
-                {/* Single Primary Content Surface */}
+                {/* Single Continuous Editing Surface */}
                 <div className="min-h-[420px]">
-                  {editorViewMode === 'edit' ? (
-                    <textarea
-                      ref={textareaRef}
-                      value={editorContent}
-                      onChange={(e) => {
-                        setEditorContent(e.target.value)
-                        triggerAutoSave({ content: e.target.value })
-                      }}
-                      placeholder="Start writing what you learned today..."
-                      className="w-full min-h-[440px] resize-y rounded-xl border border-border/70 bg-surface-raised/30 p-4 font-sans text-sm sm:text-base text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
-                    />
-                  ) : (
-                    <div className="w-full min-h-[440px] rounded-xl border border-border/70 bg-surface-raised/20 p-5 overflow-y-auto max-h-[600px]">
-                      <MarkdownPreview content={editorContent || '*No content yet. Switch to Edit to write your notes.*'} />
-                    </div>
-                  )}
+                  <textarea
+                    ref={textareaRef}
+                    value={editorContent}
+                    onChange={(e) => {
+                      setEditorContent(e.target.value)
+                      triggerAutoSave({ content: e.target.value })
+                    }}
+                    placeholder="Start writing what you learned today..."
+                    className="w-full min-h-[440px] resize-y rounded-xl border border-border/70 bg-surface-raised/30 p-4 font-sans text-sm sm:text-base text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
+                  />
                 </div>
               </div>
 
@@ -1456,97 +1489,4 @@ ${editorContent.trim().slice(0, 6000)}`
       />
     </PageContainer>
   )
-}
-
-/**
- * Lightweight safe Markdown renderer for study notes.
- */
-function MarkdownPreview({ content }) {
-  if (!content || !content.trim()) {
-    return <p className="text-xs text-muted italic">No content to preview</p>
-  }
-
-  const lines = content.split('\n')
-  const elements = []
-  let inCodeBlock = false
-  let codeBuffer = []
-  let keyIdx = 0
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-
-    if (line.startsWith('```')) {
-      if (inCodeBlock) {
-        elements.push(
-          <pre
-            key={keyIdx++}
-            className="my-3 rounded-lg border border-border bg-black/40 p-3 font-mono text-xs text-emerald-400 overflow-x-auto"
-          >
-            <code>{codeBuffer.join('\n')}</code>
-          </pre>,
-        )
-        codeBuffer = []
-        inCodeBlock = false
-      } else {
-        inCodeBlock = true
-      }
-      continue
-    }
-
-    if (inCodeBlock) {
-      codeBuffer.push(line)
-      continue
-    }
-
-    if (line.startsWith('# ')) {
-      elements.push(
-        <h1 key={keyIdx++} className="text-xl font-bold text-foreground mt-4 mb-2">
-          {line.replace('# ', '')}
-        </h1>,
-      )
-    } else if (line.startsWith('## ')) {
-      elements.push(
-        <h2 key={keyIdx++} className="text-lg font-bold text-foreground mt-3 mb-1.5">
-          {line.replace('## ', '')}
-        </h2>,
-      )
-    } else if (line.startsWith('### ')) {
-      elements.push(
-        <h3 key={keyIdx++} className="text-sm font-bold text-foreground mt-2 mb-1">
-          {line.replace('### ', '')}
-        </h3>,
-      )
-    } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      elements.push(
-        <li key={keyIdx++} className="ml-4 list-disc text-xs text-foreground leading-relaxed">
-          {line.replace(/^[-*]\s+/, '')}
-        </li>,
-      )
-    } else if (/^\d+\.\s+/.test(line)) {
-      elements.push(
-        <li key={keyIdx++} className="ml-4 list-decimal text-xs text-foreground leading-relaxed">
-          {line.replace(/^\d+\.\s+/, '')}
-        </li>,
-      )
-    } else if (line.startsWith('> ')) {
-      elements.push(
-        <blockquote
-          key={keyIdx++}
-          className="border-l-2 border-accent pl-3 py-1 my-2 text-xs italic text-muted bg-accent/5 rounded-r"
-        >
-          {line.replace('> ', '')}
-        </blockquote>,
-      )
-    } else if (line.trim() === '---') {
-      elements.push(<hr key={keyIdx++} className="border-border my-4" />)
-    } else if (line.trim()) {
-      elements.push(
-        <p key={keyIdx++} className="text-xs text-foreground leading-relaxed my-1">
-          {line}
-        </p>,
-      )
-    }
-  }
-
-  return <div className="space-y-1">{elements}</div>
 }
