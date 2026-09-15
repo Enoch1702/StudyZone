@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
@@ -15,6 +15,7 @@ import {
   Square,
   CheckSquare,
   Trash2,
+  ListTodo,
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { PageContainer } from '../components/layout/PageContainer'
@@ -53,6 +54,7 @@ export default function LearningPlanDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
+  const hasLoadedRef = useRef(false)
 
   // Plan Edit Modal
   const [editPlanModalOpen, setEditPlanModalOpen] = useState(false)
@@ -94,7 +96,7 @@ export default function LearningPlanDetailPage() {
 
     async function loadData() {
       if (!user?.id || !planId) return
-      setLoading(true)
+      if (!hasLoadedRef.current) setLoading(true)
       setError('')
 
       try {
@@ -119,7 +121,10 @@ export default function LearningPlanDetailPage() {
       } catch (err) {
         if (!ignore) setError(err instanceof Error ? err.message : 'Failed to load plan details.')
       } finally {
-        if (!ignore) setLoading(false)
+        if (!ignore) {
+          setLoading(false)
+          hasLoadedRef.current = true
+        }
       }
     }
 
@@ -304,6 +309,10 @@ export default function LearningPlanDetailPage() {
     if (!user?.id) return
     const nextStatus = task.status === 'completed' ? 'pending' : 'completed'
 
+    setTasks((prev) =>
+      prev.map((t) => (t.id === task.id ? { ...t, status: nextStatus } : t)),
+    )
+
     try {
       await updateTask({
         id: task.id,
@@ -314,6 +323,9 @@ export default function LearningPlanDetailPage() {
       setReloadKey((k) => k + 1)
     } catch (err) {
       console.error('Failed to toggle task:', err)
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t)),
+      )
     }
   }
 
@@ -715,17 +727,33 @@ export default function LearningPlanDetailPage() {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               {t.priority && (
                                 <Badge variant={t.priority} className="text-[9px] py-0 px-1">
                                   {t.priority}
                                 </Badge>
                               )}
                               {t.due_date && (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-[10px] text-muted-foreground hidden sm:inline">
                                   {formatDate(t.due_date)}
                                 </span>
                               )}
+                              <Link
+                                to={`/focus?taskId=${t.id}${t.subject_id || plan?.subject_id ? `&subjectId=${t.subject_id || plan?.subject_id}` : ''}`}
+                                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-accent hover:bg-accent/10 transition-colors"
+                                title="Start Focus on this task"
+                              >
+                                <PlayCircle className="h-3 w-3" />
+                                <span>Focus</span>
+                              </Link>
+                              <Link
+                                to={`/tasks?id=${t.id}`}
+                                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted hover:text-foreground hover:bg-surface-raised transition-colors"
+                                title="View in Tasks"
+                              >
+                                <ListTodo className="h-3 w-3" />
+                                <span>View</span>
+                              </Link>
                             </div>
                           </div>
                         )
@@ -943,6 +971,11 @@ export default function LearningPlanDetailPage() {
         onClose={() => setTaskModalOpen(false)}
         task={editingTask}
         subjects={subjects}
+        plans={plan ? [plan] : []}
+        milestones={milestones}
+        defaultPlanId={plan?.id || ''}
+        defaultMilestoneId={defaultMilestoneIdForTask || ''}
+        defaultSubjectId={plan?.subject_id || ''}
         onSave={handleSaveTask}
       />
 

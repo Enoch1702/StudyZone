@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   AlertCircle,
+  BookOpen,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Layers,
   ListTodo,
   Pencil,
+  PlayCircle,
   Plus,
   Search,
   Timer,
@@ -739,17 +741,60 @@ export default function CalendarPage({ initialTab }) {
                               </p>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               {ev.type === 'task' && (
-                                <Badge
-                                  variant={ev.status === 'completed' ? 'success' : 'default'}
-                                  className="text-[10px] capitalize"
-                                >
-                                  {ev.status || 'pending'}
-                                </Badge>
+                                <>
+                                  <Badge
+                                    variant={ev.status === 'completed' ? 'success' : 'default'}
+                                    className="text-[10px] capitalize"
+                                  >
+                                    {ev.status || 'pending'}
+                                  </Badge>
+                                  <Link
+                                    to={`/focus?taskId=${ev.raw.id}${ev.subjectId ? `&subjectId=${ev.subjectId}` : ''}`}
+                                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors"
+                                    title="Start Focus on this task"
+                                  >
+                                    <PlayCircle className="h-3 w-3" />
+                                    <span>Focus</span>
+                                  </Link>
+                                  <Link
+                                    to={`/tasks?id=${ev.raw.id}`}
+                                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted hover:text-foreground hover:bg-surface-raised transition-colors"
+                                    title="View in Tasks"
+                                  >
+                                    <ListTodo className="h-3 w-3" />
+                                    <span>View</span>
+                                  </Link>
+                                </>
                               )}
-                              {ev.type === 'deadline' && ev.urgency && (
-                                <DeadlineUrgency date={ev.date} />
+                              {ev.type === 'deadline' && (
+                                <>
+                                  {ev.urgency && <DeadlineUrgency date={ev.date} />}
+                                  {ev.subjectId && (
+                                    <Link
+                                      to={`/notes?subjectId=${ev.subjectId}`}
+                                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted hover:text-foreground hover:bg-surface-raised transition-colors"
+                                      title="Study Notes"
+                                    >
+                                      <BookOpen className="h-3 w-3" />
+                                      <span>Notes</span>
+                                    </Link>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setQuickAddDate(ev.raw.due_date ? ev.raw.due_date.split('T')[0] : dateStr)
+                                      setQuickAddSubjectId(ev.subjectId || '')
+                                      setQuickAddModal({ isOpen: true, type: 'task' })
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                                    title="Schedule Task for this deadline"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    <span>Task</span>
+                                  </button>
+                                </>
                               )}
                               {ev.type === 'session' && (
                                 <span className="text-[11px] font-medium text-emerald-400">
@@ -961,17 +1006,66 @@ export default function CalendarPage({ initialTab }) {
                               {ev.title}
                             </p>
 
-                            {ev.type === 'task' && ev.priority && (
-                              <div className="flex items-center gap-1.5 text-muted text-[11px]">
-                                <Flag className="h-3 w-3" />
-                                <span className="capitalize">{ev.priority} Priority</span>
+                            {ev.type === 'task' && (
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                                {ev.priority ? (
+                                  <div className="flex items-center gap-1.5 text-muted text-[11px]">
+                                    <Flag className="h-3 w-3" />
+                                    <span className="capitalize">{ev.priority} Priority</span>
+                                  </div>
+                                ) : <div />}
+                                <div className="flex items-center gap-1.5">
+                                  <Link
+                                    to={`/focus?taskId=${ev.raw.id}${ev.subjectId ? `&subjectId=${ev.subjectId}` : ''}`}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors"
+                                    title="Start Focus"
+                                  >
+                                    <PlayCircle className="h-3.5 w-3.5" />
+                                    <span>Start Focus</span>
+                                  </Link>
+                                  <Link
+                                    to={`/tasks?id=${ev.raw.id}`}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-muted hover:text-foreground hover:bg-surface transition-colors"
+                                    title="View Task"
+                                  >
+                                    <ListTodo className="h-3 w-3" />
+                                    <span>View</span>
+                                  </Link>
+                                </div>
                               </div>
                             )}
 
                             {ev.type === 'deadline' && (
-                              <div className="flex items-center gap-1.5 text-rose-300 text-[11px]">
-                                <Timer className="h-3 w-3" />
-                                <span>{ev.urgency?.label || 'Deadline'}</span>
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40">
+                                <div className="flex items-center gap-1.5 text-rose-300 text-[11px]">
+                                  <Timer className="h-3 w-3" />
+                                  <span>{ev.urgency?.label || 'Deadline'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  {ev.subjectId && (
+                                    <Link
+                                      to={`/notes?subjectId=${ev.subjectId}`}
+                                      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-muted hover:text-foreground hover:bg-surface transition-colors"
+                                      title="Subject Notes"
+                                    >
+                                      <BookOpen className="h-3 w-3" />
+                                      <span>Notes</span>
+                                    </Link>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setQuickAddDate(ev.raw.due_date ? ev.raw.due_date.split('T')[0] : selectedDateStr)
+                                      setQuickAddSubjectId(ev.subjectId || '')
+                                      setQuickAddModal({ isOpen: true, type: 'task' })
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                                    title="Schedule Task"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                    <span>Task</span>
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -1144,8 +1238,31 @@ export default function CalendarPage({ initialTab }) {
                         <DeadlineUrgency date={dl.due_date} />
                       </div>
 
-                      {/* Edit / Delete actions */}
+                      {/* Edit / Delete / Link actions */}
                       <div className="flex items-center gap-1 sm:mt-1">
+                        {dl.subject_id && (
+                          <Link
+                            to={`/notes?subjectId=${dl.subject_id}`}
+                            aria-label={`Subject notes for ${dl.title}`}
+                            title="Study Notes for Subject"
+                            className="rounded-md p-1.5 text-muted hover:bg-surface-raised hover:text-foreground transition-colors active:scale-95 cursor-pointer"
+                          >
+                            <BookOpen className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Schedule task for ${dl.title}`}
+                          title="Schedule Task"
+                          onClick={() => {
+                            setQuickAddDate(dl.due_date ? dl.due_date.split('T')[0] : todayStr)
+                            setQuickAddSubjectId(dl.subject_id || '')
+                            setQuickAddModal({ isOpen: true, type: 'task' })
+                          }}
+                          className="rounded-md p-1.5 text-muted hover:bg-accent/10 hover:text-accent transition-colors active:scale-95 cursor-pointer"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           type="button"
                           aria-label={`Edit ${dl.title}`}
