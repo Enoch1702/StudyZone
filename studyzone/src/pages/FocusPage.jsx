@@ -5,11 +5,9 @@ import {
   Bell,
   BookOpen,
   CheckCircle2,
-  Clock,
   Eye,
   FastForward,
   FileText,
-  Flame,
   Headphones,
   Hourglass,
   Layers,
@@ -23,10 +21,9 @@ import {
   Timer,
   Volume2,
   VolumeX,
-  Zap,
 } from 'lucide-react'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
-import { Card, CardHeader, CardTitle, CardDescription } from '../components/ui/Card'
+import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../context/useAuth'
 import { useAudio } from '../context/useAudio'
@@ -38,9 +35,8 @@ import {
   saveActiveFocusState,
   loadActiveFocusState,
   logCompletedFocusSession,
-  getFocusSessionStats,
 } from '../services/focusTimerService'
-import { cn, formatDuration, formatSeconds } from '../lib/utils'
+import { cn, formatSeconds } from '../lib/utils'
 
 export default function FocusPage() {
   const { user } = useAuth()
@@ -128,15 +124,8 @@ export default function FocusPage() {
     () => typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted',
   )
 
-  // ─── Completion Modal & Stats ──────────────────────────────────
+  // ─── Completion Modal & Alerts ────────────────────────────────
   const [completionData, setCompletionData] = useState(null)
-  const [stats, setStats] = useState({
-    todayFocusMinutes: 0,
-    todaySessionsCount: 0,
-    weeklyFocusMinutes: 0,
-    weeklyAvgDurationMinutes: 0,
-    recentSessions: [],
-  })
   const [bannerMessage, setBannerMessage] = useState(null)
 
   const timerIntervalRef = useRef(null)
@@ -147,17 +136,16 @@ export default function FocusPage() {
   const [reflectionInput, setReflectionInput] = useState('')
   const [isUpdatingSession, setIsUpdatingSession] = useState(false)
 
-  // ─── Load Subjects, Tasks, and Stats ───────────────────────────
+  // ─── Load Subjects and Tasks ───────────────────────────────────
   useEffect(() => {
     let isMounted = true
 
     async function loadData() {
       if (!user?.id) return
       try {
-        const [subRes, taskRes, statsRes] = await Promise.all([
+        const [subRes, taskRes] = await Promise.all([
           getSubjects(user.id),
           getTasks(user.id),
-          getFocusSessionStats(user.id),
         ])
 
         if (isMounted) {
@@ -165,7 +153,6 @@ export default function FocusPage() {
           if (taskRes.data) {
             setTasks(taskRes.data.filter((t) => t.status !== 'completed' && t.status !== 'archived'))
           }
-          if (statsRes) setStats(statsRes)
         }
       } catch (err) {
         console.warn('Could not load focus page context:', err)
@@ -327,8 +314,6 @@ export default function FocusPage() {
           intendedMinutes: currentPreset.focusMinutes,
         })
         loggedSessionId = logRes?.data?.id || null
-        const updatedStats = await getFocusSessionStats(user.id)
-        if (updatedStats) setStats(updatedStats)
       }
 
       const isLongBreakDue = cycleIndex >= currentPreset.cyclesBeforeLongBreak
@@ -436,8 +421,6 @@ export default function FocusPage() {
         presetName: currentPreset.name,
         intendedMinutes: currentPreset.focusMinutes,
       })
-      const updatedStats = await getFocusSessionStats(user.id)
-      if (updatedStats) setStats(updatedStats)
 
       setBannerMessage({
         type: 'success',
@@ -589,536 +572,407 @@ export default function FocusPage() {
         }
       />
 
-      {/* Main Focus Control Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Preset, Audio, and Context (4 cols on lg) */}
-        <div className="order-2 lg:order-1 lg:col-span-4 space-y-4">
-          {/* Preset Selector Card */}
-          <Card className="border-border/90 bg-surface shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Zap className="h-4 w-4 text-accent" />
-                Timer Mode
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Select your preferred focus interval.
-              </CardDescription>
-            </CardHeader>
+      {/* Centered Focus Sanctuary Stage */}
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Preset Selector Pill Bar */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 p-1 rounded-xl bg-surface-raised/70 border border-border/80 w-full sm:w-auto">
+            {FOCUS_PRESETS.map((preset) => {
+              const isSelected = selectedPresetId === preset.id
+              const disabled = isRunning && sessionPhase !== 'idle'
 
-            <div className="p-4 pt-0 space-y-2">
-              {FOCUS_PRESETS.map((preset) => {
-                const isSelected = selectedPresetId === preset.id
-                const disabled = isRunning && sessionPhase !== 'idle'
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleSelectPreset(preset.id)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-1.5',
+                    isSelected
+                      ? 'bg-accent text-white shadow-xs font-bold'
+                      : 'text-muted hover:text-foreground hover:bg-surface-raised',
+                  )}
+                >
+                  <span>{preset.name}</span>
+                  <span className={cn('text-[10px] font-mono', isSelected ? 'text-white/80' : 'text-muted')}>
+                    {preset.id === 'custom' ? `${customFocusMinutes}m` : `${preset.focusMinutes}m`}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
 
+          {/* Custom Mode Inputs Drawer (only when custom is selected) */}
+          {selectedPresetId === 'custom' && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full p-3 rounded-xl border border-border/70 bg-surface text-xs">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted block mb-1">
+                  Focus (min)
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="180"
+                  value={customFocusMinutes}
+                  disabled={isRunning}
+                  onChange={(e) => {
+                    const val = Number(e.target.value) || 25
+                    setCustomFocusMinutes(val)
+                    if (sessionPhase === 'idle') {
+                      setRemainingSeconds(val * 60)
+                      setTotalPhaseSeconds(val * 60)
+                    }
+                  }}
+                  className="w-full rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted block mb-1">
+                  Short Break
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={customShortBreakMinutes}
+                  disabled={isRunning}
+                  onChange={(e) => setCustomShortBreakMinutes(Number(e.target.value) || 5)}
+                  className="w-full rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted block mb-1">
+                  Long Break
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="60"
+                  value={customLongBreakMinutes}
+                  disabled={isRunning}
+                  onChange={(e) => setCustomLongBreakMinutes(Number(e.target.value) || 15)}
+                  className="w-full rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider font-semibold text-muted block mb-1">
+                  Cycles
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="8"
+                  value={customCycles}
+                  disabled={isRunning}
+                  onChange={(e) => setCustomCycles(Number(e.target.value) || 4)}
+                  className="w-full rounded-lg border border-border bg-surface-raised px-2 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Centerpiece Timer Arena ─── */}
+        <Card className="relative overflow-hidden border-border/80 bg-surface p-6 sm:p-10 shadow-sm flex flex-col items-center justify-center text-center transition-colors">
+          {/* Cycle Indicator */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-semibold text-muted uppercase tracking-wider">
+              Cycle {cycleIndex} of {currentPreset.cyclesBeforeLongBreak}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: currentPreset.cyclesBeforeLongBreak }).map((_, i) => {
+                const isPast = i + 1 < cycleIndex
+                const isCurrent = i + 1 === cycleIndex
                 return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => handleSelectPreset(preset.id)}
+                  <span
+                    key={i}
                     className={cn(
-                      'flex flex-col w-full text-left rounded-xl p-3 border transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-60',
-                      isSelected
-                        ? 'bg-accent/15 border-accent/50 shadow-2xs'
-                        : 'bg-surface-raised/40 border-border/70 hover:bg-surface-raised hover:border-border',
+                      'h-2 rounded-full transition-all duration-300',
+                      isPast
+                        ? 'w-2 bg-accent'
+                        : isCurrent
+                        ? 'w-5 bg-accent shadow-xs'
+                        : 'w-2 bg-border',
                     )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={cn('text-xs font-bold', isSelected ? 'text-accent' : 'text-foreground')}>
-                        {preset.name}
-                      </span>
-                      <span className="text-[11px] font-mono text-muted">
-                        {preset.id === 'custom' ? `${customFocusMinutes}m` : `${preset.focusMinutes}m`}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted mt-0.5">{preset.description}</p>
-                  </button>
+                  />
                 )
               })}
-
-              {/* Custom Mode Inputs */}
-              {selectedPresetId === 'custom' && (
-                <div className="mt-3 pt-3 border-t border-border/60 space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted">
-                        Focus (min)
-                      </label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="180"
-                        value={customFocusMinutes}
-                        disabled={isRunning}
-                        onChange={(e) => {
-                          const val = Number(e.target.value) || 25
-                          setCustomFocusMinutes(val)
-                          if (sessionPhase === 'idle') {
-                            setRemainingSeconds(val * 60)
-                            setTotalPhaseSeconds(val * 60)
-                          }
-                        }}
-                        className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted">
-                        Break (min)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        value={customShortBreakMinutes}
-                        disabled={isRunning}
-                        onChange={(e) => setCustomShortBreakMinutes(Number(e.target.value) || 5)}
-                        className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted">
-                        Long Break (min)
-                      </label>
-                      <input
-                        type="number"
-                        min="5"
-                        max="60"
-                        value={customLongBreakMinutes}
-                        disabled={isRunning}
-                        onChange={(e) => setCustomLongBreakMinutes(Number(e.target.value) || 15)}
-                        className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-muted">
-                        Cycles
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="8"
-                        value={customCycles}
-                        disabled={isRunning}
-                        onChange={(e) => setCustomCycles(Number(e.target.value) || 4)}
-                        className="mt-1 w-full rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-foreground focus:border-accent focus:outline-hidden"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-          </Card>
+          </div>
 
-          {/* Ambient Noise Generator Card */}
-          <Card className="border-border/90 bg-surface shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Headphones className="h-4 w-4 text-purple-400" />
-                  <span>Synthesized Ambient Sound</span>
-                </div>
-                {ambientPreset !== 'off' && isAudioPlaying && (
-                  <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-ping" />
-                )}
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Pure Web Audio generated soundscapes — persistent across your entire session.
-              </CardDescription>
-            </CardHeader>
+          {/* Radial SVG Progress Ring & Countdown Display */}
+          <div className="relative flex items-center justify-center my-2">
+            <svg className="w-72 h-72 sm:w-84 sm:h-84 -rotate-90 transform" viewBox="0 0 300 300">
+              {/* Background Circle */}
+              <circle
+                cx="150"
+                cy="150"
+                r={radius}
+                className="stroke-border/40"
+                strokeWidth="10"
+                fill="transparent"
+              />
+              {/* Progress Dynamic Ring */}
+              <circle
+                cx="150"
+                cy="150"
+                r={radius}
+                stroke={
+                  sessionPhase === 'short_break'
+                    ? '#38bdf8'
+                    : sessionPhase === 'long_break'
+                    ? '#a855f7'
+                    : '#4f7cff'
+                }
+                strokeWidth="10"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+                className="transition-all duration-500 ease-out"
+              />
+            </svg>
 
-            <div className="p-4 pt-0 space-y-3">
-              <div className="grid grid-cols-2 gap-1.5">
-                {ambientPresetsList.map((preset) => {
-                  const isCurrent = ambientPreset === preset.id
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => playPreset(preset.id)}
-                      className={cn(
-                        'rounded-xl p-2 text-left border transition-all text-xs font-semibold cursor-pointer flex items-center justify-between gap-1',
-                        isCurrent && ambientPreset !== 'off'
-                          ? 'bg-purple-500/15 border-purple-500/50 text-purple-300 shadow-2xs'
-                          : isCurrent && preset.id === 'off'
-                          ? 'bg-surface-raised border-border text-foreground font-bold'
-                          : 'bg-surface-raised/40 border-border/70 hover:bg-surface-raised text-muted hover:text-foreground',
-                      )}
-                    >
-                      <span className="truncate">{preset.name}</span>
-                      {isCurrent && ambientPreset !== 'off' && isAudioPlaying && (
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse shrink-0" />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+            {/* Center Digital Countdown & Meta */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-4">
+              <span className="font-mono text-5xl sm:text-6xl font-bold tracking-tight text-foreground tabular-nums drop-shadow-xs">
+                {formatSeconds(remainingSeconds)}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted mt-1.5">
+                {sessionPhase === 'idle'
+                  ? 'Ready to focus'
+                  : sessionPhase === 'focus'
+                  ? isPaused
+                    ? 'Session Paused'
+                    : 'Focus Time'
+                  : sessionPhase === 'short_break'
+                  ? 'Short Break'
+                  : 'Long Break'}
+              </span>
 
-              {/* Volume Slider */}
-              {ambientPreset !== 'off' && (
-                <div className="pt-2 border-t border-border/60 flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = ambientVolume === 0 ? 0.4 : 0
-                      setAudioVolume(next)
-                    }}
-                    className="text-muted hover:text-foreground transition-colors cursor-pointer"
-                  >
-                    {ambientVolume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={ambientVolume}
-                    onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
-                    className="w-full accent-purple-400 cursor-pointer h-1.5 bg-surface-raised rounded-lg"
-                  />
-                  <span className="text-[10px] font-mono text-muted w-8 text-right">
-                    {Math.round(ambientVolume * 100)}%
+              {/* Linked Subject / Task pill in center */}
+              {(selectedSubjectId || selectedTaskId) && (
+                <div className="mt-2.5 flex items-center gap-1.5 rounded-full bg-surface-raised border border-border px-3 py-1 text-[11px] text-muted max-w-[220px] truncate shadow-2xs">
+                  <BookOpen className="h-3 w-3 shrink-0 text-accent" />
+                  <span className="truncate">
+                    {tasks.find((t) => t.id === selectedTaskId)?.title ||
+                      subjects.find((s) => s.id === selectedSubjectId)?.name}
                   </span>
                 </div>
               )}
             </div>
-          </Card>
+          </div>
 
-          {/* Optional Linked Context (Subject & Task) */}
-          <Card className="border-border/90 bg-surface shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Layers className="h-4 w-4 text-accent" />
-                Linked Subject & Task
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Optionally link your study session to aggregate focus time.
-              </CardDescription>
-            </CardHeader>
-
-            <div className="p-4 pt-0 space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-muted block mb-1">
-                  Subject / Area
-                </label>
-                <select
-                  value={selectedSubjectId}
-                  disabled={isRunning}
-                  onChange={(e) => {
-                    setSelectedSubjectId(e.target.value)
-                    setSelectedTaskId('')
-                  }}
-                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer disabled:opacity-60"
-                >
-                  <option value="">No specific subject (General Study)</option>
-                  {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-muted block mb-1">
-                  Task
-                </label>
-                <select
-                  value={selectedTaskId}
-                  disabled={isRunning}
-                  onChange={(e) => setSelectedTaskId(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer disabled:opacity-60"
-                >
-                  <option value="">No linked task</option>
-                  {availableTasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Right Column: Distraction-Free Radial Timer Centerpiece (8 cols on lg) */}
-        <div className="order-1 lg:order-2 lg:col-span-8 space-y-6">
-          <Card className="relative overflow-hidden border-border/90 bg-gradient-to-b from-surface to-surface-raised p-6 sm:p-10 shadow-xl flex flex-col items-center justify-center text-center">
-            {/* Cycle Dots Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-                Cycle {cycleIndex} of {currentPreset.cyclesBeforeLongBreak}
-              </span>
-              <div className="flex items-center gap-1.5">
-                {Array.from({ length: currentPreset.cyclesBeforeLongBreak }).map((_, i) => {
-                  const isPast = i + 1 < cycleIndex
-                  const isCurrent = i + 1 === cycleIndex
-                  return (
-                    <span
-                      key={i}
-                      className={cn(
-                        'h-2.5 rounded-full transition-all duration-300',
-                        isPast
-                          ? 'w-2.5 bg-accent'
-                          : isCurrent
-                          ? 'w-6 bg-accent shadow-xs'
-                          : 'w-2.5 bg-border',
-                      )}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Radial SVG Progress Ring & Countdown Display */}
-            <div className="relative flex items-center justify-center my-2">
-              <svg className="w-72 h-72 sm:w-80 sm:h-80 -rotate-90 transform" viewBox="0 0 300 300">
-                {/* Background Circle */}
-                <circle
-                  cx="150"
-                  cy="150"
-                  r={radius}
-                  className="stroke-border/40"
-                  strokeWidth="12"
-                  fill="transparent"
-                />
-                {/* Progress Dynamic Ring */}
-                <circle
-                  cx="150"
-                  cy="150"
-                  r={radius}
-                  stroke={
-                    sessionPhase === 'short_break'
-                      ? '#38bdf8'
-                      : sessionPhase === 'long_break'
-                      ? '#a855f7'
-                      : '#4f7cff'
-                  }
-                  strokeWidth="12"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  fill="transparent"
-                  className="transition-all duration-500 ease-out"
-                />
-              </svg>
-
-              {/* Center Digital Countdown & Meta */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-mono text-5xl sm:text-6xl font-extrabold tracking-tight text-foreground tabular-nums drop-shadow-sm">
-                  {formatSeconds(remainingSeconds)}
-                </span>
-                <span className="text-xs sm:text-sm font-semibold uppercase tracking-widest text-muted mt-2">
-                  {sessionPhase === 'idle'
-                    ? 'Ready to focus'
-                    : sessionPhase === 'focus'
-                    ? isPaused
-                      ? 'Paused'
-                      : 'Focus Time'
-                    : sessionPhase === 'short_break'
-                    ? 'Short Break'
-                    : 'Long Break'}
-                </span>
-
-                {/* Linked Subject / Task pill in center */}
-                {(selectedSubjectId || selectedTaskId) && (
-                  <div className="mt-2 flex items-center gap-1.5 rounded-full bg-surface-raised/80 border border-border px-3 py-1 text-[11px] text-muted max-w-[200px] truncate">
-                    <BookOpen className="h-3 w-3 shrink-0 text-accent" />
-                    <span className="truncate">
-                      {tasks.find((t) => t.id === selectedTaskId)?.title ||
-                        subjects.find((s) => s.id === selectedSubjectId)?.name}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Timer Control Buttons */}
-            <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8 w-full max-w-md">
-              {!isRunning ? (
+          {/* Timer Control Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-6 w-full max-w-sm">
+            {!isRunning ? (
+              <Button
+                type="button"
+                size="lg"
+                onClick={handleStart}
+                className="gap-2 px-8 py-3 text-sm font-bold shadow-md shadow-accent/20 cursor-pointer w-full sm:w-auto"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                <span>{sessionPhase === 'idle' ? 'Start Focus Session' : 'Start Timer'}</span>
+              </Button>
+            ) : isPaused ? (
+              <>
                 <Button
                   type="button"
                   size="lg"
-                  onClick={handleStart}
-                  className="gap-2.5 px-8 py-3 text-sm font-bold shadow-lg shadow-accent/20 cursor-pointer"
+                  onClick={handleResume}
+                  className="gap-2 px-6 py-2.5 font-bold cursor-pointer"
                 >
                   <Play className="h-4 w-4 fill-current" />
-                  <span>{sessionPhase === 'idle' ? 'Start Focus Session' : 'Start Timer'}</span>
+                  <span>Resume</span>
                 </Button>
-              ) : isPaused ? (
-                <>
-                  <Button
-                    type="button"
-                    size="lg"
-                    onClick={handleResume}
-                    className="gap-2 px-6 py-2.5 font-bold cursor-pointer"
-                  >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>Resume</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="lg"
-                    onClick={handleEndEarlyAndLog}
-                    className="gap-2 px-4 py-2.5 cursor-pointer"
-                  >
-                    <Square className="h-4 w-4" />
-                    <span>End & Log</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    onClick={handleReset}
-                    className="gap-1.5 px-3 py-2.5 text-muted hover:text-danger cursor-pointer"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    <span>Reset</span>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="lg"
-                    onClick={handlePause}
-                    className="gap-2 px-6 py-2.5 font-bold cursor-pointer"
-                  >
-                    <Pause className="h-4 w-4" />
-                    <span>Pause</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    onClick={handleEndEarlyAndLog}
-                    className="gap-2 px-4 py-2.5 cursor-pointer text-muted hover:text-foreground"
-                  >
-                    <Square className="h-4 w-4" />
-                    <span>End Early</span>
-                  </Button>
-                </>
-              )}
-
-              {/* Fast Forward Break Button */}
-              {isBreakPhase && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  onClick={handleEndEarlyAndLog}
+                  className="gap-2 px-4 py-2.5 cursor-pointer text-xs"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  <span>End & Log</span>
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  onClick={handleStartNextFocusCycle}
-                  className="gap-1.5 text-xs text-muted hover:text-accent cursor-pointer"
+                  size="lg"
+                  onClick={handleReset}
+                  className="gap-1.5 px-3 py-2.5 text-xs text-muted hover:text-danger cursor-pointer"
                 >
-                  <FastForward className="h-3.5 w-3.5" />
-                  <span>Skip Break</span>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset</span>
                 </Button>
-              )}
+              </>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  onClick={handlePause}
+                  className="gap-2 px-6 py-2.5 font-bold cursor-pointer"
+                >
+                  <Pause className="h-4 w-4" />
+                  <span>Pause</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={handleEndEarlyAndLog}
+                  className="gap-2 px-4 py-2.5 cursor-pointer text-xs text-muted hover:text-foreground"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  <span>End Early</span>
+                </Button>
+              </>
+            )}
+
+            {/* Fast Forward Break Button */}
+            {isBreakPhase && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleStartNextFocusCycle}
+                className="gap-1.5 text-xs text-muted hover:text-accent cursor-pointer"
+              >
+                <FastForward className="h-3.5 w-3.5" />
+                <span>Skip Break</span>
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        {/* ─── Integrated Session Environment Dock ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Context Linking (Subject & Task) */}
+          <div className="rounded-xl border border-border/80 bg-surface p-4 space-y-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Layers className="h-3.5 w-3.5 text-accent" />
+              <span>Session Focus Area</span>
             </div>
-          </Card>
 
-          {/* Today & Weekly Focus Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-            <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-              <div className="flex items-center gap-2 text-muted mb-1">
-                <Clock className="h-3.5 w-3.5 text-accent" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Today Focus</span>
-              </div>
-              <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {formatDuration(stats.todayFocusMinutes)}
-              </p>
-            </Card>
+            <div className="space-y-2">
+              <select
+                value={selectedSubjectId}
+                disabled={isRunning}
+                onChange={(e) => {
+                  setSelectedSubjectId(e.target.value)
+                  setSelectedTaskId('')
+                }}
+                className="w-full rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer disabled:opacity-60"
+              >
+                <option value="">General Study (No Subject)</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
 
-            <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-              <div className="flex items-center gap-2 text-muted mb-1">
-                <Flame className="h-3.5 w-3.5 text-orange-400" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Sessions</span>
-              </div>
-              <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {stats.todaySessionsCount} completed
-              </p>
-            </Card>
-
-            <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-              <div className="flex items-center gap-2 text-muted mb-1">
-                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">This Week</span>
-              </div>
-              <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {formatDuration(stats.weeklyFocusMinutes)}
-              </p>
-            </Card>
-
-            <Card className="p-3.5 bg-surface border-border/80 shadow-xs">
-              <div className="flex items-center gap-2 text-muted mb-1">
-                <Hourglass className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-[11px] font-medium uppercase tracking-wider">Avg Session</span>
-              </div>
-              <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                {stats.weeklyAvgDurationMinutes}m
-              </p>
-            </Card>
+              <select
+                value={selectedTaskId}
+                disabled={isRunning}
+                onChange={(e) => setSelectedTaskId(e.target.value)}
+                className="w-full rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-xs text-foreground focus:border-accent focus:outline-hidden cursor-pointer disabled:opacity-60"
+              >
+                <option value="">No linked task</option>
+                {availableTasks.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] text-muted">
+              Focus time will be attributed to this knowledge container.
+            </p>
           </div>
 
-          {/* Recent Focus History Table */}
-          <Card className="border-border/90 bg-surface shadow-md">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted" />
-                Recent Focus Sessions
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Verified focus sessions logged into your StudyZone history.
-              </CardDescription>
-            </CardHeader>
-
-            <div className="p-4 pt-0">
-              {stats.recentSessions.length === 0 ? (
-                <div className="py-8 text-center text-xs text-muted">
-                  No focus sessions logged this week. Start a session above to build momentum!
-                </div>
-              ) : (
-                <div className="divide-y divide-border/40">
-                  {stats.recentSessions.map((session) => {
-                    const subName = subjects.find((s) => s.id === session.subject_id)?.name
-                    const taskTitle = tasks.find((t) => t.id === session.task_id)?.title
-
-                    return (
-                      <div
-                        key={session.id}
-                        className="flex items-center justify-between py-2.5 text-xs text-foreground"
-                      >
-                        <div className="min-w-0 flex-1 pr-3">
-                          <p className="font-semibold truncate">
-                            {session.notes || 'Focus Study Session'}
-                          </p>
-                          <p className="text-[11px] text-muted truncate mt-0.5">
-                            {subName || 'General'} {taskTitle ? `· ${taskTitle}` : ''}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-mono font-bold text-accent">
-                            {formatDuration(session.duration_minutes)}
-                          </span>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {session.started_at
-                              ? new Date(session.started_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : ''}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+          {/* Ambient Soundscapes */}
+          <div className="rounded-xl border border-border/80 bg-surface p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                <Headphones className="h-3.5 w-3.5 text-purple-400" />
+                <span>Ambient Soundscape</span>
+              </div>
+              {ambientPreset !== 'off' && isAudioPlaying && (
+                <span className="flex h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
               )}
             </div>
-          </Card>
+
+            {/* Ambient Presets Pills */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {ambientPresetsList.map((preset) => {
+                const isCurrent = ambientPreset === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => playPreset(preset.id)}
+                    className={cn(
+                      'rounded-lg px-2 py-1.5 text-center border transition-all text-[11px] font-medium cursor-pointer truncate',
+                      isCurrent && ambientPreset !== 'off'
+                        ? 'bg-purple-500/15 border-purple-500/50 text-purple-400 font-bold'
+                        : isCurrent && preset.id === 'off'
+                        ? 'bg-surface-raised border-border text-foreground font-bold'
+                        : 'bg-surface-raised/40 border-border/60 hover:bg-surface-raised text-muted hover:text-foreground',
+                    )}
+                  >
+                    {preset.name}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Volume Slider */}
+            {ambientPreset !== 'off' && (
+              <div className="pt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = ambientVolume === 0 ? 0.4 : 0
+                    setAudioVolume(next)
+                  }}
+                  className="text-muted hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {ambientVolume === 0 ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                </button>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={ambientVolume}
+                  onChange={(e) => setAudioVolume(parseFloat(e.target.value))}
+                  className="w-full accent-purple-400 cursor-pointer h-1.5 bg-surface-raised rounded-lg"
+                />
+                <span className="text-[10px] font-mono text-muted w-7 text-right">
+                  {Math.round(ambientVolume * 100)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Subtle Retrospective Link */}
+        <div className="text-center pt-2">
+          <p className="text-xs text-muted">
+            Completed focus sessions automatically log to your study record.{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/analytics')}
+              className="text-accent hover:underline font-semibold cursor-pointer"
+            >
+              View Learning Insights →
+            </button>
+          </p>
         </div>
       </div>
 

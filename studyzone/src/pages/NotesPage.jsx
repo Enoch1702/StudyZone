@@ -32,7 +32,6 @@ import {
   X,
 } from 'lucide-react'
 import { PageContainer, PageHeader } from '../components/layout/PageContainer'
-import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
@@ -624,23 +623,25 @@ ${editorContent.trim().slice(0, 6000)}`
   // ───────────────────────────────────────────────────────────────
   return (
     <PageContainer width="wide" className="space-y-4 pb-12">
-      {/* Top Header */}
-      <PageHeader
-        title="Study Notes"
-        description="Capture knowledge, write markdown, and understand with AI study tools."
-        icon={FileText}
-        actions={
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => handleCreateNote()}
-            className="gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>New Note</span>
-          </Button>
-        }
-      />
+      {/* Top Header (Adapts on mobile: recedes when editing a note) */}
+      <div className={cn(activeNoteId ? 'hidden lg:block' : 'block')}>
+        <PageHeader
+          title="Study Notes"
+          description="Capture knowledge, write markdown, and understand with AI study tools."
+          icon={FileText}
+          actions={
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleCreateNote()}
+              className="gap-1.5"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>New Note</span>
+            </Button>
+          }
+        />
+      </div>
 
       {fetchError && (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-danger/30 bg-danger/10 p-3 text-xs text-danger">
@@ -813,7 +814,7 @@ ${editorContent.trim().slice(0, 6000)}`
           )}
         >
           {activeNoteId ? (
-            <Card className="border-border/90 bg-surface shadow-md p-5 sm:p-6 space-y-4 min-h-[580px] flex flex-col justify-between">
+            <div className="rounded-2xl border border-border/80 bg-surface shadow-xs p-4 sm:p-6 space-y-4 min-h-[600px] flex flex-col justify-between transition-colors">
               <div className="space-y-3.5">
                 {/* Top Controls Strip */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
@@ -1188,10 +1189,10 @@ ${editorContent.trim().slice(0, 6000)}`
                         triggerAutoSave({ content: e.target.value })
                       }}
                       placeholder="Start writing what you learned today..."
-                      className="w-full min-h-[420px] resize-y rounded-xl border border-border bg-surface-raised/40 p-4 font-mono text-sm text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
+                      className="w-full min-h-[440px] resize-y rounded-xl border border-border/70 bg-surface-raised/30 p-4 font-sans text-sm sm:text-base text-foreground focus:border-accent focus:outline-hidden leading-relaxed"
                     />
                   ) : (
-                    <div className="w-full min-h-[420px] rounded-xl border border-border bg-surface-raised/20 p-5 overflow-y-auto max-h-[600px]">
+                    <div className="w-full min-h-[440px] rounded-xl border border-border/70 bg-surface-raised/20 p-5 overflow-y-auto max-h-[600px]">
                       <MarkdownPreview content={editorContent || '*No content yet. Switch to Edit to write your notes.*'} />
                     </div>
                   )}
@@ -1205,7 +1206,7 @@ ${editorContent.trim().slice(0, 6000)}`
                   Last modified {activeNote?.updatedAt ? formatDate(activeNote.updatedAt) : 'Just now'}
                 </span>
               </div>
-            </Card>
+            </div>
           ) : (
             /* Empty Canvas Placeholder */
             <div className="rounded-2xl border border-dashed border-border bg-surface-raised/30 p-12 text-center min-h-[580px] flex flex-col items-center justify-center space-y-3">
