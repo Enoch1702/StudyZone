@@ -60,55 +60,58 @@ export function WeeklySummaryStrip({ loading, sessions = [], tasks = [] }) {
 
   return (
     <motion.div variants={fadeUp} initial="hidden" animate="visible" className="w-full">
-      <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:px-6 sm:py-3.5 border-border/80 bg-surface shadow-xs">
-        {/* Left: Title & Inline Metric Pills */}
-        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+      <Card className="flex flex-col p-5 border-border/80 bg-surface shadow-xs space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-accent">
               <TrendingUp className="h-4 w-4" />
             </div>
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted">
-                Overview
+                Momentum
               </span>
               <h4 className="text-xs sm:text-sm font-bold text-foreground">
-                This Week
+                This Week&apos;s Progress
               </h4>
             </div>
           </div>
 
-          <div className="h-6 w-px bg-border hidden sm:block" aria-hidden="true" />
-
-          {/* Metric 1: Study Time */}
-          <div className="flex items-center gap-2 text-xs">
-            <Clock className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-            <span className="text-muted text-[11px]">Study Time:</span>
-            <span className="font-bold text-foreground">{summary.studyTimeStr}</span>
-          </div>
-
-          {/* Metric 2: Active Days */}
-          <div className="flex items-center gap-2 text-xs">
-            <CalendarDays className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
-            <span className="text-muted text-[11px]">Active Days:</span>
-            <span className="font-bold text-foreground">{summary.activeDays}</span>
-          </div>
-
-          {/* Metric 3: Tasks Completed */}
-          <div className="flex items-center gap-2 text-xs">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-            <span className="text-muted text-[11px]">Tasks Completed:</span>
-            <span className="font-bold text-foreground">{summary.tasksCompleted}</span>
-          </div>
+          <Link
+            to="/analytics"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline shrink-0 group cursor-pointer"
+          >
+            <span>Insights</span>
+            <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
         </div>
 
-        {/* Right: Link to Retrospective Analytics */}
-        <Link
-          to="/analytics"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-accent hover:text-accent/80 transition-colors shrink-0 group self-end sm:self-center cursor-pointer"
-        >
-          <span>View Learning Insights</span>
-          <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </Link>
+        {/* 3 Stats Grid */}
+        <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/60">
+          <div className="flex flex-col p-2.5 rounded-lg bg-surface-raised/40 border border-border/40 text-center sm:text-left">
+            <div className="flex items-center gap-1.5 text-muted text-[11px] mb-1">
+              <Clock className="h-3 w-3 text-blue-500 shrink-0" />
+              <span className="truncate">Time</span>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-foreground truncate">{summary.studyTimeStr}</span>
+          </div>
+
+          <div className="flex flex-col p-2.5 rounded-lg bg-surface-raised/40 border border-border/40 text-center sm:text-left">
+            <div className="flex items-center gap-1.5 text-muted text-[11px] mb-1">
+              <CalendarDays className="h-3 w-3 text-indigo-500 shrink-0" />
+              <span className="truncate">Days</span>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-foreground truncate">{summary.activeDays}</span>
+          </div>
+
+          <div className="flex flex-col p-2.5 rounded-lg bg-surface-raised/40 border border-border/40 text-center sm:text-left">
+            <div className="flex items-center gap-1.5 text-muted text-[11px] mb-1">
+              <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+              <span className="truncate">Done</span>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-foreground truncate">{summary.tasksCompleted}</span>
+          </div>
+        </div>
       </Card>
     </motion.div>
   )

@@ -116,10 +116,10 @@ export default function DashboardPage() {
         <SmartNextActionCard action={smartNextAction} />
       )}
 
-      {/* ─── Actionable Learning Workspace Hub (Sections 3, 4, 5) ─── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-        {/* Left Column: Immediate Task Action & Notes */}
-        <div className="space-y-6">
+      {/* ─── Actionable Learning Workspace Hub (Sections 3, 4, 5, 6) ─── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
+        {/* Primary Left Column: Immediate Task Action & Notes (7 cols lg / 8 cols xl) */}
+        <div className="space-y-6 lg:col-span-7 xl:col-span-8">
           {/* ─── 3. Today's Focus ─────────────────────────────── */}
           <TodaysFocus
             loading={loading}
@@ -136,19 +136,19 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Right Column: Quick Focus Timer Launcher */}
-        <div className="space-y-6">
+        {/* Supporting Right Column: Quick Focus & Weekly Momentum (5 cols lg / 4 cols xl) */}
+        <div className="space-y-6 lg:col-span-5 xl:col-span-4">
           {/* ─── 4. Quick Focus ───────────────────────────────── */}
           <QuickFocusCard />
+
+          {/* ─── 6. Weekly Summary Strip ────────────────────────── */}
+          <WeeklySummaryStrip
+            loading={loading}
+            sessions={dashData?.sessions ?? []}
+            tasks={dashData?.tasks ?? []}
+          />
         </div>
       </div>
-
-      {/* ─── 6. Weekly Summary Strip ────────────────────────── */}
-      <WeeklySummaryStrip
-        loading={loading}
-        sessions={dashData?.sessions ?? []}
-        tasks={dashData?.tasks ?? []}
-      />
     </PageContainer>
   )
 }
